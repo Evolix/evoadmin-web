@@ -1,0 +1,166 @@
+
+/**
+ * Feuille de style
+ *
+ * copyright (c) 2009 evolix - tous droits reserves
+ *
+ * $id: index.php 3 2009-04-28 08:43:39z tmartin $
+ * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
+ *
+ * @author Thomas Martin <tmartin@evolix.fr>
+ * @version 1.0
+ */
+
+body {
+    background-color: white;
+    color: black;
+    font-size: small;
+    font-family: "Lucida Grande", Helvetica, Arial, Verdana, sans-serif;
+    margin: 0;
+}
+
+div#main {
+    text-align: center;
+}
+
+h1#top {
+    background-color: blue;
+    margin: 0;
+    color: white;
+    margin-bottom: 10px;
+}
+
+div#disclaimer {
+   margin-top: 30px;
+}
+
+ul#menu li {
+    list-style-type: none;
+    float: left;
+    margin-right: 10px;
+}
+
+ul#menu {
+    margin: auto;
+    margin-bottom: 30px;
+}
+
+a {
+    color: blue;
+    text-decoration: underline;
+}
+
+/* Tableaux "liste" */
+
+table#tab-list {
+    border-collapse: collapse;
+    margin: auto;
+    width: 70%;
+}
+
+table#tab-list tr:hover {
+    background-color: blue;
+    color: white;
+}
+
+table#tab-list tr:hover a {
+    background-color: blue;
+    color: white;
+}
+
+
+table#tab-list th {
+    border: 1px black solid;
+    background-color: blue;
+    color: white;
+}
+
+table#tab-list td {
+    border: 1px black solid;
+}
+
+div#disclaimer {
+    border-top: 1px blue solid;
+    padding-top: 5px;
+}
+
+td.auth-error {
+    color: red;
+}
+
+p.form-error {
+    color: red;
+}
+
+fieldset {
+    width: 50%;
+    margin: auto;
+    border: 1px blue solid;
+}
+
+fieldset dl {
+}
+
+fieldset dt {
+    text-align: right;
+    float: left;
+    width: 45%;
+    padding-right: 10px;
+}
+
+fieldset dd {
+    text-align: left;
+}
+
+p label {
+    position: absolute;
+    text-align:right;
+    width:300px;
+}
+
+p input  {
+    margin-left: 310px;
+}
+
+p select {
+    margin-left: 310px;
+}
+
+p textarea  {
+    margin-left: 310px;
+}
+
+span.form-error {
+    color: red;
+    margin-left: 4px;
+}
+
+span.form-mandatory {
+    color: red;
+}
+
+span.form-mandatory-ok {
+    color: #900000;
+}
+
+/* Formulaires d'ajout d'objets */
+
+form#form-add {
+    margin: auto;
+}
+
+form#form-add fieldset {
+    width: 69%;
+    border: 1px black solid;
+}
+
+form#form-add legend {
+    border: 1px black solid;
+    background-color: blue;
+    color: white;
+}
+
+form#form-add p {
+    text-align: left;
+}
+

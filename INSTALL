@@ -1,0 +1,3 @@
+* Ajouter l'utilisateur qui fait tourner l'application dans le groupe shadow
+* Ajouter les autorisations sudo nécessaires
+* Désactiver les magic quotes de PHP

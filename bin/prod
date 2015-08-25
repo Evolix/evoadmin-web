@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Pré-requis pour utiliser ce script :
+# * Evoadmin-web est installé dans /home/evoadmin/www
+# * Etre loggué avec le compte evoadmin (sudo su evoadmin)
+
+# Note : Ce script utilise une connexion SVN anonyme pour récupérer le code source
+# Note : Ce script ne met *pas* en prod les scripts dans /usr/share/scripts
+
+SVNREPO="svn://svn.evolix.org/svn/packweb/trunk/evoadmin"
+
+tmpdir=`mktemp -d $HOME/tmp.XXXXXX`
+svn export --force $SVNREPO $tmpdir
+svn info $SVNREPO >$tmpdir/svn.txt
+rsync -rlvt --delete --exclude config.local.php $tmpdir/ /home/evoadmin/www
+rm -rf $tmpdir
+svn info $SVNREPO | mail -s "Mise en prod Evoadmin ($HOSTNAME)" root
+
