@@ -42,7 +42,7 @@ function domain_add($name, $IP, $with_mxs, $gmail=false) {
             $exec_cmd .= ' -m mail,10';
             $exec_cmd .= ' -m backup.quai13.net.,20';
         }
-        mail("$conf['techmail']", '[TAF] Ajouter '.$name.' sur le serveur de mail', wordwrap('Ajouter le domaine '.$name.' à la directive relay_domains dans le fichier /etc/postfix/main.cf sur le serveur mail, pour mettre en place le MX secondaire du domaine.', 70));
+        mail($conf['techmail'], '[TAF] Ajouter '.$name.' sur le serveur de mail', wordwrap('Ajouter le domaine '.$name.' à la directive relay_domains dans le fichier /etc/postfix/main.cf sur le serveur mail, pour mettre en place le MX secondaire du domaine.', 70));
     }
 
     $exec_cmd .= " -a $IP $name";
