@@ -439,7 +439,7 @@ op_aliasadd() {
         vhost=$1
         alias=$2
 
-        [ -f $VHOST_PATH/$vhost ] && sed -i -e "s/\(ServerName .*\)/\1\n\tServerAlias $alias/" $VHOST_PATH/$vhost
+        [ -f $VHOST_PATH/$vhost ] && sed -i -e "s/\(ServerName .*\)/\1\n\tServerAlias $alias/" $VHOST_PATH/$vhost --follow-symlinks
 
 	    apache2ctl configtest 2>/dev/null
 	    /etc/init.d/apache2 force-reload >/dev/null
@@ -453,7 +453,7 @@ op_aliasdel() {
         vhost=$1
         alias=$2
 
-        [ -f $VHOST_PATH/$vhost ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/$vhost
+        [ -f $VHOST_PATH/$vhost ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/$vhost --follow-symlinks
 
 	    apache2ctl configtest 2>/dev/null
 	    /etc/init.d/apache2 force-reload >/dev/null
