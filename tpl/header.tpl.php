@@ -35,9 +35,18 @@
         <?php
             if(!empty($_SESSION['user'])) {
                 print ' - '.$_SESSION['user'];
-            }
-            if(is_superadmin()) {
-                print ' (Administrateur)';
+
+                if(is_superadmin()) {
+                    print ' (Administrateur)';
+                }
+                if (is_mcluster_mode()) {
+                    if (!empty($_SESSION['cluster'])) {
+                        print ' - '.$_SESSION['cluster'];
+                    }
+                    else {
+                        print ' - Aucun cluster sélectionné !';
+                    }
+                }
             }
         ?>
     </h1>

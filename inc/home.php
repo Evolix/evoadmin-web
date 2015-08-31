@@ -13,6 +13,22 @@
  * @version 1.0
  */
 
+require_once EVOADMIN_BASE . '../evolibs/Form.php';
+
+if (is_mcluster_mode()) {
+    $form = new FormPage("Sélection du cluster", FALSE);
+    $form->addField('cluster_name', new SelectFormField('cluster', FALSE, $conf['clusters']));
+
+    if (!empty($_POST)) {
+        $form->isCurrentPage(TRUE);
+        $form->initFields();
+
+        if ($form->verify(TRUE)) {
+            $_SESSION['cluster'] = $form->getField('cluster_name')->getReadableValue();
+        }
+    }
+}
+
 include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
 include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 include_once EVOADMIN_BASE . '../tpl/home.tpl.php';

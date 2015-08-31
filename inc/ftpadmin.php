@@ -182,14 +182,14 @@ if ($action=="add") {
    
     foreach ($account_list as $account) {
  
-        $infos = split(':', $account); 
+        $infos = explode(':', $account); 
          
   
         if (!empty($infos[0])) {
             $table[$num_line]['owner'] = $infos[0];
             $table[$num_line]['name'] = $infos[1];
             
-            $path = split("/", $infos[2]);
+            $path = explode("/", $infos[2]);
             $rel_path='';
             foreach($path as $id => $folder) {
               if ($id>2) $rel_path.='/'.$folder;

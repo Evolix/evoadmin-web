@@ -16,8 +16,8 @@
 set -e
 
 HOME="/root"
-CONTACT_MAIL=""
-WWWBOUNCE_MAIL=""
+CONTACT_MAIL="jdoe@example.org"
+WWWBOUNCE_MAIL="jdoe@example.org"
 LOCAL_SCRIPT="/usr/share/scripts/web-add.local.sh"
 PRE_LOCAL_SCRIPT="/usr/share/scripts/web-add.pre-local.sh"
 TPL_VHOST="/usr/share/scripts/vhost"

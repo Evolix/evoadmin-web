@@ -27,19 +27,7 @@ $oriconf['cache'] = '/home/evoadmin/www/cache.sqlite';
 $localconf['known_host'] = '/home/evoadmin/www/known_host';
 $oriconf['ftpadmin'] = TRUE;
 
-/* cluster mode
- * $oriconf['noreplication'] = array('www00');
- * $oriconf['postponedreplication'] = array('www00', 'www01');
- * $oriconf['immediatereplication'] = array('www00', 'www01');
- * $oriconf['postponedreplication_mode'] = array('3 fois/jour', '1 fois/jour', '1 fois/heure');
- */
-
-/* Il est possible de définir pour chaque mode de
- * postponedreplication_mode une liste de serveurs,
- * qui seront utilisés à la place des serveurs du 
- * tableau postponedreplication.
- *
- * $localconf['1 fois/jour'] = array('www00', 'www01');
- * $localconf['1 fois/heure'] = array('www01', 'www00'); 
- */
-
+$oriconf['noreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
+$oriconf['postponedreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
+$oriconf['immediatereplication'] = array('srv00.example.com', 'srv01.example.com');
+$oriconf['postponedreplication_mode'] = array('1 fois/jour', '3 fois/jour', '1 fois/jour');

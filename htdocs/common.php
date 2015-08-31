@@ -34,7 +34,7 @@ function http_redirect($path) {
 function findexts ($filename)
 {
     $filename = strtolower($filename) ;
-    $exts = split("[/\\.]", $filename) ;
+    $exts = explode("[/\\.]", $filename) ;
     $n = count($exts)-1;
     $exts = $exts[$n];
     return $exts;
@@ -49,7 +49,7 @@ function is_superadmin() {
     }
 }
 
-function sudoexec($cmd, &$output, &$return_var) {
+function sudoexec($cmd, $output, $return_var) {
     global $conf;
 
     /* -H  The -H (HOME) option sets the HOME environment variable to the
@@ -58,6 +58,33 @@ function sudoexec($cmd, &$output, &$return_var) {
     $cmd = sprintf('sudo -H %s/%s', $conf['script_path'], $cmd);
 
     exec($cmd, $output, $return_var);
+}
+
+/**
+ * Return TRUE is Evoadmin is installed in cluster mode.
+ */
+function is_cluster_mode() {
+    global $conf;
+    return $conf['cluster'];
+}
+
+/**
+ * Return TRUE is Evoadmin is installed in multi-cluster mode.
+ */
+function is_mcluster_mode() {
+    global $conf;
+    return is_cluster_mode() && array_key_exists('clusters', $conf) && is_array($conf['clusters']);
+}
+
+/**
+ * Load config file for the specified cluster.
+ */
+function load_config_cluster($cluster) {
+    global $conf;
+    $configfile = '../conf/config.'.$cluster.'.php';
+    test_exist($configfile);
+    require_once($configfile);
+    $conf = array_merge($conf, $clusterconf);
 }
 
 /**
@@ -84,4 +111,3 @@ if (!(ini_set('include_path', ini_get('include_path')))) {
     test_exist('/etc/shadow');
     $conf = array_merge($oriconf, $localconf);
 }
-

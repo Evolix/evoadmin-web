@@ -32,7 +32,7 @@ if (isset($_GET['del']) ) {
 
 
         $serveralias = array (
-            'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
+            'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_SCRIPT_URL'])),
             'alias'  => $alias
         );
 
@@ -72,15 +72,15 @@ if (isset($_GET['del']) ) {
                 print "<p>La suppression a échouée. Veuillez contacter votre administrateur.</p>";
 
         }
-        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_SCRIPT_URL']);
         print "</center>";
 
     } else if ( ! isset($_GET['modif']) ) {
 
         print "<center>";
         print "<p>Confirmez vous la suppression de $alias ?</p>";
-        printf ('<p><a href="%s?del=%s&modif=yes">Confirmer la suppression</a></p>', $_SERVER['REDIRECT_URL'], $alias);
-        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+        printf ('<p><a href="%s?del=%s&modif=yes">Confirmer la suppression</a></p>', $_SERVER['REDIRECT_SCRIPT_URL'], $alias);
+        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_SCRIPT_URL']);
         print "</center>";
     }
 
@@ -103,27 +103,17 @@ if (isset($_GET['del']) ) {
 
             if ($form->verify(TRUE)) {
                 if ($conf['cluster']) {
-                    if (is_mcluster_mode()) {
-                        // If the user has not yet selected a cluster, redirect-it to home page.
-                        if (empty($_SESSION['cluster'])) {
-                            http_redirect('/');
-                        }
-                        $cache = str_replace('%cluster_name%', $_SESSION['cluster'], $conf['cache']);
-                    }
-                    else {
-                        $cache = $conf['cache'];
-                    }
+                    $cache = $conf['cache'];
                     $bdd = new bdd();
                     $bdd->open($cache);
 
                     $serveralias = array (
-                        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
+                        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_SCRIPT_URL'])),
                         'alias'  => $form->getField('domain_alias')->getValue(),
                     );
                     
                     $account_name=$serveralias['domain'];
                     $account = $bdd->get_account($account_name);
-
 
                     if (sizeof($account) == 0)
                         die("Anomalie... Contactez votre administrateur.");
@@ -146,27 +136,20 @@ if (isset($_GET['del']) ) {
 
                             domain_add($serveralias['alias'], gethostbyname($master) , false);
 
-                            # Si le compte en question est en replication temps
-                            # reel, il faut faire un restart manuel de lsyncd
-                            # pour prendre en compte le nouveau domaine.
-                            if ($account['replication'] == "realtime") {
-                                mail('tech@evolix.fr', "[TAF] Redemarrer lsyncd sur $master", wordwrap('killer tous les processus lsyncd lancé par vmail pour le compte '.$account['name'].' et les relancer (cf. la ligne correspondante à ce compte dans la crontab de vmail).\n', 70));
-                            }
-
                             print "<center>";
                             printf ('<p>L\'alias %s du domaine %s a bien été créé</p>', $serveralias['alias'], $serveralias['domain']);
-                            printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                            printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_SCRIPT_URL']);
                             print "</center>";
                         } else {
                             print "<center>";
                             printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
-                            printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                            printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_SCRIPT_URL']);
                             print "</center>";
                         }
                     } else {
                         print "<center>";
                         printf ('<p>Alias %s du domaine %s deja existant !</p>', $serveralias['alias'], $serveralias['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_SCRIPT_URL']);
                         print "</center>";
 
                     }
@@ -193,16 +176,8 @@ if (isset($_GET['del']) ) {
     $alias_list = array();
 
     if ($conf['cluster']) {
-        if (is_mcluster_mode()) {
-            // If the user has not yet selected a cluster, redirect-it to home page.
-            if (empty($_SESSION['cluster'])) {
-                http_redirect('/');
-            }
-            $cache = str_replace('%cluster_name%', $_SESSION['cluster'], $conf['cache']);
-        }
-        else {
-            $cache = $conf['cache'];
-        }
+
+        $cache = $conf['cache'];
 
         $alias_list = array();
 

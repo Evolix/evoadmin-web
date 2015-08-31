@@ -8,6 +8,7 @@
                 AllowOverride None
 
                 Deny from all
+
                 #Allow from XXX.XXX.XXX.XXX
         </Directory>
 

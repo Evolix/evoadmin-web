@@ -30,7 +30,7 @@ if (!$conf['cluster']) {
 	/* Récupération de cette liste dans le tableau $vhost_list */
 	$vhost_list = array();
 	foreach($data_output as $data_line) {
-		$data_split = split(':', $data_line);
+		$data_split = explode(':', $data_line);
 		array_push($vhost_list, array(
 					'owner' => $data_split[0],
 					'configid' => $data_split[1],
@@ -42,7 +42,16 @@ if (!$conf['cluster']) {
 }
 else {
 
-	$cache=$conf['cache'];
+    if (is_mcluster_mode()) {
+        // If the user has not yet selected a cluster, redirect-it to home page.
+        if (empty($_SESSION['cluster'])) {
+            http_redirect('/');
+        }
+        $cache = str_replace('%cluster_name%', $_SESSION['cluster'], $conf['cache']);
+    }
+    else {
+        $cache = $conf['cache'];
+    }
 
 	$vhost_list = array();
 
@@ -65,6 +74,7 @@ else {
 				'owner' => $account['name'],
 				'server_name'=> $account['domain'],
 				'bdd'   => $account['bdd'],
+                'mail'  => $account['mail'],
 				'replication'  => $account['replication'],
 				'master' => $master,
 				'slave'  => $slave)
@@ -74,6 +84,7 @@ else {
 	}
 
 }
+
 
 include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
 include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';

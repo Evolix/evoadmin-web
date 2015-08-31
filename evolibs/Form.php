@@ -373,7 +373,7 @@ class TextInputFormField extends FormField {
     protected $mandatory = NULL;
     protected $textsize = NULL;
 
-    public function __construct($label, $mandatory=TRUE, $textsize=array(20, 40)) {
+    public function __construct($label, $mandatory=TRUE, $textsize=array(20, 80)) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
         $this->textsize = $textsize;
@@ -422,7 +422,7 @@ class DateInputFormField extends TextInputFormField {
             if($set_error) $this->error = 'Format de date non valide';
             return FALSE;
         }
-        $arr_date = split('/', $this->value);
+        $arr_date = explode('/', $this->value);
         if(!empty($this->value) &&
                   !checkdate($arr_date[1],$arr_date[0],$arr_date[2])) {
             if($set_error) $this->error = "La date saisie n'existe pas";

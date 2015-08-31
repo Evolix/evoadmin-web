@@ -30,7 +30,7 @@ if ((empty($_GET['form']) || $_GET['form']!=1) && !empty($_POST)) {
 
     $user = posix_getpwnam($username);
     // On nettoie le nom complet
-    $gecos = split(',',$user['gecos']);
+    $gecos = explode(',',$user['gecos']);
     $user['gecos'] = $gecos[0];
     $_SESSION['user_id'] = $user['uid'];
     $_SESSION['user_gid'] = $user['gid'];

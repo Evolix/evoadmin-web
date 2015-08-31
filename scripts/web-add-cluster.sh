@@ -16,8 +16,8 @@
 set -e
 
 HOME="/root"
-CONTACT_MAIL=""
-WWWBOUNCE_MAIL=""
+CONTACT_MAIL="jdoe@example.org"
+WWWBOUNCE_MAIL="jdoe@example.org"
 LOCAL_SCRIPT="/usr/share/scripts/web-add.local.sh"
 PRE_LOCAL_SCRIPT="/usr/share/scripts/web-add.pre-local.sh"
 TPL_VHOST="/usr/share/scripts/vhost"
@@ -265,15 +265,20 @@ create_www_accounts() {
  
         if [ "$in_replmode" != "realtime" ]; then
 
-            echo "SLAVE: $CMD_SLAVE $WEBADD add -p '$in_passwd' $opts_mysql -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain"
-            $CMD_SLAVE $WEBADD add -p \'$in_passwd\' $opts_mysql -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain || (in_error "creation du compte slave sur $in_slave: $?" && exit 1)
+            echo "SLAVE: $CMD_SLAVE $WEBADD add -p '$in_passwd' $opts_mysql -l null@example.org -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain"
+            $CMD_SLAVE $WEBADD add -p \'$in_passwd\' $opts_mysql -l null@example.org -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain || (in_error "creation du compte slave sur $in_slave: $?" && exit 1)
 
        else
 
-           echo "SLAVE: $CMD_SLAVE $WEBADD add -p '$in_passwd' -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain"
-           $CMD_SLAVE $WEBADD add -p \'$in_passwd\' -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain || (in_error "creation du compte slave sur $in_slave: $?" && exit 1)
+           echo "SLAVE: $CMD_SLAVE $WEBADD add -p '$in_passwd' -l null@example.org -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain"
+           $CMD_SLAVE $WEBADD add -p \'$in_passwd\' -l null@example.org -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain || (in_error "creation du compte slave sur $in_slave: $?" && exit 1)
 
         fi
+
+        # On ne veut pas que le site soit actif sur le serveur slave
+        $CMD_SLAVE a2dissite $in_login
+        $CMD_SLAVE /etc/init.d/apache2 reload
+
     fi
 
     # Les operation suivantes sont faites uniquement si une replication doit
@@ -375,12 +380,12 @@ ENDSSH
                 cron_line="*/$in_replinterval * * * *  /opt/evocluster/sync-master-to-slave.sh"
                 cron_line2="*/$in_replinterval * * * *  /opt/evocluster/get-domains.sh $in_login |while read domain; do /opt/evocluster/sync-master-to-slave_mail.sh \$domain $in_login; done"
             elif [ $in_replunit = "hour" ]; then
-                minute=$(($RANDOM % 60))
+                minute=$(($RANDOM % 54))
                 offset=5
                 cron_line="$minute */$in_replinterval * * *  /opt/evocluster/sync-master-to-slave.sh"
                 cron_line2="$(($minute+$offset)) */$in_replinterval * * *  /opt/evocluster/get-domains.sh $in_login |while read domain; do /opt/evocluster/sync-master-to-slave_mail.sh \$domain $in_login; done"
             fi
-            $CMD_MASTER "(crontab -lu $in_login; echo \"$cron_line\") |crontab -u $in_login -"
+            $CMD_MASTER "(crontab -lu $in_login; echo -e \"$cron_line\") |crontab -u $in_login -"
             $CMD_MASTER "(crontab -lu $VMAIL_USER; echo '$cron_line2') |crontab -u $VMAIL_USER -"
         fi
 
@@ -420,13 +425,13 @@ op_del() {
 
 	# check account exist on master and slave
 	if [ -z "$($CMD_MASTER cut -d: -f1 /etc/passwd| grep ^$login$)" ]; then
-		error "Account $login doesn't exist on $master";
+		echo "Account $login doesn't exist on $master";
 		exit 1;
 	fi
  
     if [ $slave != "null" ]; then
         if [ -z "$($CMD_SLAVE cut -d: -f1 /etc/passwd| grep ^$login$)" ]; then
-            error "Account $login doesn't exist on $slave";
+            echo "Account $login doesn't exist on $slave";
             exit 1;
         fi
     fi

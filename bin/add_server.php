@@ -1,20 +1,30 @@
+#!/usr/bin/php
 <?php
-
 require '../lib/bdd.php';
-require_once '../conf/config.php';
-require_once '../conf/config.local.php';
-
-
-if ($argc==1) {
-	echo "Specify a server name"; 
-	exit(1);
-}
-
-$conf = array_merge($oriconf, $localconf);
+require_once '../htdocs/common.php';
 
 $bdd = new bdd();
 
-$file=$conf['cache'];
+$file = '';
+$server = '';
+if (is_mcluster_mode()) {
+    if ($argc != 3) {
+    	echo "Multi-cluster mode is enabled in your config file.\n"; 
+        echo "Usage: $argv[0] <cluster> <server>\n";
+    	exit(1);
+    }
+    $file = str_replace('%cluster_name%', $argv[1], $conf['cache']);
+    $server = $argv[2];
+}
+else {
+    if ($argc != 2) {
+        echo "Usage: $argv[0] <server>\n";
+    	exit(1);
+    }
+    $file = $conf['cache'];
+    $server = $argv[1];
+}
+
 
 if (!file_exists($file)) {
 	echo "$file doesn't exist\n";
@@ -22,13 +32,8 @@ if (!file_exists($file)) {
 }
 
 $bdd->open($file);
-
-$server = array("name" => $argv[1]);
-
 $bdd->add_server(array("name" => "$server"));
-exec('ssh -o "UserKnownHostsFile '.$conf['known_host'].'" '.$argv[1].' /bin/true');
+echo "$server added in $file\n";
 
-echo "$server added in cache\n";
 exit(0);
 ?>
-

@@ -43,17 +43,17 @@ class bdd {
     private $db; /* resource of a created database */
 
     /**
-     * @desc Open a sqlite database. Create it if it doesn't exist.
+     * @desc Open a sqlite database in rw mode. Create it if it doesn't exist.
      * @param string $db_name Name of the sqlite database
      */  
     public function open($db_name)
     {
         try {
-            $this->db = new SQLiteDatabase($db_name, 0666, $error);
+            $this->db = new SQLite3($db_name);
         }
         catch(Exception $e)
         {
-            die ($error);
+            die ($e);
         }
     }
 
@@ -83,38 +83,38 @@ class bdd {
 
         /* Table Accounts */
         $query = 'CREATE Table Accounts ' .
-            '(id INTEGER PRIMARY KEY , name TEXT,  domain TEXT, bdd TEXT, replication TEXT, id_master INTEGER, id_slave INTEGER)';
+            '(id INTEGER PRIMARY KEY , name TEXT,  domain TEXT, bdd TEXT, replication TEXT, id_master INTEGER, id_slave INTEGER, mail TEXT)';
 
-        if (!$database->queryExec($query, $error))
+        if (!$database->exec($query))
         {
-            die($error);
+            die($database->lastErrorMsg());
         }
 
         /* Table Servers */
         $query = 'CREATE Table Servers ' .
             '(id INTEGER PRIMARY KEY , name TEXT, ip TEXT)';
 
-        if (!$database->queryExec($query, $error))
+        if (!$database->exec($query))
         {
-            die($error);
+            die($database->lastErrorMsg());
         }
 
         /* Table ServersAlias */
         $query = 'CREATE Table Serveralias ' .
             '(id INTEGER PRIMARY KEY , domain TEXT, alias TEXT)';
 
-        if (!$database->queryExec($query, $error))
+        if (!$database->exec($query))
         {
-            die($error);
+            die($database->lastErrorMsg());
         }
 
         /* Table Roles */
         $query = 'CREATE Table Roles ' .
             '(id INTEGER PRIMARY KEY , name TEXT, id_account INTEGER, id_server INTEGER)';
 
-        if (!$database->queryExec($query, $error))
+        if (!$database->exec($query))
         {
-            die($error);
+            die($database->lastErrorMsg());
         }
     }
 
@@ -124,11 +124,12 @@ class bdd {
 
         $query = "SELECT Servers.name FROM Servers, Roles where Roles.id = '$roleid' and Roles.id_server = Servers.id";
 
-	if ($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if ($result != FALSE)
         {
-            $row = $result->fetch();
+            $row = $result->fetchArray();
             if (isset($row))
-                return $row['Servers.name'];
+                return $row['name'];
         }
 
 	return 0;
@@ -146,9 +147,10 @@ class bdd {
 
         $query = "SELECT id FROM Accounts where name = '$account_name'";
 
-        if ($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if ($result != FALSE)
         {
-            $row = $result->fetch();
+            $row = $result->fetchArray();
             if (isset($row))
                 return $row['id'];
         }
@@ -167,9 +169,10 @@ class bdd {
 
         $query = "SELECT * FROM Accounts where name = '$account_name'";
 
-        if ($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if ($result != FALSE)
         {
-            $row = $result->fetch();
+            $row = $result->fetchArray();
             if (isset($row))
                 return $row;
             else 
@@ -197,6 +200,7 @@ class bdd {
      *          'domain' => "$domain",
      *          'bdd' => "bdd",
      *          'replication' => "replication"
+     *          'mail' => "gmail|evolix"
      *        }
      * @return 1 on success,
      *         0 else
@@ -209,21 +213,23 @@ class bdd {
         $domain = $account["domain"];
         $bdd = $account["bdd"];
         $replication = $account["replication"];
+        $mail = $account["mail"];
 
         /* check if account exists */
         if ($this->is_account($name))
             return 0;
 
-        $query = "INSERT INTO Accounts (name, domain, bdd, replication)
+        $query = "INSERT INTO Accounts (name, domain, bdd, replication, mail)
             VALUES (
                 '$name',
                 '$domain',
                 '$bdd',
-                '$replication');";
+                '$replication',
+                '$mail');";
 
-        if (!$database->queryExec($query, $error))
+        if (!$database->exec($query))
         {
-            die($error);
+            die($database->lastErrorMsg());
         }
         return 1;
     }
@@ -250,9 +256,9 @@ class bdd {
                 '$domain',
                 '$alias');";
 
-        if (!$database->queryExec($query, $error))
+        if (!$database->exec($query))
         {
-            die($error);
+            die($database->lastErrorMsg());
         }
         return 1;
     }
@@ -276,8 +282,8 @@ class bdd {
 
         $query = "DELETE FROM Serveralias WHERE domain='$domain' AND alias='$alias';";
 
-        if (!$database->queryExec($query, $error))
-            die($error);
+        if (!$database->exec($query))
+            die($database->lastErrorMsg());
 
         return 1;
     }
@@ -294,9 +300,10 @@ class bdd {
 
         $query = "SELECT id FROM Servers where name = '$server_name'";
 
-        if ($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if ($result != FALSE)
         {
-            $row = $result->fetch();
+            $row = $result->fetchArray();
             if (isset($row))
                 return $row['id'];
         }
@@ -339,8 +346,8 @@ class bdd {
                 '$name'
             );";
 
-        if (!$database->queryExec($query, $error))
-            die($error);
+        if (!$database->exec($query))
+            die($database->lastErrorMsg());
 
         return 1;
     }
@@ -373,8 +380,8 @@ class bdd {
                 '$id_account',
                 '$id_server')";
 
-        if (!$database->queryExec($query, $error))
-            die($error);
+        if (!$database->exec($query))
+            die($database->lastErrorMsg());
 
         $id = $database->lastInsertRowid();
 
@@ -382,8 +389,8 @@ class bdd {
         if (($role === 'master') || ($role === 'slave'))
             $query = "UPDATE Accounts SET id_$role = '$id' WHERE id = '$id_account'"; 
 
-        if (!$database->queryExec($query, $error))
-            die($error);
+        if (!$database->exec($query))
+            die($database->lastErrorMsg());
 
         return 1;
     }
@@ -423,12 +430,13 @@ class bdd {
         $database = $this->db;
 
         $query = "SELECT * FROM Accounts, Roles, Servers WHERE Accounts.id = Roles.id_account AND Roles.id_server = Servers.id";
-        if($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if($result != FALSE)
         {
             $domains = array();
             $i = 0;
 
-            while($row = $result->fetch())
+            while($row = $result->fetchArray())
             {
                 $domains[$i] = $row;
                 ++$i;
@@ -442,16 +450,17 @@ class bdd {
 
     public function list_accounts()
     {
-	$database = $this->db;
+	    $database = $this->db;
 
-	$query = "SELECT * FROM Accounts";
+	    $query = "SELECT * FROM Accounts";
 
-        if($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if ($result != FALSE)
         {
             $accounts = array();
             $i = 0;
 
-            while($row = $result->fetch())
+            while($row = $result->fetchArray())
             {
                 $accounts[$i] = $row;
                 ++$i;
@@ -472,12 +481,13 @@ class bdd {
 
 	    $query = "SELECT * FROM Serveralias WHERE domain = '$domain'";
         
-        if ($result = $database->query($query, SQLITE_ASSOC, $error))
+        $result = $database->query($query);
+        if ($result != FALSE)
         {
             $serveralias = array();
             $i = 0;
 
-            while($row = $result->fetch())
+            while($row = $result->fetchArray())
             {
                 $serveralias[$i] = $row;
                 ++$i;
@@ -488,4 +498,26 @@ class bdd {
 
         return $serveralias;
     }
+
+    public function is_serveralias($domain, $alias)
+    {
+	    $database = $this->db;
+    
+        if ($domain == NULL)
+            return 0;
+        if ($alias == NULL)
+            return 0;
+        
+        $query = "SELECT id FROM Serveralias WHERE domain = '$domain' and alias = '$alias'";
+
+        $result = $database->query($query);
+        if ($result != FALSE)
+        {
+            $row = $result->fetchArray();
+                return !!($row['id']);
+        }
+
+        return 0;
+    }
+
 }

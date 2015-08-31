@@ -15,41 +15,20 @@
 
 require_once EVOADMIN_BASE . '../evolibs/Form.php';
 require_once EVOADMIN_BASE . '../lib/bdd.php';
+require_once EVOADMIN_BASE . '../lib/domain.php';
 
 global $conf;
 
-$servers=$conf['servers'];
-$servers_slave=$conf['servers'];
-
-$servers_slave[]='Aucun';
-$cache=$conf['cache'];
-
-
-function domain_add($name, $IP, $with_mxs, $gmail=false) {
-
-    $exec_cmd = 'bind-add-ng.sh';
-
-    if ( $with_mxs == true ) {
-        /* Quai13 specific: use Gmail MXs if wanted */
-        if ( $gmail ) {
-            $exec_cmd .= ' -m ASPMX.L.GOOGLE.com.,10';
-            $exec_cmd .= ' -m ALT1.ASPMX.L.GOOGLE.com.,20';
-            $exec_cmd .= ' -m ALT2.ASPMX.L.GOOGLE.com.,20';
-            $exec_cmd .= ' -m ASPMX2.GOOGLEMAIL.com.,30';
-            $exec_cmd .= ' -m ASPMX3.GOOGLEMAIL.com.,30';
-        }
-        else {
-            $exec_cmd .= ' -m mail,10';
-            $exec_cmd .= ' -m backup.quai13.net.,20';
-        }
-        mail($conf['techmail'], '[TAF] Ajouter '.$name.' sur le serveur de mail', wordwrap('Ajouter le domaine '.$name.' à la directive relay_domains dans le fichier /etc/postfix/main.cf sur le serveur mail, pour mettre en place le MX secondaire du domaine.', 70));
+if (is_mcluster_mode()) {
+    // If the user has not yet selected a cluster, redirect-it to home page.
+    if (empty($_SESSION['cluster'])) {
+        http_redirect('/');
     }
-
-    $exec_cmd .= " -a $IP $name";
-
-    //echo $exec_cmd."\n";
-    sudoexec($exec_cmd, $exec_output, $exec_return);
-    return array($exec_cmd, $exec_return, $exec_output);
+    $cache = str_replace('%cluster_name%', $_SESSION['cluster'], $conf['cache']);
+    load_config_cluster($_SESSION['cluster']);
+}
+else {
+    $cache = $conf['cache'];
 }
 
 function web_add($form, $admin_mail) {
@@ -77,7 +56,22 @@ function web_add($form, $admin_mail) {
         $form->getField('username')->getValue(), 
         $form->getField('domain')->getValue());
 
-    sudoexec($exec_cmd, $exec_output, $exec_return);
+    //domain_add($form, $_SERVER['SERVER_ADDR'], true);
+    //sudoexec($exec_cmd, $exec_output, $exec_return);
+
+    /* Gestion des noms de domaines supplementaires */
+    if ( $form->getField('domain_alias')->getValue() ) {
+        $domain_alias = preg_split('/,/', $form->getField('domain_alias')->getValue());
+        foreach ( $domain_alias as $domain ) {
+            $exec_cmd = 'web-add.sh add-alias '.$form->getField('domain')->getValue().' ';
+            $domain = trim($domain);
+            $exec_cmd .= $domain.' '.$master.' '.$slave;
+            sudoexec($exec_cmd, $exec_output, $exec_return);
+            //domain_add($form, gethostbyname($master), false);
+        }
+        $exec_return |= $exec_return2; // $exec_return == 0 if $exec_return == 0 && $exec_return2 == 0
+        array_push($exec_output, $exec_output2);
+    }
 
     return array($exec_cmd, $exec_return, $exec_output);
 }
@@ -205,6 +199,10 @@ function web_add_cluster($form, $admin_mail) {
 
 	    $account['name'] = $form->getField('username')->getValue();
 	    $account['domain'] = $form->getField('domain')->getValue();
+        if ($form->getField('use_gmail_mxs')->getValue())
+            $account['mail'] = 'gmail';
+        else
+            $account['mail'] = 'evolix';
 
 	    $bdd->add_account($account);
 
@@ -242,7 +240,7 @@ function web_add_cluster($form, $admin_mail) {
 
 /* Construction du formulaire d'ajout */
 $form = new FormPage("Ajout d'un compte web", FALSE);
-$form->addField('username', new TextInputFormField("Nom d'utilisateur", TRUE));
+$form->addField('username', new TextInputFormField("Nom d'utilisateur", TRUE, array(20,16)));
 $form->addField('domain', new TextInputFormField("Nom de domaine", TRUE));
 $form->addField('domain_alias', new TextInputFormField("Alias (séparés par une virgule)", FALSE));
 $form->addField('password_random', 
@@ -255,7 +253,7 @@ $form->addField('mysql_db',
                                            FALSE));
 $form->getField('mysql_db')->setValue(TRUE);
 $form->addField('mysql_dbname',
-                new TextInputFormField("Nom de la base MySQL", FALSE));
+                new TextInputFormField("Nom de la base MySQL", FALSE, array(20,16)));
 //$form->getField('mysql_dbname')->setDisabled();
 $form->addField('mysql_password_random', 
                 new CheckboxInputFormField("Mot de passe MySQL aléatoire ?",

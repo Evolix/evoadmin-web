@@ -52,6 +52,10 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-edit.php';
 
+} elseif (preg_match('#^/webadmin/suppr/(.*)/?$#', $uri, $params)) {
+
+    include_once EVOADMIN_BASE . '../inc/webadmin-suppr.php';
+
 } elseif (is_superadmin() && preg_match('#^/accounts/?#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/accounts.php';
