@@ -72,7 +72,10 @@ inc_and_reload () {
 
     zonefile="$BINDROOT/db.$domain"
 
-    sed -i "s/^\([ \t]*\)[0-9]\{10\}\([ \t]*; serial\)/\1`date "+%Y%m%d%H"`\2/" \
+    # Set the date for serial (only if greater than actual serial)
+    serial=$(grep -E '^[ \t]*[0-9]{10}[ \t]*; serial' $zonefile | sed "s/^[ \t]*\([0-9]\{10\}\)[ \t]*; serial/\1/")
+    if [ `date "+%Y%m%d%H"` -gt $serial ]; then serial=$(date "+%Y%m%d%H"); else serial=$(( $serial + 1 )); fi
+    sed -i "s/^\([ \t]*\)[0-9]\{10\}\([ \t]*; serial\)/\1$serial\2/" \
       $zonefile
     if stderr=$(named-checkzone $domain $zonefile 2>&1); then
         rndc reload
