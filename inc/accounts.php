@@ -57,7 +57,7 @@ function web_add($form, $admin_mail) {
         $form->getField('domain')->getValue());
 
     //domain_add($form, $_SERVER['SERVER_ADDR'], true);
-    //sudoexec($exec_cmd, $exec_output, $exec_return);
+    sudoexec($exec_cmd, $exec_output, $exec_return);
 
     /* Gestion des noms de domaines supplementaires */
     if ( $form->getField('domain_alias')->getValue() ) {

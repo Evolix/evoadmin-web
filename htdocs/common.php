@@ -49,7 +49,7 @@ function is_superadmin() {
     }
 }
 
-function sudoexec($cmd, $output, $return_var) {
+function sudoexec($cmd, &$output, &$return_var) {
     global $conf;
 
     /* -H  The -H (HOME) option sets the HOME environment variable to the
