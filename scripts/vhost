@@ -1,35 +1,34 @@
 <VirtualHost *:80>
 
-	# FQDN principal
-	ServerName SERVERNAME
-	#ServerAlias SERVERNAME
+    # FQDN principal
+    ServerName SERVERNAME
+    #ServerAlias SERVERNAME
 
     # Repertoire principal
-	DocumentRoot HOME_DIR/XXX/www/
+    DocumentRoot HOME_DIR/XXX/www/
 
     # Propriete du repertoire
-	<Directory HOME_DIR/XXX/www/>
-        #Options Indexes SymLinksIfOwnerMatch
-        Options SymLinksIfOwnerMatch
-	    AllowOverride AuthConfig Limit FileInfo
-	</Directory>
+    <Directory HOME_DIR/XXX/www/>
+        #Options +Indexes +SymLinksIfOwnerMatch
+        Options +SymLinksIfOwnerMatch
+        AllowOverride AuthConfig Limit FileInfo
+    </Directory>
 
     # CGI
     ScriptAlias /cgi-RANDOM /usr/lib/cgi-bin/
     <Directory /usr/lib/cgi-bin/>
-        Options ExecCGI -MultiViews
+        Options +ExecCGI -MultiViews
         AllowOverride None
 
         AuthName "Restricted"
         AuthUserFile HOME_DIR/XXX/.htpasswd
-        AuthGroupFile /dev/null
         AuthType Basic
         require valid-user
 
         Order Deny,Allow
         Deny from all
 
-        #Allow from YYY.YYY.YYY.YYY
+        #Include /etc/apache2/ipaddr_whitelist.conf
 
         Satisfy any
     </Directory>
@@ -38,7 +37,7 @@
     AssignUserID www-XXX XXX
 
     # LOG
-    CustomLog /var/log/apache2/access.log combined
+    CustomLog /var/log/apache2/access.log vhost_combined
     CustomLog HOME_DIR/XXX/log/access.log combined
     ErrorLog  HOME_DIR/XXX/log/error.log
 
@@ -48,8 +47,6 @@
     # REWRITE
     UseCanonicalName On
     RewriteEngine On
-    RewriteLog  "/var/log/apache2/rewrite.log"
-    RewriteLogLevel 0
     RewriteCond %{HTTP_HOST} !^SERVERNAME$
     RewriteRule ^/(.*) http://%{SERVER_NAME}/$1 [L,R]
 
@@ -68,6 +65,3 @@
     php_admin_value open_basedir "/usr/share/php:HOME_DIR/XXX:/tmp"
 
 </VirtualHost>
-
-# vim: set filetype=apache expandtab shiftwidth=4 softtabstop=4 tabstop=4 :
-

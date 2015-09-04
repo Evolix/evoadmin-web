@@ -249,7 +249,7 @@ create_www_account() {
 	############################################################################
 	
 	random=$RANDOM
-	vhostfile="/etc/apache2/sites-available/$in_login"
+	vhostfile="/etc/apache2/sites-available/${in_login}.conf"
 	
 	cat $TPL_VHOST | \
 	    sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
