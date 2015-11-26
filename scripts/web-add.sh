@@ -363,7 +363,7 @@ op_del() {
 	fi
 
 	a2dissite $login
-	rm /etc/apache2/sites-available/$login
+	rm /etc/apache2/sites-available/$login.conf
 	rm /etc/awstats/awstats.$login.conf
 	sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 	apache2ctl configtest
