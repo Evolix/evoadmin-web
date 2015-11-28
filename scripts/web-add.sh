@@ -351,6 +351,7 @@ op_del() {
 	set -x
 	userdel $login
 	userdel www-$login
+	groupdel $login
 	sed -i.bak "/^$login:/d" /etc/aliases
 	sed -i.bak "/^www-$login:/d" /etc/aliases
 
