@@ -12,6 +12,7 @@
         #Options +Indexes +SymLinksIfOwnerMatch
         Options +SymLinksIfOwnerMatch
         AllowOverride AuthConfig Limit FileInfo
+        Require all granted
     </Directory>
 
     # CGI
