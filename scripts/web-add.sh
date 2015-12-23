@@ -30,7 +30,7 @@ HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
-config_file="/etc/evolix/web-add.conf"
+config_file="/etc/evolinux/web-add.conf"
 [ -r $config_file ] && . $config_file
 
 usage() {

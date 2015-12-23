@@ -36,7 +36,7 @@ LAST_UID="cut -d: -f3 /etc/passwd | grep -v $NOBODY_UID | sort -n | tail -1"
 VMAIL_USER="vmail"
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
-config_file="/etc/evolix/web-add.conf"
+config_file="/etc/evolinux/web-add.conf"
 [ -r $config_file ] && . $config_file
 
 usage() {
