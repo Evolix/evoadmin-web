@@ -438,7 +438,7 @@ op_listvhost() {
 
 op_aliasadd() {
     if [ $# -eq 2 ]; then
-        vhost=$1
+        vhost="${1}.conf"
         alias=$2
 
         [ -f $VHOST_PATH/$vhost ] && sed -i -e "s/\(ServerName .*\)/\1\n\tServerAlias $alias/" $VHOST_PATH/$vhost --follow-symlinks
@@ -452,7 +452,7 @@ op_aliasadd() {
 
 op_aliasdel() {
     if [ $# -eq 2 ]; then
-        vhost=$1
+        vhost="${1}.conf"
         alias=$2
 
         [ -f $VHOST_PATH/$vhost ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/$vhost --follow-symlinks
