@@ -251,6 +251,15 @@ create_www_account() {
 	
 	random=$RANDOM
 	vhostfile="/etc/apache2/sites-available/${in_login}.conf"
+	keyfile="/etc/ssl/private/${in_login}.key"
+	csrfile="/etc/ssl/requests/${in_login}.csr"
+	crtfile="/etc/letsencrypt/${in_login}-fullchain.pem"
+	
+	openssl genrsa -out $keyfile 2048
+	
+	openssl req -new -sha256 -key $keyfile -subj "/CN=${in_wwwdomain}" -out $csrfile
+	
+	openssl x509 -req -sha256 -days 365 -in $csrfile -signkey $keyfile -out $crtfile
 	
 	cat $TPL_VHOST | \
 	    sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
@@ -370,6 +379,7 @@ op_del() {
 	sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 	apache2ctl configtest
 	set +x
+	rm /etc/letsencrypt/${login}*
 
 	if [ -n "$dbname" ]; then
 		echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
