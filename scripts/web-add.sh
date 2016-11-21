@@ -28,6 +28,11 @@ VHOST_PATH="/etc/apache2/sites-enabled/"
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
+SSL_KEY_SIZE=$(grep default_bits /etc/letsencrypt/openssl.cnf|cut -d'=' -f2|xargs)
+CSR_DIR="/etc/ssl/requests"
+KEY_DIR="/etc/ssl/private"
+CRT_DIR="/etc/letsencrypt"
+AUTO_CRT_DIR="/etc/ssl/self-signed"
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
 config_file="/etc/evolinux/web-add.conf"
@@ -89,6 +94,10 @@ add-alias VHOST ALIAS
 del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
+
+ssl VHOST
+
+    Update SSL for Apache VHOST
 
 EOT
 }
@@ -251,16 +260,7 @@ create_www_account() {
 	
 	random=$RANDOM
 	vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-	keyfile="/etc/ssl/private/${in_login}.key"
-	csrfile="/etc/ssl/requests/${in_login}.csr"
-	crtfile="/etc/letsencrypt/${in_login}-fullchain.pem"
-	
-	openssl genrsa -out $keyfile 2048
-	
-	openssl req -new -sha256 -key $keyfile -subj "/CN=${in_wwwdomain}" -out $csrfile
-	
-	openssl x509 -req -sha256 -days 365 -in $csrfile -signkey $keyfile -out $crtfile
-	
+
 	cat $TPL_VHOST | \
 	    sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
 	
@@ -271,6 +271,8 @@ create_www_account() {
 	fi
 	
 	a2ensite $in_login >/dev/null
+	
+	make_csr ${in_login} 
 	
 	step_ok "Configuration d'Apache"
 
@@ -343,6 +345,65 @@ create_www_account() {
 	echo "$DATE [web-add.sh] Ajout $in_login" >> /var/log/evolix.log
 }
 
+make_csr() {
+	vhost=$1
+	nb=0
+	domains=`grep -oE "^( )*[^#]+" /etc/apache2/sites-enabled/${vhost}.conf|grep -oE "(ServerName|ServerAlias).*"|sed 's/ServerName//'|sed 's/ServerAlias//'|sed 's/\s\{1,\}//'|sort|uniq`
+	valid_domains=''
+	for domain in $domains
+	do
+        	# TODO : vérifier si domaine pointe sur localhost
+	        echo "$domain"
+		if [ $? == 0 ]; then
+			valid_domains="$valid_domains $domain"
+		        nb=$(( nb  + 1 ))
+		fi
+	done
+	# Generate SSL KEY
+	if [ ! -f $KEY_DIR/${vhost}.key ]; then
+		mkdir -p $KEY_DIR -m 700
+		chown root: $KEY_DIR
+		openssl genrsa -out $KEY_DIR/${vhost}.key $SSL_KEY_SIZE
+		chown root: $KEY_DIR/${vhost}.key
+		chmod 640 $KEY_DIR/${vhost}.key
+	fi
+	# Generate SSL CSR
+	mkdir -p $CSR_DIR -m 755
+	chown root: $CSR_DIR
+	if [ $nb -eq 1 ]; then
+	    openssl req -new -sha256 -key $KEY_DIR/${vhost}.key -config <(cat /etc/letsencrypt/openssl.cnf <(printf "CN=$domain")) -out $CSR_DIR/${vhost}.csr
+	elif [ $nb -gt 1 ]; then
+	        san=''
+	        for domain in $domains
+	        do
+	                san="$san,DNS:$domain"
+	        done
+	        san=`echo $san|sed 's/,//'`
+		openssl req -new -sha256 -key $KEY_DIR/${vhost}.key -reqexts SAN -config <(cat /etc/letsencrypt/openssl.cnf <(printf "[SAN]\nsubjectAltName=$san")) > $CSR_DIR/${vhost}.csr
+	fi
+	chmod 644 $CSR_DIR/${vhost}.csr
+	# Generate autosigned CRT
+	mkdir -p $AUTO_CRT_DIR -m 755	
+	chown root: $AUTO_CRT_DIR
+	openssl x509 -req -sha256 -days 365 -in $CSR_DIR/${vhost}.csr -signkey $KEY_DIR/${vhost}.key -out $AUTO_CRT_DIR/${vhost}.pem
+	chown root: $AUTO_CRT_DIR/${vhost}.pem
+        chmod 644 $AUTO_CRT_DIR/${vhost}.pem
+	# Enable autosigned CRT
+	if [ ! -e $CRT_DIR/${vhost}-fullchain.pem ]; then
+		ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
+	fi
+	evoacme ${vhost}	
+}
+
+op_ssl() {
+	if [ $# -lt 1 ]; then
+                usage
+                exit 1
+        else
+        	make_csr $1
+        fi
+}
+
 op_del() {
 	if [ $# -lt 1 ]; then
 		usage
@@ -379,7 +440,7 @@ op_del() {
 	sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 	apache2ctl configtest
 	set +x
-	rm /etc/letsencrypt/${login}*
+	rm -f /etc/letsencrypt/${login}*
 
 	if [ -n "$dbname" ]; then
 		echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
@@ -417,6 +478,9 @@ arg_processing() {
         del-alias)
             op_aliasdel $*
             ;;
+	ssl)
+            op_ssl $*
+            ;;
 		*)
 			usage
 			;;
@@ -453,6 +517,7 @@ op_aliasadd() {
 
         [ -f $VHOST_PATH/$vhost ] && sed -i -e "s/\(ServerName .*\)/\1\n\tServerAlias $alias/" $VHOST_PATH/$vhost --follow-symlinks
 
+	    make_csr $1
 	    apache2ctl configtest 2>/dev/null
 	    /etc/init.d/apache2 force-reload >/dev/null
 
@@ -467,6 +532,7 @@ op_aliasdel() {
 
         [ -f $VHOST_PATH/$vhost ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/$vhost --follow-symlinks
 
+	    make_csr $1
 	    apache2ctl configtest 2>/dev/null
 	    /etc/init.d/apache2 force-reload >/dev/null
 
