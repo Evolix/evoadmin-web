@@ -350,14 +350,16 @@ make_csr() {
 	nb=0
 	domains=`grep -oE "^( )*[^#]+" /etc/apache2/sites-enabled/${vhost}.conf|grep -oE "(ServerName|ServerAlias).*"|sed 's/ServerName//'|sed 's/ServerAlias//'|sed 's/\s\{1,\}//'|sort|uniq`
 	valid_domains=''
+	ip a|grep brd|cut -d'/' -f1|grep -oE "([0-9]+\.){3}[0-9]+" > /tmp/ip.list
 	for domain in $domains
 	do
-        	# TODO : vérifier si domaine pointe sur localhost
-	        echo "$domain"
-		if [ $? == 0 ]; then
-			valid_domains="$valid_domains $domain"
-		        nb=$(( nb  + 1 ))
-		fi
+		real_ip=`dig +short $domain`
+       		while read ip; do
+			if [ "$ip" == "$real_ip" ]; then
+				valid_domains="$valid_domains $domain"
+			        nb=$(( nb  + 1 ))
+			fi
+		done < /tmp/ip.list
 	done
 	# Generate SSL KEY
 	if [ ! -f $KEY_DIR/${vhost}.key ]; then
@@ -367,11 +369,17 @@ make_csr() {
 		chown root: $KEY_DIR/${vhost}.key
 		chmod 640 $KEY_DIR/${vhost}.key
 	fi
+	if [ $nb -eq 0 ]; then
+		nb=`echo $domains|wc -l`
+		no_valid=1
+	else
+		domains=$valid_domains
+	fi
 	# Generate SSL CSR
 	mkdir -p $CSR_DIR -m 755
 	chown root: $CSR_DIR
 	if [ $nb -eq 1 ]; then
-	    openssl req -new -sha256 -key $KEY_DIR/${vhost}.key -config <(cat /etc/letsencrypt/openssl.cnf <(printf "CN=$domain")) -out $CSR_DIR/${vhost}.csr
+	    openssl req -new -sha256 -key $KEY_DIR/${vhost}.key -config <(cat /etc/letsencrypt/openssl.cnf <(printf "CN=$domains")) -out $CSR_DIR/${vhost}.csr
 	elif [ $nb -gt 1 ]; then
 	        san=''
 	        for domain in $domains
@@ -389,11 +397,13 @@ make_csr() {
 	chown root: $AUTO_CRT_DIR/${vhost}.pem
         chmod 644 $AUTO_CRT_DIR/${vhost}.pem
 	# Enable autosigned CRT
-	if [ ! -e $CRT_DIR/${vhost}-fullchain.pem ]; then
-		ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
-	fi
 	rm -f $CRT_DIR/${vhost}*
-	evoacme ${vhost}	
+	if [ -z $no_valid ]; then
+		evoacme ${vhost}	
+	else
+		ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
+
+	fi
 }
 
 op_ssl() {
@@ -441,7 +451,7 @@ op_del() {
 	sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 	apache2ctl configtest
 	set +x
-	rm -f $CRT_DIR/${login}*
+	rm -f $CRT_DIR/${login}* $KEY_DIR/${login}.key $CSR_DIR/${login}.csr $AUTO_CRT_DIR/${login}.pem
 
 	if [ -n "$dbname" ]; then
 		echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
