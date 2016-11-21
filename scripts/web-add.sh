@@ -392,6 +392,7 @@ make_csr() {
 	if [ ! -e $CRT_DIR/${vhost}-fullchain.pem ]; then
 		ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
 	fi
+	rm -f $CRT_DIR/${vhost}*
 	evoacme ${vhost}	
 }
 
@@ -440,7 +441,7 @@ op_del() {
 	sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 	apache2ctl configtest
 	set +x
-	rm -f /etc/letsencrypt/${login}*
+	rm -f $CRT_DIR/${login}*
 
 	if [ -n "$dbname" ]; then
 		echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
