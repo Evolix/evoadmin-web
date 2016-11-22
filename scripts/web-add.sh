@@ -400,7 +400,9 @@ make_csr() {
 	# Enable autosigned CRT
 	rm -f $CRT_DIR/${vhost}*
 	if [ -z $no_valid ]; then
-		evoacme ${vhost}	
+		if ! evoacme ${vhost} ; then
+			ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
+		fi
 	else
 		ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
 
