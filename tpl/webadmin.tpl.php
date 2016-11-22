@@ -22,19 +22,21 @@
       <thead>
       <tr>
         <?php if(is_superadmin()) {
-            print '<th>Propriétaire</th>';
-        } ?>
-        <th>Domaine</th>
-        <!--<th>Opérations</th>-->
-        <?php if($conf['cluster']) { ?>
-    <th>Bdd</th>
-    <th>Mail</th>
-    <th>Replication</th>
-    <th>Master</th>
-    <th>Slave</th>
-    <?php if(is_superadmin()) {
-        print '<th>Alias</th>';
-    }} ?>
+            printf('<th>Propriétaire</th>');
+            printf('<th>Domaine</th>');
+            }
+            if($conf['cluster']) {
+                printf('<th>Bdd</th>');
+                printf('<th>Mail</th>');
+                printf('<th>Replication</th>');
+                printf('<th>Master</th>');
+                printf('<th>Slave</th>');
+            }
+                printf('<th>Alias</th>');
+           if(is_superadmin()) {
+                printf('<th>Opérations</th>');
+           }
+        ?>
       <tr>
       </thead>
       <tbody>
