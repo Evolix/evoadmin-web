@@ -33,6 +33,7 @@ CSR_DIR="/etc/ssl/requests"
 KEY_DIR="/etc/ssl/private"
 CRT_DIR="/etc/letsencrypt"
 AUTO_CRT_DIR="/etc/ssl/self-signed"
+SRV_IP=`ip a|grep brd|cut -d'/' -f1|grep -oE "([0-9]+\.){3}[0-9]+"`
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
 config_file="/etc/evolinux/web-add.conf"
@@ -350,10 +351,10 @@ make_csr() {
 	nb=0
 	domains=`grep -oE "^( )*[^#]+" /etc/apache2/sites-enabled/${vhost}.conf|grep -oE "(ServerName|ServerAlias).*"|sed 's/ServerName//'|sed 's/ServerAlias//'|sed 's/\s\{1,\}//'|sort|uniq`
 	valid_domains=''
-	ip a|grep brd|cut -d'/' -f1|grep -oE "([0-9]+\.){3}[0-9]+" > /tmp/ip.list
+	echo $SRV_IP > /tmp/ip.list
 	for domain in $domains
 	do
-		real_ip=`dig +short $domain`
+		real_ip=`dig +short $domain|grep -oE "([0-9]+\.){3}[0-9]+"`
        		while read ip; do
 			if [ "$ip" == "$real_ip" ]; then
 				valid_domains="$valid_domains $domain"
