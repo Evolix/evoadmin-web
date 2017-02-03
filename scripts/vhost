@@ -4,9 +4,7 @@
     ServerName SERVERNAME
     #ServerAlias SERVERNAME
 
-    SSLEngine On
-    SSLCertificateFile    /etc/letsencrypt/XXX-fullchain.pem
-    SSLCertificateKeyFile /etc/ssl/private/XXX.key
+    Include /etc/apache2/ssl/XXX.conf
 
     # Repertoire principal
     DocumentRoot HOME_DIR/XXX/www/
@@ -52,8 +50,9 @@
     # REWRITE
     UseCanonicalName On
     RewriteEngine On
-    RewriteCond %{HTTP_HOST} !^SERVERNAME$
-    RewriteRule ^/(.*) %{REQUEST_SCHEME}://%{SERVER_NAME}/$1 [L,R]
+    RewriteCond %{HTTP_HOST} !^SERVERNAME$ [OR]
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^/(.*) https://%{SERVER_NAME}/$1 [L,R]
 
     # PHP
     #php_admin_flag engine off

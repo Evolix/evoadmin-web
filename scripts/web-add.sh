@@ -28,12 +28,6 @@ VHOST_PATH="/etc/apache2/sites-enabled/"
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
-SSL_KEY_SIZE=$(grep default_bits /etc/letsencrypt/openssl.cnf|cut -d'=' -f2|xargs)
-CSR_DIR="/etc/ssl/requests"
-KEY_DIR="/etc/ssl/private"
-CRT_DIR="/etc/letsencrypt"
-AUTO_CRT_DIR="/etc/ssl/self-signed"
-SRV_IP=`ip a|grep brd|cut -d'/' -f1|grep -oE "([0-9]+\.){3}[0-9]+"`
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
 config_file="/etc/evolinux/web-add.conf"
@@ -273,7 +267,7 @@ create_www_account() {
 	
 	a2ensite $in_login >/dev/null
 	
-	make_csr ${in_login} 
+	yes|make-csr ${in_login} 
 	
 	step_ok "Configuration d'Apache"
 
@@ -340,73 +334,13 @@ create_www_account() {
 
 	step_ok "Rechargement d'Apache"
 
+	set +e
+	evoacme $in_login
+	set -e
 	############################################################################
 	
 	DATE=$(date +"%Y-%m-%d")
 	echo "$DATE [web-add.sh] Ajout $in_login" >> /var/log/evolix.log
-}
-
-make_csr() {
-	vhost=$1
-	nb=0
-	domains=`grep -oE "^( )*[^#]+" /etc/apache2/sites-enabled/${vhost}.conf|grep -oE "(ServerName|ServerAlias).*"|sed 's/ServerName//'|sed 's/ServerAlias//'|sed 's/\s\{1,\}//'|sort|uniq`
-	valid_domains=''
-	echo $SRV_IP > /tmp/ip.list
-	for domain in $domains
-	do
-		real_ip=`dig +short $domain|grep -oE "([0-9]+\.){3}[0-9]+"`
-       		while read ip; do
-			if [ "$ip" == "$real_ip" ]; then
-				valid_domains="$valid_domains $domain"
-			        nb=$(( nb  + 1 ))
-			fi
-		done < /tmp/ip.list
-	done
-	# Generate SSL KEY
-	if [ ! -f $KEY_DIR/${vhost}.key ]; then
-		mkdir -p $KEY_DIR -m 700
-		chown root: $KEY_DIR
-		openssl genrsa -out $KEY_DIR/${vhost}.key $SSL_KEY_SIZE
-		chown root: $KEY_DIR/${vhost}.key
-		chmod 640 $KEY_DIR/${vhost}.key
-	fi
-	if [ $nb -eq 0 ]; then
-		nb=`echo $domains|wc -l`
-		no_valid=1
-	else
-		domains=$valid_domains
-	fi
-	# Generate SSL CSR
-	mkdir -p $CSR_DIR -m 755
-	chown root: $CSR_DIR
-	if [ $nb -eq 1 ]; then
-	    openssl req -new -sha256 -key $KEY_DIR/${vhost}.key -config <(cat /etc/letsencrypt/openssl.cnf <(printf "CN=$domains")) -out $CSR_DIR/${vhost}.csr
-	elif [ $nb -gt 1 ]; then
-	        san=''
-	        for domain in $domains
-	        do
-	                san="$san,DNS:$domain"
-	        done
-	        san=`echo $san|sed 's/,//'`
-		openssl req -new -sha256 -key $KEY_DIR/${vhost}.key -reqexts SAN -config <(cat /etc/letsencrypt/openssl.cnf <(printf "[SAN]\nsubjectAltName=$san")) > $CSR_DIR/${vhost}.csr
-	fi
-	chmod 644 $CSR_DIR/${vhost}.csr
-	# Generate autosigned CRT
-	mkdir -p $AUTO_CRT_DIR -m 755	
-	chown root: $AUTO_CRT_DIR
-	openssl x509 -req -sha256 -days 365 -in $CSR_DIR/${vhost}.csr -signkey $KEY_DIR/${vhost}.key -out $AUTO_CRT_DIR/${vhost}.pem
-	chown root: $AUTO_CRT_DIR/${vhost}.pem
-        chmod 644 $AUTO_CRT_DIR/${vhost}.pem
-	# Enable autosigned CRT
-	rm -f $CRT_DIR/${vhost}*
-	if [ -z $no_valid ]; then
-		if ! evoacme ${vhost} ; then
-			ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
-		fi
-	else
-		ln -s $AUTO_CRT_DIR/${vhost}.pem $CRT_DIR/${vhost}-fullchain.pem
-
-	fi
 }
 
 op_ssl() {
@@ -414,7 +348,10 @@ op_ssl() {
                 usage
                 exit 1
         else
-        	make_csr $1
+        	yes|make-csr $1
+		set +e
+		evoacme $1
+		set -e
         fi
 }
 
@@ -531,7 +468,10 @@ op_aliasadd() {
 
         [ -f $VHOST_PATH/$vhost ] && sed -i -e "s/\(ServerName .*\)/\1\n\tServerAlias $alias/" $VHOST_PATH/$vhost --follow-symlinks
 
-	    make_csr $1
+	    yes|make-csr $1
+	    set +e
+	    evoacme $1
+	    set -e
 	    apache2ctl configtest 2>/dev/null
 	    /etc/init.d/apache2 force-reload >/dev/null
 
@@ -546,7 +486,10 @@ op_aliasdel() {
 
         [ -f $VHOST_PATH/$vhost ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/$vhost --follow-symlinks
 
-	    make_csr $1
+	    yes|make-csr $1
+	    set +e
+	    evoacme $1
+	    set -e
 	    apache2ctl configtest 2>/dev/null
 	    /etc/init.d/apache2 force-reload >/dev/null
 
