@@ -24,8 +24,8 @@ $oriconf['script_path'] = '/usr/share/scripts/evoadmin';
 $oriconf['cluster'] = FALSE;
 $oriconf['servers'] = array('servers');
 $oriconf['cache'] = '/home/evoadmin/www/cache.sqlite';
-$localconf['known_host'] = '/home/evoadmin/www/known_host';
-$oriconf['ftpadmin'] = TRUE;
+$oriconf['known_host'] = '/home/evoadmin/www/known_host';
+$oriconf['ftpadmin'] = FALSE;
 
 $oriconf['noreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
 $oriconf['postponedreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
