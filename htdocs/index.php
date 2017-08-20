@@ -21,7 +21,7 @@ define('EVOADMIN_BASE','./');
 /**
  * PHP cookies session
  */
-session_name('EVOPMI_SESS');
+session_name('EVOADMINWEB_SESS');
 session_start();
 
 error_reporting(E_ALL | E_NOTICE);
