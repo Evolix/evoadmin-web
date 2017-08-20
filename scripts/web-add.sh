@@ -425,8 +425,8 @@ op_listvhost() {
     for configfile in $configlist; do
         if [ -r "$configfile" ]; then
             servername=`awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' $configfile | head -n 1`
-            serveraliases=`perl -ne 'print $1 if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
-            serveraliases=`echo $serveraliases | sed 's/ \+/, /g'`
+            serveraliases=`perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
+            serveraliases=`echo $serveraliases | sed 's/ \+/, /g' | sed 's/, $//'`
             userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
             if [ "$servername" ] && [ "$userid" ]; then
                 configid=`basename $configfile`
