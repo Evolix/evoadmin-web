@@ -18,12 +18,12 @@ foreach ($files as $file) {
     $bdd = new bdd();
 
     if (!file_exists($file)) {
-    	$bdd->create($file);
+        $bdd->create($file);
         echo "$file created.\n";
     }
     else {
-    	echo "$file is already created.\n";
-    	continue;
+        echo "$file is already created.\n";
+        continue;
     }
 }
 

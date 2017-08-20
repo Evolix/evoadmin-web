@@ -200,13 +200,13 @@ if ($action=="add") {
               $size_total += $infos[3];
               $table[$num_line]['size'] = formatBytes($infos[3]);
             } else {
-	      $table[$num_line]['size'] = 0;
+          $table[$num_line]['size'] = 0;
             }
 
             if ($infos[4]>0) {
               $table[$num_line]['date'] = date("d/m/Y h:i:s", $infos[4]);
             } else {
-	      $table[$num_line]['date'] = "01/01/1970";
+          $table[$num_line]['date'] = "01/01/1970";
             }
 
             $num_line++;

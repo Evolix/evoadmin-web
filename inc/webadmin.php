@@ -21,23 +21,23 @@ global $conf;
 
 if (!$conf['cluster']) {
 
-	$cmd = 'web-add.sh list-vhost';
-	if(!is_superadmin()) {
-		$cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
-	}
-	sudoexec($cmd, $data_output, $exec_return);
+    $cmd = 'web-add.sh list-vhost';
+    if(!is_superadmin()) {
+        $cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
+    }
+    sudoexec($cmd, $data_output, $exec_return);
 
-	/* Récupération de cette liste dans le tableau $vhost_list */
-	$vhost_list = array();
-	foreach($data_output as $data_line) {
-		$data_split = explode(':', $data_line);
-		array_push($vhost_list, array(
-					'owner' => $data_split[0],
-					'configid' => $data_split[1],
-					'server_name' => $data_split[2],
-					'server_alias' => $data_split[3])
-			  );
-	}
+    /* Récupération de cette liste dans le tableau $vhost_list */
+    $vhost_list = array();
+    foreach($data_output as $data_line) {
+        $data_split = explode(':', $data_line);
+        array_push($vhost_list, array(
+                    'owner' => $data_split[0],
+                    'configid' => $data_split[1],
+                    'server_name' => $data_split[2],
+                    'server_alias' => $data_split[3])
+              );
+    }
 
 }
 else {
@@ -53,35 +53,35 @@ else {
         $cache = $conf['cache'];
     }
 
-	$vhost_list = array();
+    $vhost_list = array();
 
-	/* parcours de la table account */
-	$bdd=new bdd();
-	$bdd->open($cache);
+    /* parcours de la table account */
+    $bdd=new bdd();
+    $bdd->open($cache);
 
-	$accounts = $bdd->list_accounts();
+    $accounts = $bdd->list_accounts();
 
-	if (!empty($accounts)) {
-		foreach($accounts as $account) {
-			
-			$master = $bdd->get_server_from_roleid($account['id_master']);
-			
-			$slave = '';
-			if  (!empty($account['id_slave']))
-				$slave = $bdd->get_server_from_roleid($account['id_slave']);			
-			
-			array_push($vhost_list, array(
-				'owner' => $account['name'],
-				'server_name'=> $account['domain'],
-				'bdd'   => $account['bdd'],
+    if (!empty($accounts)) {
+        foreach($accounts as $account) {
+            
+            $master = $bdd->get_server_from_roleid($account['id_master']);
+            
+            $slave = '';
+            if  (!empty($account['id_slave']))
+                $slave = $bdd->get_server_from_roleid($account['id_slave']);            
+            
+            array_push($vhost_list, array(
+                'owner' => $account['name'],
+                'server_name'=> $account['domain'],
+                'bdd'   => $account['bdd'],
                 'mail'  => $account['mail'],
-				'replication'  => $account['replication'],
-				'master' => $master,
-				'slave'  => $slave)
-			);	
+                'replication'  => $account['replication'],
+                'master' => $master,
+                'slave'  => $slave)
+            );  
 
-		}
-	}
+        }
+    }
 
 }
 

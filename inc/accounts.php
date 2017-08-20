@@ -83,7 +83,7 @@ function web_add_cluster($form, $admin_mail) {
     $exec_cmd = 'web-add-cluster.sh add';
 
     $realtime=0;
-	
+    
     /* array account with infos for sqlite cache */
     $account = array();
 
@@ -194,21 +194,21 @@ function web_add_cluster($form, $admin_mail) {
     /* insertion des infos dans le cache sqlite */
     if ($exec_return == 0) {
 
-	    $bdd=new bdd();
-	    $bdd->open($cache);
+        $bdd=new bdd();
+        $bdd->open($cache);
 
-	    $account['name'] = $form->getField('username')->getValue();
-	    $account['domain'] = $form->getField('domain')->getValue();
+        $account['name'] = $form->getField('username')->getValue();
+        $account['domain'] = $form->getField('domain')->getValue();
         if ($form->getField('use_gmail_mxs')->getValue())
             $account['mail'] = 'gmail';
         else
             $account['mail'] = 'evolix';
 
-	    $bdd->add_account($account);
+        $bdd->add_account($account);
 
-	    $bdd->add_role($account['name'], $master, 'master');
-	    if ($slave != "null");
-		$bdd->add_role($account['name'], $slave, 'slave');
+        $bdd->add_role($account['name'], $master, 'master');
+        if ($slave != "null");
+        $bdd->add_role($account['name'], $slave, 'slave');
 
         if (substr_compare($account['domain'], 'www.', 0, strlen('www.')) == 0) {
             $wwwalias = ltrim($account['domain'], 'www.');
@@ -337,37 +337,37 @@ $form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des ser
 
 /* Traitement du formulaire */
 if(!empty($_POST)) {
-	$form->isCurrentPage(TRUE);
-	$form->initFields();
+    $form->isCurrentPage(TRUE);
+    $form->initFields();
 
-	/* Le champ password devient obligatoire si le champ password_random est
-	 * décoché */
-	if(!$form->getField('password_random')->getValue()) {
-		$form->getField('password')->setMandatory(TRUE);
-		$form->getField('password')->setDisabled(FALSE);
-	}
+    /* Le champ password devient obligatoire si le champ password_random est
+     * décoché */
+    if(!$form->getField('password_random')->getValue()) {
+        $form->getField('password')->setMandatory(TRUE);
+        $form->getField('password')->setDisabled(FALSE);
+    }
 
-	/* Erreur si mysql_db est coché */
-	if($form->getField('mysql_db')->getValue()) {
-		$form->getField('mysql_dbname')->setMandatory(TRUE);
-		$form->getField('mysql_dbname')->setDisabled(FALSE);
-		$form->getField('mysql_password_random')->setDisabled(FALSE);
+    /* Erreur si mysql_db est coché */
+    if($form->getField('mysql_db')->getValue()) {
+        $form->getField('mysql_dbname')->setMandatory(TRUE);
+        $form->getField('mysql_dbname')->setDisabled(FALSE);
+        $form->getField('mysql_password_random')->setDisabled(FALSE);
 
-		/* Le champ mysql_passwd devient obligatoire si le champ
-		 * mysql_password_random est coché */
-		if(!$form->getField('mysql_password_random')->getValue()) {
-			$form->getField('mysql_password')->setMandatory(TRUE);
-			$form->getField('mysql_password')->setDisabled(FALSE);
-		}
-	}
+        /* Le champ mysql_passwd devient obligatoire si le champ
+         * mysql_password_random est coché */
+        if(!$form->getField('mysql_password_random')->getValue()) {
+            $form->getField('mysql_password')->setMandatory(TRUE);
+            $form->getField('mysql_password')->setDisabled(FALSE);
+        }
+    }
 
-	/* Test de validation du formulaire */
-	if($form->verify(TRUE)) {
-		if ($conf['cluster'])
-			$exec_info = web_add_cluster($form, $conf['admin']['mail']);
-		else
-			$exec_info = web_add($form, $conf['admin']['mail']);
-	}   
+    /* Test de validation du formulaire */
+    if($form->verify(TRUE)) {
+        if ($conf['cluster'])
+            $exec_info = web_add_cluster($form, $conf['admin']['mail']);
+        else
+            $exec_info = web_add($form, $conf['admin']['mail']);
+    }   
 }
 
 include_once EVOADMIN_BASE . '../tpl/header.tpl.php';

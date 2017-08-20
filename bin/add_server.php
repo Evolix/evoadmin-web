@@ -9,9 +9,9 @@ $file = '';
 $server = '';
 if (is_mcluster_mode()) {
     if ($argc != 3) {
-    	echo "Multi-cluster mode is enabled in your config file.\n"; 
+        echo "Multi-cluster mode is enabled in your config file.\n"; 
         echo "Usage: $argv[0] <cluster> <server>\n";
-    	exit(1);
+        exit(1);
     }
     $file = str_replace('%cluster_name%', $argv[1], $conf['cache']);
     $server = $argv[2];
@@ -19,7 +19,7 @@ if (is_mcluster_mode()) {
 else {
     if ($argc != 2) {
         echo "Usage: $argv[0] <server>\n";
-    	exit(1);
+        exit(1);
     }
     $file = $conf['cache'];
     $server = $argv[1];
@@ -27,8 +27,8 @@ else {
 
 
 if (!file_exists($file)) {
-	echo "$file doesn't exist\n";
-	exit(1);
+    echo "$file doesn't exist\n";
+    exit(1);
 }
 
 $bdd->open($file);

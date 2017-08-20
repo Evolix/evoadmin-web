@@ -132,7 +132,7 @@ class bdd {
                 return $row['name'];
         }
 
-	return 0;
+    return 0;
    }
 
     /**
@@ -450,9 +450,9 @@ class bdd {
 
     public function list_accounts()
     {
-	    $database = $this->db;
+        $database = $this->db;
 
-	    $query = "SELECT * FROM Accounts";
+        $query = "SELECT * FROM Accounts";
 
         $result = $database->query($query);
         if ($result != FALSE)
@@ -474,12 +474,12 @@ class bdd {
 
     public function list_serveralias($domain)
     {
-	    $database = $this->db;
+        $database = $this->db;
     
         if ($domain == NULL)
             return NULL;
 
-	    $query = "SELECT * FROM Serveralias WHERE domain = '$domain'";
+        $query = "SELECT * FROM Serveralias WHERE domain = '$domain'";
         
         $result = $database->query($query);
         if ($result != FALSE)
@@ -501,7 +501,7 @@ class bdd {
 
     public function is_serveralias($domain, $alias)
     {
-	    $database = $this->db;
+        $database = $this->db;
     
         if ($domain == NULL)
             return 0;

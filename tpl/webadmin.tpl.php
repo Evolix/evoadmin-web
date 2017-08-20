@@ -47,10 +47,10 @@
                   $vhost_info['server_name'], $vhost_info['server_name']);
     
           if ($conf['cluster']) {
-		if (empty($vhost_info['bdd']))
-			printf('<td bgcolor="#696969"/>');
-		else
-          		printf('<td>%s</td>', $vhost_info['bdd']);
+        if (empty($vhost_info['bdd']))
+            printf('<td bgcolor="#696969"/>');
+        else
+                printf('<td>%s</td>', $vhost_info['bdd']);
 
         if (empty($vhost_info['mail']))
             printf('<td bgcolor="#696969" />');
@@ -61,16 +61,16 @@
         if (empty($vhost_info['replication']))
             printf('<td bgcolor="#696969"/>');
         else
-          	printf('<td>%s</td>', $vhost_info['replication']);
-          	printf('<td>%s</td>', $vhost_info['master']);
-		if (empty($vhost_info['slave']))
-			printf('<td bgcolor="#696969"/>');
-		else
-          		printf('<td>%s</td>', $vhost_info['slave']);
-	  }
-	  else {
+            printf('<td>%s</td>', $vhost_info['replication']);
+            printf('<td>%s</td>', $vhost_info['master']);
+        if (empty($vhost_info['slave']))
+            printf('<td bgcolor="#696969"/>');
+        else
+                printf('<td>%s</td>', $vhost_info['slave']);
+      }
+      else {
                 printf('<td>%s</td>', $vhost_info['server_alias']);
-	  }
+      }
           if (is_superadmin()) {
           printf('<td><a href="/webadmin/edit/%s">Lister/Modifier</a></td>',
               $vhost_info['owner']);

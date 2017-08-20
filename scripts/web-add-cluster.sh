@@ -40,7 +40,7 @@ config_file="/etc/evolinux/web-add.conf"
 [ -r $config_file ] && . $config_file
 
 usage() {
-	cat <<EOT >&2
+    cat <<EOT >&2
 
 Usage: $0 COMMAND [ARG]
 
@@ -97,8 +97,8 @@ EOT
 # Affiche un message d'erreur de validation
 #
 in_error() {
-	msg=$1
-	cat >&2 <<EOT
+    msg=$1
+    cat >&2 <<EOT
 ***
 Erreur : $msg
 ***
@@ -106,55 +106,55 @@ EOT
 }
 
 gen_random_passwd() {
-	apg -c /dev/urandom -n1 -E oOlL10\&\\\/\"\'
+    apg -c /dev/urandom -n1 -E oOlL10\&\\\/\"\'
 }
 
 validate_login() {
-	login=$1
-	
-	length=${#login}
-	
-	if [ $length -lt 3 ]; then
-		in_error "Le login doit contenir plus de 2 caracteres"
-		return 1
-	fi
-	
-	if [ $length -gt $MAX_LOGIN_CHAR ]; then
-		in_error "Le login ne doit pas contenir plus de $MAX_LOGIN_CHAR caracteres"
-		return 1
-	fi
+    login=$1
+    
+    length=${#login}
+    
+    if [ $length -lt 3 ]; then
+        in_error "Le login doit contenir plus de 2 caracteres"
+        return 1
+    fi
+    
+    if [ $length -gt $MAX_LOGIN_CHAR ]; then
+        in_error "Le login ne doit pas contenir plus de $MAX_LOGIN_CHAR caracteres"
+        return 1
+    fi
 }
 
 validate_passwd() {
-	passwd=$1
-	length=${#passwd}
+    passwd=$1
+    length=${#passwd}
 
-	if [ $length -lt 6 ] && [ $length -gt 0 ]; then
-		in_error "Le mot de passe doit avoir au moins 6 caracteres"
-		return 1
-	fi
+    if [ $length -lt 6 ] && [ $length -gt 0 ]; then
+        in_error "Le mot de passe doit avoir au moins 6 caracteres"
+        return 1
+    fi
 }
 
 validate_dbname() {
-	dbname=$1
+    dbname=$1
 # aandre 18/06
-#	if mysql -ss -e "show databases" | grep "^$dbname$" >/dev/null; then
-#		in_error "Base de données déjà existante"
-#		return 1
-#	fi
+#   if mysql -ss -e "show databases" | grep "^$dbname$" >/dev/null; then
+#       in_error "Base de données déjà existante"
+#       return 1
+#   fi
 }
 
 validate_wwwdomain() {
-	wwwdomain=$1
-	if [ -z "$wwwdomain" ]; then
-		in_error "Le nom de domaine est obligatoire"
-		return 1
-	fi
-	return 0
+    wwwdomain=$1
+    if [ -z "$wwwdomain" ]; then
+        in_error "Le nom de domaine est obligatoire"
+        return 1
+    fi
+    return 0
 }
 
 validate_mail() {
-	return 0
+    return 0
 }
 
 validate_replmode() {
@@ -191,23 +191,23 @@ validate_replinterval() {
 }
 
 step_ok() {
-	msg=$1
-	echo "[OK] $msg"
+    msg=$1
+    echo "[OK] $msg"
 }
 
 create_www_accounts() {
 
-	CMD_MASTER="$SSH -T $SSH_USER@$in_master"
-	CMD_SLAVE="$SSH -T $SSH_USER@$in_slave"
+    CMD_MASTER="$SSH -T $SSH_USER@$in_master"
+    CMD_SLAVE="$SSH -T $SSH_USER@$in_slave"
 
 
 
-	# On verifie que le compte n'existe pas sur master et slave
+    # On verifie que le compte n'existe pas sur master et slave
 
-	if [ -n "$($CMD_MASTER cut -d: -f1 /etc/passwd| grep ^$in_login$)" ]; then
-		in_error "Le compte $in_login existe sur $in_master";
-		exit 1;
-	fi
+    if [ -n "$($CMD_MASTER cut -d: -f1 /etc/passwd| grep ^$in_login$)" ]; then
+        in_error "Le compte $in_login existe sur $in_master";
+        exit 1;
+    fi
 
     if [ $in_slave != "null" ]; then
         if [ -n "$($CMD_SLAVE cut -d: -f1 /etc/passwd| grep ^$in_login$)" ]; then
@@ -217,13 +217,13 @@ create_www_accounts() {
     fi
 
 
-	# Trouver un UID valide et commun pour le compte cree sur Master et Slave
+    # Trouver un UID valide et commun pour le compte cree sur Master et Slave
 
-	last_uid_master=$($CMD_MASTER $LAST_UID)
-	if [ -z "$last_uid_master" ]; then
-		echo "error while fetching uid in master";
-		return 1
-	fi
+    last_uid_master=$($CMD_MASTER $LAST_UID)
+    if [ -z "$last_uid_master" ]; then
+        echo "error while fetching uid in master";
+        return 1
+    fi
 
     if [ $in_slave != "null" ]; then
         last_uid_slave=$($CMD_SLAVE $LAST_UID)
@@ -247,19 +247,19 @@ create_www_accounts() {
         uid=$(($last_uid_master + 1))
     fi
 
-	echo "UID libre: $uid"
+    echo "UID libre: $uid"
 
-	# options mysql
-	opts_mysql='';
-	[ -n "$in_dbname" ] && opts_mysql="-m $in_dbname -P '$in_dbpasswd'"
+    # options mysql
+    opts_mysql='';
+    [ -n "$in_dbname" ] && opts_mysql="-m $in_dbname -P '$in_dbpasswd'"
 
-	# Creation web account on Master
+    # Creation web account on Master
 
-	echo "MASTER: $CMD_MASTER $WEBADD add -p '$in_passwd' $opts_mysql -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain"
+    echo "MASTER: $CMD_MASTER $WEBADD add -p '$in_passwd' $opts_mysql -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain"
 
-	$CMD_MASTER $WEBADD add -p \'$in_passwd\' $opts_mysql -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain || (in_error "creation du compte master sur $in_master: $?" && exit 1)
+    $CMD_MASTER $WEBADD add -p \'$in_passwd\' $opts_mysql -l $in_mail -y -u $uid -g $uid -U $(($uid + 1)) $in_login $in_wwwdomain || (in_error "creation du compte master sur $in_master: $?" && exit 1)
 
-	# Creation web account on Slave
+    # Creation web account on Slave
 
     if [ $in_slave != "null" ]; then
  
@@ -334,10 +334,10 @@ ENDSSH
 sudo -u $in_login lsyncd ~$in_login/www $in_slave:www
 ENDSSH
             # Pour les mails
-	    # La réplication se fait au niveau du domaine (réplication de tout
-	    # /home/vmail/example.com/).
+        # La réplication se fait au niveau du domaine (réplication de tout
+        # /home/vmail/example.com/).
         domain=$(remove_subdomain $wwwdomain)
-	    $CMD_MASTER <<ENDSSH
+        $CMD_MASTER <<ENDSSH
 if [ ! -d ~$VMAIL_USER/$domain ]; then
     mkdir ~$VMAIL_USER/$domain
     chown $VMAIL_USER:$VMAIL_USER ~$VMAIL_USER/$domain
@@ -400,18 +400,18 @@ ENDSSH
 }
 
 op_del() {
-	if [ $# -lt 3 ]; then
-		usage
-		exit 1
-	else
-		login=$1
-		master=$2
-		slave=$3
-		if [ $# -eq 4 ]; then
-			dbname=$4
-		fi
+    if [ $# -lt 3 ]; then
+        usage
+        exit 1
+    else
+        login=$1
+        master=$2
+        slave=$3
+        if [ $# -eq 4 ]; then
+            dbname=$4
+        fi
 
-	fi
+    fi
 
     if [ $slave != "null" ]; then
         echo "Deleting account $login on $master and $slave. Continue ?"
@@ -420,14 +420,14 @@ op_del() {
     fi
     read
 
-	CMD_MASTER="$SSH $SSH_USER@$master"
-	CMD_SLAVE="$SSH $SSH_USER@$slave"
+    CMD_MASTER="$SSH $SSH_USER@$master"
+    CMD_SLAVE="$SSH $SSH_USER@$slave"
 
-	# check account exist on master and slave
-	if [ -z "$($CMD_MASTER cut -d: -f1 /etc/passwd| grep ^$login$)" ]; then
-		echo "Account $login doesn't exist on $master";
-		exit 1;
-	fi
+    # check account exist on master and slave
+    if [ -z "$($CMD_MASTER cut -d: -f1 /etc/passwd| grep ^$login$)" ]; then
+        echo "Account $login doesn't exist on $master";
+        exit 1;
+    fi
  
     if [ $slave != "null" ]; then
         if [ -z "$($CMD_SLAVE cut -d: -f1 /etc/passwd| grep ^$login$)" ]; then
@@ -436,12 +436,12 @@ op_del() {
         fi
     fi
 
-	yes | $CMD_MASTER $WEBADD del $login $dbname
+    yes | $CMD_MASTER $WEBADD del $login $dbname
     if [ $slave != "null" ]; then
         yes | $CMD_SLAVE $WEBADD del $login $dbname
     fi
 
-	DATE=$(date +"%Y-%m-%d")
+    DATE=$(date +"%Y-%m-%d")
     if [ $slave != "null" ]; then
         echo "$DATE [web-add-cluster.sh] $login deleted from $master and $slave" >> /var/log/evolix.log
     else
@@ -460,8 +460,8 @@ op_aliasadd() {
     master=$3
     slave=$4
 
-	CMD_MASTER="$SSH $SSH_USER@$master"
-	CMD_SLAVE="$SSH $SSH_USER@$slave"
+    CMD_MASTER="$SSH $SSH_USER@$master"
+    CMD_SLAVE="$SSH $SSH_USER@$slave"
     
     $CMD_MASTER $WEBADD add-alias $vhost $alias
 
@@ -469,7 +469,7 @@ op_aliasadd() {
         $CMD_SLAVE $WEBADD add-alias $vhost $alias
     fi
 
-	DATE=$(date +"%Y-%m-%d")
+    DATE=$(date +"%Y-%m-%d")
     if [ $slave != "null" ]; then
         echo "$DATE [web-add-cluster.sh] $alias added to $vhost on $master and $slave" >> /var/log/evolix.log
     else
@@ -488,8 +488,8 @@ op_aliasdel() {
     master=$3
     slave=$4
 
-	CMD_MASTER="$SSH $SSH_USER@$master"
-	CMD_SLAVE="$SSH $SSH_USER@$slave"
+    CMD_MASTER="$SSH $SSH_USER@$master"
+    CMD_SLAVE="$SSH $SSH_USER@$slave"
     
     $CMD_MASTER $WEBADD del-alias $vhost $alias
 
@@ -497,7 +497,7 @@ op_aliasdel() {
         $CMD_SLAVE $WEBADD del-alias $vhost $alias
     fi
 
-	DATE=$(date +"%Y-%m-%d")
+    DATE=$(date +"%Y-%m-%d")
     if [ $slave != "null" ]; then
         echo "$DATE [web-add-cluster.sh] $alias deleted from $vhost on $master and $slave" >> /var/log/evolix.log
     else
@@ -509,148 +509,148 @@ op_aliasdel() {
 
 arg_processing() {
 
-	# Détermination de la commande
-	
-	if [ $# -lt 1 ]; then
-		usage
-	else
-		commandname=$1
-		shift
-		
-		case "$commandname" in
-		add)
-			op_add $*
-			;;
-		del)
-			op_del $*
-			;;
-		list-vhost)
-			op_listvhost $*
-			;;
+    # Détermination de la commande
+    
+    if [ $# -lt 1 ]; then
+        usage
+    else
+        commandname=$1
+        shift
+        
+        case "$commandname" in
+        add)
+            op_add $*
+            ;;
+        del)
+            op_del $*
+            ;;
+        list-vhost)
+            op_listvhost $*
+            ;;
         add-alias)
             op_aliasadd $*
             ;;
         del-alias)
             op_aliasdel $*
             ;;
-		*)
-			usage
-			;;
-		esac
-	fi
+        *)
+            usage
+            ;;
+        esac
+    fi
 }
 
 op_listvhost() {
-	if [ $# -eq 1 ]; then
-		configlist="$VHOST_PATH/$1";
-	else
-		configlist="$VHOST_PATH/*";
-	fi
+    if [ $# -eq 1 ]; then
+        configlist="$VHOST_PATH/$1";
+    else
+        configlist="$VHOST_PATH/*";
+    fi
 
 
-	for configfile in $configlist; do
-		if [ -r "$configfile" ]; then
-			servername=`awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' $configfile | head -n 1`
-			serveraliases=`perl -ne 'print $1 if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
-			serveraliases=`echo $serveraliases | sed 's/ \+/, /g'`
-			userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
-			if [ "$servername" ] && [ "$userid" ]; then
-				configid=`basename $configfile`
-				echo "$userid:$configid:$servername:$serveraliases"
-			fi
-		fi
-	done
+    for configfile in $configlist; do
+        if [ -r "$configfile" ]; then
+            servername=`awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' $configfile | head -n 1`
+            serveraliases=`perl -ne 'print $1 if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
+            serveraliases=`echo $serveraliases | sed 's/ \+/, /g'`
+            userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
+            if [ "$servername" ] && [ "$userid" ]; then
+                configid=`basename $configfile`
+                echo "$userid:$configid:$servername:$serveraliases"
+            fi
+        fi
+    done
 }
 
 op_add() {
-	while getopts hyp:m:P:s:l:f:c: opt; do
-		case "$opt" in
-			p)
-				in_passwd=$OPTARG
-				;;
-			m)
-				in_dbname=$OPTARG
-				;;
-			P)
-				in_dbpasswd=$OPTARG
-				;;
-			l)
-				in_mail=$OPTARG
-				;;
-			f)
-				in_replinterval=$OPTARG
-				;;
-			c)
-				in_replunit=$OPTARG
-				;;
-			h)
-				usage
-				exit 1
-				;;
-			?)
-				usage
-				exit 1
-				;;
-		esac
-	done
+    while getopts hyp:m:P:s:l:f:c: opt; do
+        case "$opt" in
+            p)
+                in_passwd=$OPTARG
+                ;;
+            m)
+                in_dbname=$OPTARG
+                ;;
+            P)
+                in_dbpasswd=$OPTARG
+                ;;
+            l)
+                in_mail=$OPTARG
+                ;;
+            f)
+                in_replinterval=$OPTARG
+                ;;
+            c)
+                in_replunit=$OPTARG
+                ;;
+            h)
+                usage
+                exit 1
+                ;;
+            ?)
+                usage
+                exit 1
+                ;;
+        esac
+    done
 
-	shift $(($OPTIND - 1))
-	if [ $# -ne 5 ]; then
-		usage
-		exit 1
-	fi
+    shift $(($OPTIND - 1))
+    if [ $# -ne 5 ]; then
+        usage
+        exit 1
+    fi
 
-	in_login=$1
-	in_wwwdomain=$2
-	in_master=$3
-	in_slave=$4
-	in_replmode=$5
+    in_login=$1
+    in_wwwdomain=$2
+    in_master=$3
+    in_slave=$4
+    in_replmode=$5
 
-	# in_master doit etre different d'in_slave
-	[ "$in_master" = "$in_slave" ] && in_slave="null";
+    # in_master doit etre different d'in_slave
+    [ "$in_master" = "$in_slave" ] && in_slave="null";
 
-	validate_login $in_login || exit 1
-	[ -z "$in_passwd" ] && in_passwd=`gen_random_passwd`
-	validate_passwd $in_passwd || exit 1
+    validate_login $in_login || exit 1
+    [ -z "$in_passwd" ] && in_passwd=`gen_random_passwd`
+    validate_passwd $in_passwd || exit 1
 
-	if [ -n "$in_dbname" ]; then
-		validate_dbname $in_dbname || exit 1
-		if [ -z "$in_dbpasswd" ]; then
-			in_dbpasswd=`gen_random_passwd`
-			validate_passwd $in_dbpasswd || exit 1
-			echo "validate mysql passwd $in_dbpasswd";
-		fi
-		echo " ? validate mysql passwd $in_dbpasswd";
-	fi
+    if [ -n "$in_dbname" ]; then
+        validate_dbname $in_dbname || exit 1
+        if [ -z "$in_dbpasswd" ]; then
+            in_dbpasswd=`gen_random_passwd`
+            validate_passwd $in_dbpasswd || exit 1
+            echo "validate mysql passwd $in_dbpasswd";
+        fi
+        echo " ? validate mysql passwd $in_dbpasswd";
+    fi
 
-	validate_wwwdomain $in_wwwdomain || exit 1
-	[ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
-	validate_mail $in_mail || exit 1
+    validate_wwwdomain $in_wwwdomain || exit 1
+    [ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
+    validate_mail $in_mail || exit 1
     validate_replmode $in_replmode || exit 1
     if [ $in_replmode = "deferred" ]; then
         validate_replinterval $in_replinterval $in_replunit || exit 1
     fi
 
-	echo
-	echo "----------------------------------------------"
-	echo "Nom du compte : $in_login"
-	echo "Mot de passe : $in_passwd"
-	if [ -n "$in_dbname" ]; then
-		echo "Base de données MySQL : $in_dbname"
-		echo "Mot de passe MySQL : $in_dbpasswd"
-	fi
-	echo "Nom de domaine : $in_wwwdomain"
-	echo "IP compte master : $in_master"
-	echo "IP compte slave : $in_slave"
-	echo "Mode de replication : $in_replmode"
-	echo "Envoi du mail récapitulatif à : $in_mail"
-	echo "----------------------------------------------"
-	echo
-	
-	create_www_accounts
-	echo
-	echo " => Compte $in_login créé avec succès"
-	echo
+    echo
+    echo "----------------------------------------------"
+    echo "Nom du compte : $in_login"
+    echo "Mot de passe : $in_passwd"
+    if [ -n "$in_dbname" ]; then
+        echo "Base de données MySQL : $in_dbname"
+        echo "Mot de passe MySQL : $in_dbpasswd"
+    fi
+    echo "Nom de domaine : $in_wwwdomain"
+    echo "IP compte master : $in_master"
+    echo "IP compte slave : $in_slave"
+    echo "Mode de replication : $in_replmode"
+    echo "Envoi du mail récapitulatif à : $in_mail"
+    echo "----------------------------------------------"
+    echo
+    
+    create_www_accounts
+    echo
+    echo " => Compte $in_login créé avec succès"
+    echo
 }
 
 remove_subdomain() {

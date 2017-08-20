@@ -135,40 +135,40 @@ delete_account() {
 while getopts a:u:n:f:p: opt; do
    case "$opt" in
    a)
-	in_action=$OPTARG
-	;;
+    in_action=$OPTARG
+    ;;
    u)
-	in_userid=$OPTARG
-	;;
+    in_userid=$OPTARG
+    ;;
    n)
-	in_accountname=$OPTARG
-	;;
+    in_accountname=$OPTARG
+    ;;
    f)
-	in_workpath=$OPTARG
-	;;
+    in_workpath=$OPTARG
+    ;;
    p)
-	in_password=$OPTARG
-	;;
+    in_password=$OPTARG
+    ;;
    esac
 done
 
 case "$in_action" in
    l)
-	account_list=`list_accounts_by_UID $in_userid`
-	echo -e -n $account_list
-	exit 1
-	;;
+    account_list=`list_accounts_by_UID $in_userid`
+    echo -e -n $account_list
+    exit 1
+    ;;
    a)
-	echo -e -n `add_account $in_userid $in_accountname $in_workpath $in_password`
-	exit 1
-	;;
+    echo -e -n `add_account $in_userid $in_accountname $in_workpath $in_password`
+    exit 1
+    ;;
    m)
-	echo -e -n `edit_password $in_accountname $in_password`
-	exit 1;
-	;;
+    echo -e -n `edit_password $in_accountname $in_password`
+    exit 1;
+    ;;
    d)
-	echo -e -n `delete_account $in_accountname`
-	exit 1;
-	;;
+    echo -e -n `delete_account $in_accountname`
+    exit 1;
+    ;;
 esac
 

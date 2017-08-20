@@ -59,10 +59,10 @@ if [ $LOCAL_STATE = 'master' ]; then
     # Try to connect to the remote server and check if it is a slave
     REMOTE_STATE=$(mktemp)
     if ssh $REMOTE_IP [ -e ~/state ]; then
-	ssh $REMOTE_IP cat ~/state >$REMOTE_STATE
+    ssh $REMOTE_IP cat ~/state >$REMOTE_STATE
     elif [ $? -eq 255 ]; then
-	error "failed to connect to slave ($REMOTE_IP)!"
-	exit 2
+    error "failed to connect to slave ($REMOTE_IP)!"
+    exit 2
     else
         error "state file does not exist on slave!"
         exit 2
