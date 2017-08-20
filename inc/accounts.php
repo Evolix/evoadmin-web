@@ -57,16 +57,17 @@ function web_add($form, $admin_mail) {
         $form->getField('domain')->getValue());
 
     //domain_add($form, $_SERVER['SERVER_ADDR'], true);
-    sudoexec($exec_cmd, $exec_output, $exec_return);
+    //sudoexec($exec_cmd, $exec_output, $exec_return);
 
     /* Gestion des noms de domaines supplementaires */
     if ( $form->getField('domain_alias')->getValue() ) {
         $domain_alias = preg_split('/,/', $form->getField('domain_alias')->getValue());
         foreach ( $domain_alias as $domain ) {
-            $exec_cmd = 'web-add.sh add-alias '.$form->getField('domain')->getValue().' ';
+            $exec_cmd = 'web-add.sh add-alias '.$form->getField('username')->getValue().' ';
             $domain = trim($domain);
             $exec_cmd .= $domain.' '.$master.' '.$slave;
-            sudoexec($exec_cmd, $exec_output, $exec_return);
+            //sudoexec($exec_cmd, $exec_output, $exec_return);
+            print $exec_cmd $exec_output $exec_return ; die;
             //domain_add($form, gethostbyname($master), false);
         }
         $exec_return |= $exec_return2; // $exec_return == 0 if $exec_return == 0 && $exec_return2 == 0
