@@ -173,6 +173,7 @@ function web_add_cluster($form, $admin_mail) {
         $slave,
         ($realtime ? 'realtime': 'deferred'));
 
+    //if ($conf['bindadmin'])
     domain_add($form->getField('domain')->getValue(), gethostbyname($master), true, $form->getField('use_gmail_mxs')->getValue());
     sudoexec($exec_cmd, $exec_output, $exec_return);
 
@@ -199,6 +200,7 @@ function web_add_cluster($form, $admin_mail) {
 
         $account['name'] = $form->getField('username')->getValue();
         $account['domain'] = $form->getField('domain')->getValue();
+        //if ($conf['bindadmin'])
         if ($form->getField('use_gmail_mxs')->getValue())
             $account['mail'] = 'gmail';
         else
@@ -332,8 +334,10 @@ if ($conf['cluster']) {
     $form->addField('cluster_mode', new SelectFormField('Mode de réplication', FALSE, $choices));
 }
 
-/* Quai13 specific: allow to switch between Gmail MX/Quai13 MX */
-$form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
+if ($conf['bindadmin']) {
+    /* Quai13 specific: allow to switch between Gmail MX/Quai13 MX */
+    $form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
+}
 
 /* Traitement du formulaire */
 if(!empty($_POST)) {

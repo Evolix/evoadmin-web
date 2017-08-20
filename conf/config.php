@@ -26,6 +26,7 @@ $oriconf['servers'] = array('servers');
 $oriconf['cache'] = '/home/evoadmin/www/cache.sqlite';
 $oriconf['known_host'] = '/home/evoadmin/www/known_host';
 $oriconf['ftpadmin'] = FALSE;
+$oriconf['bindadmin'] = FALSE;
 
 $oriconf['noreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
 $oriconf['postponedreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
