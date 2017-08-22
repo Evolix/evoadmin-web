@@ -24,10 +24,12 @@ PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
 TPL_VHOST="$SCRIPTS_PATH/vhost"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
-VHOST_PATH="/etc/apache2/sites-enabled/"
+VHOST_PATH="/etc/apache2/sites-available/"
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
+MYSQL_OPTS=""
+PHP_VERSIONS=()
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
 config_file="/etc/evolinux/web-add.conf"
@@ -70,7 +72,13 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
    -y
       Don't ask for confirmation
 
-   Example : web-add.sh add -m testdb testlogin testdomain.com
+   -r
+      PHP version (without dot)
+
+   -q
+      Filesystem quota in GiB, in the form <quota soft>:<quota hard>
+
+   Example : web-add.sh add -m testdb -r 56 testlogin testdomain.com
 
 del LOGIN [DBNAME]
 
@@ -90,6 +98,13 @@ del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
 
+setphpversion LOGIN VERSION
+
+    Change PHP version for LOGIN
+
+setquota LOGIN QUOTA_SOFT:QUOTA_HARD
+
+    Change quotas for LOGIN
 EOT
 }
 
@@ -137,7 +152,7 @@ validate_passwd() {
 
 validate_dbname() {
     dbname=$1
-    if mysql -ss -e "show databases" | grep "^$dbname$" >/dev/null; then
+    if mysql $MYSQL_OPTS -ss -e "show databases" | grep "^$dbname$" >/dev/null; then
         in_error "Base de données déjà existante"
         return 1
     fi
@@ -154,6 +169,26 @@ validate_wwwdomain() {
 
 validate_mail() {
     return 0
+}
+
+validate_phpversion() {
+    php_version="$1"
+    if [[ ! " ${PHP_VERSIONS[@]} " =~ " ${php_version} " ]]; then
+        in_error "Version de PHP incorrecte."
+        return 1
+    fi
+}
+
+validate_quota() {
+    quota_soft=$(echo $1 |cut -f 1 -d:)
+    quota_hard=$(echo $1 |cut -f 2 -d:)
+    if [ -z "$quota_soft" ] || [ -z "$quota_hard" ]; then
+        in_error "Le quota soft et le quota hard doivent être spécifiés sous la forme <quota soft>:<quota hard>."
+        return 1
+    elif [ $quota_soft -gt $quota_hard ]; then
+        in_error "Le quota hard doit être plus grand que le quota soft."
+        return 1
+    fi
 }
 
 step_ok() {
@@ -211,6 +246,14 @@ create_www_account() {
     /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www \
             --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
 
+    # Create users inside all containers
+    for php_version in ${PHP_VERSIONS[@]}; do
+        #lxc-attach -n php${php_version} -- /usr/sbin/adduser --firstuid $FIRST_UID --lastuid $LAST_UID --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash $OPT_UID $OPT_UID_ARG --force-badname --home "$HOME_DIR_USER" >/dev/null
+        lxc-attach -n php${php_version} -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash $OPT_UID $OPT_UID_ARG --force-badname --home "$HOME_DIR_USER" >/dev/null
+        lxc-attach -n php${php_version} -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
+        lxc-attach -n php${php_version} -- /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
+    done
+
     sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
     /etc/init.d/ssh reload
 
@@ -248,12 +291,60 @@ create_www_account() {
     step_ok "Création du répertoire personnel"
 
     ############################################################################
+
+    if [ -n "$in_quota" ]; then
+        quota_soft=$(($(echo $in_quota |cut -f 1 -d:) * 1024 * 1024))
+        quota_hard=$(($(echo $in_quota |cut -f 2 -d:) * 1024 * 1024))
+        setquota --remote --user $in_login $quota_soft $quota_hard 0 0 /home
+    fi
+
+    ############################################################################
+
+    # Create FPM pool on all containers.
+    for php_version in ${PHP_VERSIONS[@]}; do
+        if [ "$php_version" = "70" ]; then
+            pool_path="/etc/php/7.0/fpm/pool.d/"
+            sock_path="/run/php/php7.0-fpm-${in_login}.sock"
+        else
+            pool_path="/etc/php5/fpm/pool.d/"
+            sock_path="/run/php5-fpm-${in_login}.sock"
+        fi
+        cat <<EOT >/var/lib/lxc/php${php_version}/rootfs/${pool_path}/${in_login}.conf
+[${in_login}]
+user = ${in_login}
+group = ${in_login}
+
+listen = ${sock_path}
+pm = ondemand
+pm.max_children = 10
+pm.process_idle_timeout = 10s
+php_admin_value[error_log] = /home/${in_login}/log/php.log
+EOT
+        step_ok "Création du pool FPM ${phpversion}"
+    done
+
+    ############################################################################
     
     random=$RANDOM
     vhostfile="/etc/apache2/sites-available/${in_login}.conf"
     
     cat $TPL_VHOST | \
         sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
+
+    if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
+        phpfpm_socket_path="/var/lib/lxc/php${php_version}/rootfs${sock_path}"
+        cat <<EOT >>$vhostfile
+    <Proxy "fcgi:/unix:${phpfpm_socket_path}" timeout=300>
+    </Proxy>
+    <FilesMatch "\.php$">
+        SetHandler proxy:fcgi://127.0.0.1:PHPVERSIONIDPORT
+    </FilesMatch>
+</VirtualHost>
+EOT
+    else
+        cat <<EOT >>$vhostfile
+</VirtualHost>
+EOT
     
     # On active aussi example.com si domaine commence par "www." comme www.example
     if echo $in_wwwdomain | grep '^www.' > /dev/null; then
@@ -286,9 +377,9 @@ create_www_account() {
     ############################################################################
     
     if [ "$in_dbname" ]; then
-        echo "CREATE DATABASE \`$in_dbname\` $MYSQL_CREATE_DB_OPTS;" | mysql
-        echo "GRANT ALL PRIVILEGES ON \`$in_dbname\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql
-        echo "FLUSH PRIVILEGES;" | mysql
+        echo "CREATE DATABASE \`$in_dbname\` $MYSQL_CREATE_DB_OPTS;" | mysql $MYSQL_OPTS
+        echo "GRANT ALL PRIVILEGES ON \`$in_dbname\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql $MYSQL_OPTS
+        echo "FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
 
         my_cnf_file="$HOME_DIR_USER/.my.cnf"
         cat >$my_cnf_file <<-EOT
@@ -307,9 +398,15 @@ create_www_account() {
 
     ############################################################################
     
-    cat $TPL_MAIL | \
-        sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/PASSE2/$in_dbpasswd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s/DBNAME/$in_dbname/ ; s#HOME_DIR#$HOME_DIR#"| \
-       /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
+    if [ "$in_dbname" ]; then
+        cat $TPL_MAIL | \
+            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/PASSE2/$in_dbpasswd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s/DBNAME/$in_dbname/ ; s#HOME_DIR#$HOME_DIR#/"| \
+            /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
+    else
+        cat $TPL_MAIL | \
+            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s#HOME_DIR#$HOME_DIR#;; 39,58d"| \
+            /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
+    fi
 
     step_ok "Envoi du mail récapitulatif"
 
@@ -325,8 +422,19 @@ create_www_account() {
     
     apache2ctl configtest 2>/dev/null
     /etc/init.d/apache2 force-reload >/dev/null
+    for php_version in ${PHP_VERSIONS[@]}; do
+        if [ "$php_version" = "70" ]; then
+            initscript_path="/etc/init.d/php7.0-fpm"
+            binary="php-fpm7.0"
+        else
+            initscript_path="/etc/init.d/php5-fpm"
+            binary="php5-fpm"
+        fi
+        lxc-attach -n php${php_version} -- $binary --test >/dev/null
+        lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
+    done
 
-    step_ok "Rechargement d'Apache"
+    step_ok "Rechargement d'Apache et de php-fpm"
 
     ############################################################################
     
@@ -352,6 +460,11 @@ op_del() {
     userdel $login
     userdel www-$login
     groupdel $login
+    for php_version in ${PHP_VERSIONS[@]}; do
+        lxc-attach -n php${php_version} -- userdel -f $login
+        lxc-attach -n php${php_version} -- userdel -f www-$login
+        lxc-attach -n php${php_version} -- groupdel $login
+    done
     sed -i.bak "/^$login:/d" /etc/aliases
     sed -i.bak "/^www-$login:/d" /etc/aliases
 
@@ -368,7 +481,13 @@ op_del() {
     rm /etc/apache2/sites-available/$login.conf
     rm /etc/awstats/awstats.$login.conf
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+    rm /var/lib/lxc/php??/rootfs/etc/php5/fpm/pool.d/${login}.conf /var/lib/lxc/php??/rootfs/etc/php/7.0/fpm/pool.d/${login}.conf
     apache2ctl configtest
+    for php_version in ${PHP_VERSIONS[@]}; do
+        lxc-attach -n php${php_version} -- /etc/init.d/php5-fpm restart >/dev/null || true
+        lxc-attach -n php${php_version} -- /etc/init.d/php7.0-fpm restart >/dev/null || true
+    done
+    
     set +x
 
     if [ -n "$dbname" ]; then
@@ -376,9 +495,45 @@ op_del() {
         read
 
         set -x
-        echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql
+        echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
         set +x
     fi 
+}
+
+op_setphpversion() {
+    if [ $# -ne 2 ]; then
+        usage
+        exit 1
+    fi
+    login="$1"
+    phpversion="$2"
+
+    validate_phpversion $phpversion
+
+    sed -i "s#^\( \+SetHandler proxy:unix:/var/lib/lxc/php\)..\(.*\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
+    sed -i "s#^\( \+<Proxy .*unix:/var/lib/lxc/php\)..\(.*\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
+    /etc/init.d/apache2 force-reload >/dev/null
+
+    DATE=$(date +"%Y-%m-%d")
+    echo "$DATE [web-add.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
+}
+
+op_setquota() {
+    if [ $# -ne 2 ]; then
+        usage
+        exit 1
+    fi
+    login="$1"
+    quota="$2"
+
+    validate_quota $quota
+
+    quota_soft=$(($(echo $quota |cut -f 1 -d:) * 1024 * 1024))
+    quota_hard=$(($(echo $quota |cut -f 2 -d:) * 1024 * 1024))
+    setquota --remote --user $login $quota_soft $quota_hard 0 0 /home
+
+    DATE=$(date +"%Y-%m-%d")
+    echo "$DATE [web-add.sh] quota set to $quota for $login" >> /var/log/evolix.log
 }
 
 arg_processing() {
@@ -407,6 +562,12 @@ arg_processing() {
         del-alias)
             op_aliasdel $*
             ;;
+        setphpversion)
+            op_setphpversion $*
+            ;;
+        setquota)
+            op_setquota $*
+            ;;
         *)
             usage
             ;;
@@ -416,21 +577,30 @@ arg_processing() {
 
 op_listvhost() {
     if [ $# -eq 1 ]; then
-        configlist="$VHOST_PATH/$1";
+        configlist="$VHOST_PATH/${1}.conf";
     else
         configlist="$VHOST_PATH/*";
     fi
 
 
     for configfile in $configlist; do
-        if [ -r "$configfile" ]; then
+        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl)\.conf$"; then
             servername=`awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' $configfile | head -n 1`
             serveraliases=`perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
-            serveraliases=`echo $serveraliases | sed 's/ \+/, /g' | sed 's/, $//'`
+            serveraliases=`echo $serveraliases | sed 's/ \+/,/g'`
             userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
+            size=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $2}')
+            quota_soft=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $3}')
+            quota_hard=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $4}')
+            phpversion=$(perl -ne 'print $1 if (m!^\s+SetHandler proxy:unix:/var/lib/lxc/php(\d{2})/!)' $configfile)
+            if [ -e /etc/apache2/sites-enabled/${userid}.conf ]; then
+                is_enabled=1
+            else
+                is_enabled=0
+            fi
             if [ "$servername" ] && [ "$userid" ]; then
                 configid=`basename $configfile`
-                echo "$userid:$configid:$servername:$serveraliases"
+                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled"
             fi
         fi
     done
@@ -535,6 +705,16 @@ op_add() {
                 in_wwwdomain="$tmp"
             fi
         done
+
+        if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
+            until [ "$in_phpversion" ]; do
+                echo -n "Entrez la version de PHP désirée parmis ${PHP_VERSIONS[@]} : "
+                read tmp
+                if validate_phpversion "$tmp"; then
+                    in_phpversion="$tmp"
+                fi
+            done
+        fi
     
         until [ "$in_mail" ]; do
             echo -n "Entrez votre adresse mail pour recevoir le mail de creation ($CONTACT_MAIL par défaut) : "
@@ -551,7 +731,7 @@ op_add() {
     # Mode non interactif
     #
     else
-        while getopts hyp:m:P:w:l:k:u:g:U: opt; do
+        while getopts hyp:m:P:w:l:k:u:g:U:r:q: opt; do
             case "$opt" in
             p)
                 in_passwd=$OPTARG
@@ -580,6 +760,12 @@ op_add() {
             U)
                 in_wwwuid=$OPTARG
                 ;;
+            r)
+                in_phpversion=$OPTARG
+                ;;
+            q)
+                in_quota=$OPTARG
+                ;;
             h)
                 usage
                 exit 1
@@ -607,6 +793,8 @@ op_add() {
             validate_wwwdomain $in_wwwdomain || exit 1
             [ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
             validate_mail $in_mail || exit 1
+            validate_phpversion $in_phpversion || exit 1
+            validate_quota $in_phpversion || exit 1
         fi
     fi
     
@@ -619,6 +807,10 @@ op_add() {
         echo "Mot de passe MySQL : $in_dbpasswd"
     fi
     echo "Nom de domaine : $in_wwwdomain"
+    if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
+        echo "version de PHP : $in_phpversion"
+    fi
+    echo "Quota : $in_quota"
     echo "Envoi du mail récapitulatif à : $in_mail"
     echo "----------------------------------------------"
     echo
@@ -642,4 +834,3 @@ op_add() {
 
 # Point d'entrée
 arg_processing $*
-

@@ -65,4 +65,3 @@
     php_admin_value error_log "HOME_DIR/XXX/log/php.log"
     php_admin_value open_basedir "/usr/share/php:HOME_DIR/XXX:/tmp"
 
-</VirtualHost>
