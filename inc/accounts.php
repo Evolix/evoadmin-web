@@ -52,6 +52,14 @@ function web_add($form, $admin_mail) {
         }
     }
 
+    if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+        $exec_cmd .= sprintf(' -r %s', $conf['php_versions'][$form->getField('php_version')->getValue()]);
+    }
+
+    if ($conf['quota']) {
+        $exec_cmd .= sprintf(' -q %s:%s', $form->getField('quota_soft')->getValue(), $form->getField('quota_hard')->getValue());
+    }
+
     $exec_cmd .= sprintf(' -l %s %s %s 2>&1', $admin_mail,
         $form->getField('username')->getValue(), 
         $form->getField('domain')->getValue());
@@ -63,11 +71,10 @@ function web_add($form, $admin_mail) {
     if ( $form->getField('domain_alias')->getValue() ) {
         $domain_alias = preg_split('/,/', $form->getField('domain_alias')->getValue());
         foreach ( $domain_alias as $domain ) {
-            $exec_cmd = 'web-add.sh add-alias '.$form->getField('username')->getValue().' ';
+            $exec_cmd = 'web-add-multi.sh add-alias '.$form->getField('username')->getValue().' ';
             $domain = trim($domain);
-            $exec_cmd .= $domain.' '.$master.' '.$slave;
+            $exec_cmd .= $domain.' '. $server_list;
             sudoexec($exec_cmd, $exec_output, $exec_return);
-            //domain_add($form, gethostbyname($master), false);
         }
         $exec_return |= $exec_return2; // $exec_return == 0 if $exec_return == 0 && $exec_return2 == 0
         array_push($exec_output, $exec_output2);
@@ -337,6 +344,19 @@ if ($conf['cluster']) {
 if ($conf['bindadmin']) {
     /* Quai13 specific: allow to switch between Gmail MX/Quai13 MX */
     $form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
+}
+
+if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+    $form->addField('php_version', new SelectFormField("Version de PHP", FALSE, $conf['php_versions']));
+}
+
+if ($conf['quota']) {
+    $field_quota_soft = new TextInputFormField("Quota soft (GiB, entier)", TRUE);
+    $field_quota_soft->setValue('1');
+    $form->addField('quota_soft', $field_quota_soft);
+    $field_quota_hard = new TextInputFormField("Quota hard (GiB, entier)", TRUE);
+    $field_quota_hard->setValue('2');
+    $form->addField('quota_hard', $field_quota_hard);
 }
 
 /* Traitement du formulaire */

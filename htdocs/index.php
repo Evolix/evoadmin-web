@@ -68,6 +68,10 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 
     include_once EVOADMIN_BASE . '../inc/destroy.php';
 
+} elseif (preg_match('#^/dbadmin/?$#', $uri, $params)) {
+
+    include_once EVOADMIN_BASE . '../inc/dbadmin.php';
+
 } else {
     die ("Cette page n'existe pas !!!");
 }

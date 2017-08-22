@@ -22,6 +22,7 @@ global $conf;
 if (!$conf['cluster']) {
 
     $cmd = 'web-add.sh list-vhost';
+
     if(!is_superadmin()) {
         $cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
     }
@@ -31,12 +32,46 @@ if (!$conf['cluster']) {
     $vhost_list = array();
     foreach($data_output as $data_line) {
         $data_split = explode(':', $data_line);
-        array_push($vhost_list, array(
-                    'owner' => $data_split[0],
-                    'configid' => $data_split[1],
-                    'server_name' => $data_split[2],
-                    'server_alias' => $data_split[3])
-              );
+
+		if (strstr($data_split[4],'K')) {
+			$taille_utilise  	= number_format(($data_split[4]/1024), 2, '.', '').'M';
+			$taille_utilise_mo	= $taille_utilise;
+			if ($taille_utilise >= 1024) {
+				$taille_utilise = number_format(($taille_utilise/1024), 2, '.', '').'G';	
+			}
+		} else if ($data_split[4] >= 1024) {
+			$taille_utilise_mo	= $data_split[4];
+			$taille_utilise 	= number_format(($data_split[4]/1024), 2, '.', '').'G';	
+		} else {
+			$taille_utilise_mo	= $data_split[4];
+			$taille_utilise 	= $data_split[4];
+		}	
+		
+		$quota_bas_mo	= $data_split[5];		
+		$quota_bas	= number_format(($data_split[5]/1024), 2, '.', '').'G';
+		$quota_haut	= number_format(($data_split[6]/1024), 2, '.', '').'G';		
+		$occupation	= number_format((($taille_utilise_mo/$quota_bas_mo)*100), 2, '.', '');
+		if ($occupation >= 90) {
+			$occupation = '<span style="color:red;font-weight:bold;">'.$occupation.'%</span>';
+		} else if ($occupation >= 80) {
+			$occupation = '<span style="color:MediumVioletRed;font-weight:bold;">'.$occupation.'%</span>';
+		} else if ($occupation >= 70) {
+			$occupation = '<span style="color:Fuchsia;font-weight:bold;">'.$occupation.'%</span>';
+		} else {
+			$occupation = $occupation.'%';
+		}
+		array_push($vhost_list, array(
+					'owner' 	    => $data_split[0],
+					'configid' 	    => $data_split[1],
+					'server_name' 	=> $data_split[2],
+					'server_alias' 	=> $data_split[3],
+					'size' 		    => $taille_utilise,
+					'quota_soft' 	=> $quota_bas,
+					'quota_hard' 	=> $quota_haut,
+					'occupation' 	=> $occupation,
+					'php_version' 	=> $data_split[7],
+					'is_enabled' 	=> $data_split[8])
+			  );
     }
 
 }

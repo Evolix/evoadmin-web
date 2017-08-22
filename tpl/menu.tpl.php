@@ -25,6 +25,9 @@
         <li><a href="/ftpadmin/add">Ajout FTP</a></li>
         <li><a href="/ftpadmin">Comptes FTP</a></li>
     <?php } ?>
+    <?php if ($conf['dbadmin']) { ?>
+        <li><a href="/dbadmin">Bases de données</a></li>
+    <?php } ?>
     <li><a href="/destroy">Déconnexion</a></li>
 </ul>
 <br/>

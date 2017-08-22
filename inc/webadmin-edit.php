@@ -72,6 +72,15 @@ if (isset($_GET['del']) ) {
                 print "<p>La suppression a échouée. Veuillez contacter votre administrateur.</p>";
 
         }
+        else {
+            $exec_cmd = 'web-add.sh del-alias ' . $serveralias['domain'] . ' ' . $serveralias['alias'];
+            sudoexec($exec_cmd, $exec_output, $exec_return);
+            if ($exec_return == 0) {
+                printf ('<p>Alias %s est supprimé.</p>', $serveralias['alias']);
+            } else 
+                print "<p>La suppression a échouée. Veuillez contacter votre administrateur.</p>";
+
+        }
         printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
         print "</center>";
 
@@ -171,9 +180,33 @@ if (isset($_GET['del']) ) {
 
                     }
                 }
+                else {
+                    $serveralias = array (
+                        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
+                        'alias'  => $form->getField('domain_alias')->getValue(),
+                    );
+                    
+                    $account_name=$serveralias['domain'];
+
+                    $exec_cmd = 'web-add.sh add-alias ' . $serveralias['domain'] . ' ' . $serveralias['alias'];
+                    sudoexec($exec_cmd, $exec_output, $exec_return);
+                    if ($exec_return == 0) {
+                        //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
+                        print "<center>";
+                        printf ('<p>L\'alias %s du domaine %s a bien été créé</p>', $serveralias['alias'], $serveralias['domain']);
+                        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                        print "</center>";
+                    }
+                    else {
+                        print "<center>";
+                        printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
+                        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                        print "</center>";
+                    }
+                }
             }
         } else {
-
+			print "<h2>Ajout d'un serveralias</h2><hr>";
             print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
             print "   <fieldset>";
             print "        <legend>Ajout d'un serveralias</legend>";
@@ -211,6 +244,26 @@ if (isset($_GET['del']) ) {
         $bdd->open($cache);
 
         $alias_list = $bdd->list_serveralias($domain);
+    }
+    else {
+        $cmd = 'web-add.sh list-vhost';
+	    if(!is_superadmin()) {
+	    	$cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
+	    }
+	    sudoexec($cmd, $data_output, $exec_return);
+
+	    /* Récupération de cette liste dans le tableau $vhost_list */
+	    $vhost_list = array();
+	    foreach($data_output as $data_line) {
+	    	$data_split = explode(':', $data_line);
+            if ($data_split[0] == $domain && $data_split[3] != '') {
+                $alias_split = explode(',', $data_split[3]);
+                foreach($alias_split as $alias) {
+                    $alias_array['alias'] = $alias;
+                    array_push($alias_list, $alias_array);
+                }
+            }
+	    }
     }
 
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';

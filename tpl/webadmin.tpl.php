@@ -25,6 +25,21 @@
             print '<th>Propriétaire</th>';
         } ?>
         <th>Domaine</th>
+        <?php if(is_superadmin()) {
+            print '<th>Alias</th>';
+        }
+        if($conf['quota']) {
+            print '<th>&nbsp;Utilisé&nbsp;</th>';
+            print '<th>&nbsp;Soft&nbsp;</th>';
+            print '<th>&nbsp;Hard&nbsp;</th>';
+            print '<th>&nbsp;Occupation&nbsp;</th>';
+        }
+        if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+            print '<th>&nbsp;PHP&nbsp;</th>';
+        }
+        ?>
+        <th>&nbsp;Actif&nbsp;</th>
+        <th>&nbsp;Action&nbsp;</th>
         <!--<th>Opérations</th>-->
         <?php if($conf['cluster']) { ?>
     <th>Bdd</th>
@@ -32,12 +47,8 @@
     <th>Replication</th>
     <th>Master</th>
     <th>Slave</th>
-    <?php
-    }
-    if(is_superadmin()) {
-        print '<th>Alias</th>';
-    } ?>
-      <tr>
+    <?php } ?>
+      </tr>
       </thead>
       <tbody>
       <?php foreach($vhost_list as $vhost_info) {
@@ -69,10 +80,20 @@
                   printf('<td bgcolor="#696969"/>');
               else
                   printf('<td>%s</td>', $vhost_info['slave']);
+	  }
+
+          printf('<td align="left">%s</td>', preg_replace('/,/','<br />',$vhost_info['server_alias']));
+
+          if ($conf['quota']) {
+            printf('<td>%s</td>', $vhost_info['size']);
+            printf('<td>%s</td>', $vhost_info['quota_soft']);
+            printf('<td>%s</td>', $vhost_info['quota_hard']);
+            printf('<td>%s</td>', $vhost_info['occupation']);
           }
-          else {
-              printf('<td>%s</td>', $vhost_info['server_alias']);
+          if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+            printf('<td>%s</td>', preg_replace("/^(\d)(\d)$/", '\1.\2', $vhost_info['php_version']));
           }
+          printf('<td>%s</td>', $vhost_info['is_enabled']);
           if (is_superadmin()) {
               printf('<td><a href="/webadmin/edit/%s">Lister/Modifier</a></td>',
                       $vhost_info['owner']);

@@ -16,7 +16,6 @@
 <h2>Server Alias</h2>
 
 <?php 
-    if ($conf['cluster']) {
 
     if(count($alias_list) > 0) { 
         
@@ -59,6 +58,5 @@
    }
 
 
-  }
 ?>
 
