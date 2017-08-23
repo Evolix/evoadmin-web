@@ -1,10 +1,9 @@
 #!/bin/bash
 
 #
-# Gestion des comptes web et des hôtes virtuels Apache
+# Gestion des comptes web et des hôtes virtuels pour Apache et Nginx
 #
-# Copyright (c) 2009 Evolix - Tous droits reserves
-# $Id$
+# Copyright (c) 2009-2017 Evolix - Tous droits reserves
 #
 
 # TODO
@@ -21,10 +20,30 @@ WWWBOUNCE_MAIL="jdoe@example.org"
 SCRIPTS_PATH="/usr/share/scripts/evoadmin"
 LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
-TPL_VHOST="$SCRIPTS_PATH/vhost"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
-TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
-VHOST_PATH="/etc/apache2/sites-available/"
+
+
+# Set to nginx if you use nginx and not apache
+WEB_SERVER="apache"
+if [ "$WEB_SERVER" == "apache" ]; then
+    VHOST_PATH="/etc/apache2/sites-available/"
+    TPL_VHOST="$SCRIPTS_PATH/vhost"
+    TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
+
+elif [ "$WEB_SERVER" == "nginx" ]; then
+    VHOST_PATH="/etc/nginx/sites-available"
+    TPL_VHOST="$SCRIPTS_PATH/vhost-nginx.tpl"
+    TPL_MAIL="$SCRIPTS_PATH/web-mail-nginx.tpl"
+else
+    echo "$WEB_SERVER is not apache nor nginx, exiting..."
+    exit 1
+fi
+
+# FPM
+FPM_PATH="/etc/php/7.0/fpm/pool.d"
+FPM_SERVICE_NAME="php7.0-fpm"
+TPL_FPM="$SCRIPTS_PATH/fpm.conf.tpl"
+
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
@@ -242,9 +261,15 @@ create_www_account() {
     [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
     [ -z "$in_sshkey" ] || [ -n "$HOME_DIR_USER" ] && mkdir "$HOME_DIR_USER/.ssh" && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
         && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh" 
-
-    /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www \
+    if [ "$WEB_SERVER" == "apache" ]; then
+        /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www \
             --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
+    elif [ "$WEB_SERVER" == "nginx" ]; then
+        # Adding user www-data to group $in_login.
+        # And primary group www-data for $in_login.
+        adduser www-data $in_login
+        usermod -g www-data $in_login
+    fi
 
     # Create users inside all containers
     for php_version in ${PHP_VERSIONS[@]}; do
@@ -261,8 +286,12 @@ create_www_account() {
 
     ############################################################################
 
-    echo "www-$login: $login" >> /etc/aliases
-    echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
+    if [ "$WEB_SERVER" == "apache" ]; then
+        echo "www-$login: $login" >> /etc/aliases
+        echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
+    elif [ "$WEB_SERVER" == "nginx" ]; then
+        echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
+    fi
     newaliases
 
     step_ok "Alias mail"
@@ -283,7 +312,10 @@ create_www_account() {
     touch $HOME_DIR_USER/log/php.log
     chgrp $in_login $HOME_DIR_USER/log/access.log
     chgrp $in_login $HOME_DIR_USER/log/error.log
-    chown www-$in_login:$in_login $HOME_DIR_USER/log/php.log
+    if [ "$WEB_SERVER" == "apache" ]; then
+        chown www-$in_login:$in_login $HOME_DIR_USER/log/php.log
+    fi
+    # There is no php.log for nginx ATM, it will go in error.log.
     chmod 640 $HOME_DIR_USER/log/access.log
     chmod 640 $HOME_DIR_USER/log/error.log
     chmod 640 $HOME_DIR_USER/log/php.log
@@ -326,14 +358,14 @@ EOT
     ############################################################################
     
     random=$RANDOM
-    vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-    
-    cat $TPL_VHOST | \
-        sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
+    if [ "$WEB_SERVER" == "apache" ]; then
+        vhostfile="/etc/apache2/sites-available/${in_login}.conf"
+        cat $TPL_VHOST | \
+            sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
 
-    if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
-        phpfpm_socket_path="/var/lib/lxc/php${php_version}/rootfs${sock_path}"
-        cat <<EOT >>$vhostfile
+        if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
+            phpfpm_socket_path="/var/lib/lxc/php${php_version}/rootfs${sock_path}"
+            cat <<EOT >>$vhostfile
     <Proxy "fcgi:/unix:${phpfpm_socket_path}" timeout=300>
     </Proxy>
     <FilesMatch "\.php$">
@@ -341,20 +373,40 @@ EOT
     </FilesMatch>
 </VirtualHost>
 EOT
-    else
-        cat <<EOT >>$vhostfile
+        else
+            cat <<EOT >>$vhostfile
 </VirtualHost>
 EOT
+        fi
     
-    # On active aussi example.com si domaine commence par "www." comme www.example
-    if echo $in_wwwdomain | grep '^www.' > /dev/null; then
-        subweb=`echo $in_wwwdomain | sed -e "s/www.//"`
-        sed -i -e "s/^\(.*\)#\(ServerAlias\).*$/\1\2 $subweb/" $vhostfile
+        # On active aussi example.com si domaine commence par "www." comme www.example
+        if echo $in_wwwdomain | grep '^www.' > /dev/null; then
+            subweb=`echo $in_wwwdomain | sed -e "s/www.//"`
+            sed -i -e "s/^\(.*\)#\(ServerAlias\).*$/\1\2 $subweb/" $vhostfile
+        fi
+    
+        a2ensite $in_login >/dev/null
+    
+        step_ok "Configuration d'Apache"
+
+    elif [ "$WEB_SERVER" == "nginx" ]; then
+        cat $TPL_VHOST | \
+            sed -e "
+            s/DOMAIN/${in_wwwdomain}/g;
+            s/LOGIN/${in_login}/g;" > ${VHOST_PATH}/$in_login
+        ln -s /etc/nginx/sites-available/$in_login \
+            /etc/nginx/sites-enabled/$in_login
+
+        /etc/init.d/nginx restart
+
+        step_ok "Configuration de Nginx + restart"
     fi
-    
-    a2ensite $in_login >/dev/null
-    
-    step_ok "Configuration d'Apache"
+
+        ############################################################################
+
+        cat $TPL_FPM | \
+        sed -e "s/SED_LOGIN/${in_login}/g;" > ${FPM_PATH}/${in_login}.conf
+        step_ok "Creation du pool PHP-FPM"
 
     ############################################################################
 
@@ -362,7 +414,7 @@ EOT
         sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
             > /etc/awstats/awstats.$in_login.conf
     chmod 644 /etc/awstats/awstats.$in_login.conf
-    
+
        VAR=`grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1`
     if [ "$VAR" = "" ] || [ $VAR -ge 59 ]; then
         VAR=1
@@ -389,7 +441,7 @@ EOT
             
             [mysql]
             database = $in_dbname
-        EOT
+EOT
         chown $in_login $my_cnf_file
         chmod 600 $my_cnf_file
 
@@ -420,22 +472,59 @@ EOT
 
     ############################################################################
     
-    apache2ctl configtest 2>/dev/null
-    /etc/init.d/apache2 force-reload >/dev/null
-    for php_version in ${PHP_VERSIONS[@]}; do
-        if [ "$php_version" = "70" ]; then
-            initscript_path="/etc/init.d/php7.0-fpm"
-            binary="php-fpm7.0"
-        else
-            initscript_path="/etc/init.d/php5-fpm"
-            binary="php5-fpm"
-        fi
-        lxc-attach -n php${php_version} -- $binary --test >/dev/null
-        lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
-    done
+    if [ "$WEB_SERVER" == "apache" ]; then
+        apache2ctl configtest 2>/dev/null
+        /etc/init.d/apache2 force-reload >/dev/null
+        for php_version in ${PHP_VERSIONS[@]}; do
+            if [ "$php_version" = "70" ]; then
+                initscript_path="/etc/init.d/php7.0-fpm"
+                binary="php-fpm7.0"
+            else
+                initscript_path="/etc/init.d/php5-fpm"
+                binary="php5-fpm"
+            fi
+            lxc-attach -n php${php_version} -- $binary --test >/dev/null
+            lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
+        done
 
-    step_ok "Rechargement d'Apache et de php-fpm"
+        step_ok "Rechargement d'Apache et de php-fpm"
+    fi
 
+############################################################################
+
+    if [ "$WEB_SERVER" == "nginx" ]; then
+        fpm_status=$(echo -n $in_login | md5sum | cut -d' ' -f1)
+        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_${in_login}_
+
+[phpfpm_${in_login}_*]
+env.url http://munin:%d/fpm_status_$fpm_status
+env.ports 80
+env.phpbin php-fpm
+env.phppool $in_login
+EOT
+        for name in average connections memory processes status; do
+        ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
+            /etc/munin/plugins/phpfpm_${in_login}_${name}
+        done
+        cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
+
+# $in_login FPM Status page. Secret part is md5 of pool name.
+location ~ ^/fpm_status_${fpm_status}$ {
+    include fastcgi_params;
+    fastcgi_pass unix:/var/run/php-fpm-${in_login}.sock;
+    fastcgi_param SCRIPT_FILENAME \$fastcgi_script_name;
+    allow 127.0.0.1;
+    deny all;
+}
+EOT
+        sed -i "s#SED_STATUS#/fpm_status_${fpm_status}#" \
+            ${FPM_PATH}/${in_login}.conf
+        /etc/init.d/nginx reload
+        /etc/init.d/${FPM_SERVICE_NAME} reload
+        /etc/init.d/munin-node restart
+
+        step_ok "Configuration plugin php-fpm pour munin"
+    fi
     ############################################################################
     
     DATE=$(date +"%Y-%m-%d")
@@ -458,7 +547,9 @@ op_del() {
 
     set -x
     userdel $login
-    userdel www-$login
+    if [ "$WEB_SERVER" == "apache" ]; then
+        userdel www-$login
+    fi
     groupdel $login
     for php_version in ${PHP_VERSIONS[@]}; do
         lxc-attach -n php${php_version} -- userdel -f $login
@@ -466,7 +557,9 @@ op_del() {
         lxc-attach -n php${php_version} -- groupdel $login
     done
     sed -i.bak "/^$login:/d" /etc/aliases
-    sed -i.bak "/^www-$login:/d" /etc/aliases
+    if [ "$WEB_SERVER" == "apache" ]; then
+        sed -i.bak "/^www-$login:/d" /etc/aliases
+    fi
 
     sed -i "s/^\(AllowUsers .*\)$login/\1/" /etc/ssh/sshd_config
     /etc/init.d/ssh reload
@@ -477,17 +570,25 @@ op_del() {
         echo "warning : $HOME_DIR/$login does not exist"
     fi
 
-    a2dissite $login
-    rm /etc/apache2/sites-available/$login.conf
-    rm /etc/awstats/awstats.$login.conf
-    sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
-    rm /var/lib/lxc/php??/rootfs/etc/php5/fpm/pool.d/${login}.conf /var/lib/lxc/php??/rootfs/etc/php/7.0/fpm/pool.d/${login}.conf
-    apache2ctl configtest
-    for php_version in ${PHP_VERSIONS[@]}; do
-        lxc-attach -n php${php_version} -- /etc/init.d/php5-fpm restart >/dev/null || true
-        lxc-attach -n php${php_version} -- /etc/init.d/php7.0-fpm restart >/dev/null || true
-    done
+    if [ "$WEB_SERVER" == "apache" ]; then
+        a2dissite $login
+        rm /etc/apache2/sites-available/$login.conf
+        rm /etc/awstats/awstats.$login.conf
+        sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+        rm /var/lib/lxc/php??/rootfs/etc/php5/fpm/pool.d/${login}.conf /var/lib/lxc/php??/rootfs/etc/php/7.0/fpm/pool.d/${login}.conf
+        apache2ctl configtest
+        for php_version in ${PHP_VERSIONS[@]}; do
+            lxc-attach -n php${php_version} -- /etc/init.d/php5-fpm restart >/dev/null || true
+            lxc-attach -n php${php_version} -- /etc/init.d/php7.0-fpm restart >/dev/null || true
+        done
+    elif [ "$WEB_SERVER" == "nginx" ]; then
     
+        rm /etc/nginx/sites-{available,enabled}/$login
+        rm /etc/awstats/awstats.$login.conf
+        rm /etc/munin/plugins/phpfpm_${in_login}*
+        sed -i.bak "/-config=$login/d" /etc/cron.d/awstats
+        nginx -t
+    fi
     set +x
 
     if [ -n "$dbname" ]; then
@@ -497,7 +598,7 @@ op_del() {
         set -x
         echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
         set +x
-    fi 
+    fi
 }
 
 op_setphpversion() {
