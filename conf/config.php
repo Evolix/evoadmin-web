@@ -29,6 +29,7 @@ $oriconf['ftpadmin'] = FALSE;
 $oriconf['bindadmin'] = FALSE;
 $oriconf['php_versions'] = array();
 $oriconf['quota'] = FALSE;
+$oriconf['dbadmin'] = FALSE;
 
 $oriconf['noreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
 $oriconf['postponedreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
