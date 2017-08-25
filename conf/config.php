@@ -27,6 +27,7 @@ $oriconf['cache'] = '/home/evoadmin/www/cache.sqlite';
 $oriconf['known_host'] = '/home/evoadmin/www/known_host';
 $oriconf['ftpadmin'] = FALSE;
 $oriconf['bindadmin'] = FALSE;
+// Penser à rajouter également les versions de PHP disponibles dans /etc/evolinux/web-add.conf
 $oriconf['php_versions'] = array();
 $oriconf['quota'] = FALSE;
 $oriconf['dbadmin'] = FALSE;
