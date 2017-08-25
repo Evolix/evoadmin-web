@@ -341,23 +341,24 @@ create_www_account() {
     for php_version in ${PHP_VERSIONS[@]}; do
         if [ "$php_version" = "70" ]; then
             pool_path="/etc/php/7.0/fpm/pool.d/"
-            sock_path="/run/php/php7.0-fpm-${in_login}.sock"
         else
             pool_path="/etc/php5/fpm/pool.d/"
-            sock_path="/run/php5-fpm-${in_login}.sock"
         fi
+        phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
         cat <<EOT >/var/lib/lxc/php${php_version}/rootfs/${pool_path}/${in_login}.conf
 [${in_login}]
 user = ${in_login}
 group = ${in_login}
 
-listen = ${sock_path}
+listen = ${phpfpm_socket_path}
+listen.owner = ${in_login}
+listen.group = ${in_login}
 pm = ondemand
 pm.max_children = 10
 pm.process_idle_timeout = 10s
 php_admin_value[error_log] = /home/${in_login}/log/php.log
 EOT
-        step_ok "Création du pool FPM ${phpversion}"
+        step_ok "Création du pool FPM ${php_version}"
     done
 
     ############################################################################
@@ -369,12 +370,12 @@ EOT
             sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
 
         if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
-            phpfpm_socket_path="/var/lib/lxc/php${php_version}/rootfs${sock_path}"
+            phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
             cat <<EOT >>$vhostfile
-    <Proxy "fcgi:/unix:${phpfpm_socket_path}" timeout=300>
+    <Proxy "unix:${phpfpm_socket_path}|fcgi://localhost/" timeout=300>
     </Proxy>
     <FilesMatch "\.php$">
-        SetHandler proxy:fcgi://127.0.0.1:PHPVERSIONIDPORT
+        SetHandler proxy:unix:${phpfpm_socket_path}|fcgi://localhost/
     </FilesMatch>
 </VirtualHost>
 EOT
@@ -490,9 +491,10 @@ EOT
             fi
             lxc-attach -n php${php_version} -- $binary --test >/dev/null
             lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
+            step_ok "Rechargement de php-fpm dans php${php_version}"
         done
 
-        step_ok "Rechargement d'Apache et de php-fpm"
+        step_ok "Rechargement d'Apache"
     fi
 
 ############################################################################
