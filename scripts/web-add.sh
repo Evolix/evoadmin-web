@@ -400,7 +400,6 @@ EOT
         /etc/init.d/nginx restart
 
         step_ok "Configuration de Nginx + restart"
-    fi
 
         ############################################################################
 
@@ -408,7 +407,8 @@ EOT
         sed -e "s/SED_LOGIN/${in_login}/g;" > ${FPM_PATH}/${in_login}.conf
         step_ok "Creation du pool PHP-FPM"
 
-    ############################################################################
+        ############################################################################
+    fi
 
     cat $TPL_AWSTATS | \
         sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
