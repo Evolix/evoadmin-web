@@ -561,7 +561,6 @@ op_del() {
     for php_version in ${PHP_VERSIONS[@]}; do
         lxc-attach -n php${php_version} -- userdel -f $login
         lxc-attach -n php${php_version} -- userdel -f www-$login
-        lxc-attach -n php${php_version} -- groupdel $login
     done
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
@@ -585,8 +584,12 @@ op_del() {
         rm /var/lib/lxc/php??/rootfs/etc/php5/fpm/pool.d/${login}.conf /var/lib/lxc/php??/rootfs/etc/php/7.0/fpm/pool.d/${login}.conf
         apache2ctl configtest
         for php_version in ${PHP_VERSIONS[@]}; do
-            lxc-attach -n php${php_version} -- /etc/init.d/php5-fpm restart >/dev/null || true
-            lxc-attach -n php${php_version} -- /etc/init.d/php7.0-fpm restart >/dev/null || true
+            if [ "$php_version" = "70" ]; then
+                initscript_path="/etc/init.d/php7.0-fpm"
+            else
+                initscript_path="/etc/init.d/php5-fpm"
+            fi
+            lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
         done
     elif [ "$WEB_SERVER" == "nginx" ]; then
     
