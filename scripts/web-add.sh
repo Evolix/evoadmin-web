@@ -621,8 +621,8 @@ op_setphpversion() {
 
     validate_phpversion $phpversion
 
-    sed -i "s#^\( \+SetHandler proxy:unix:/var/lib/lxc/php\)..\(.*\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
-    sed -i "s#^\( \+<Proxy .*unix:/var/lib/lxc/php\)..\(.*\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
+    sed -i "s#^\( \+SetHandler proxy:unix:/home/.*/php-fpm\)..\(\.sock\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
+    sed -i "s#^\( \+<Proxy .*unix:/home/.*/php-fpm\)..\(\.sock\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
     /etc/init.d/apache2 force-reload >/dev/null
 
     DATE=$(date +"%Y-%m-%d")
@@ -700,10 +700,12 @@ op_listvhost() {
             serveraliases=`perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
             serveraliases=`echo $serveraliases | sed 's/ \+/,/g'`
             userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
-            size=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $2}')
-            quota_soft=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $3}')
-            quota_hard=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $4}')
-            phpversion=$(perl -ne 'print $1 if (m!^\s+SetHandler proxy:unix:/var/lib/lxc/php(\d{2})/!)' $configfile)
+            if [ -x /usr/bin/quota ]; then
+                size=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $2}')
+                quota_soft=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $3}')
+                quota_hard=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $4}')
+            fi
+            phpversion=$(perl -ne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' $configfile)
             if [ -e /etc/apache2/sites-enabled/${userid}.conf ]; then
                 is_enabled=1
             else
