@@ -458,11 +458,11 @@ EOT
     
     if [ "$in_dbname" ]; then
         cat $TPL_MAIL | \
-            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/PASSE2/$in_dbpasswd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s/DBNAME/$in_dbname/ ; s#HOME_DIR#$HOME_DIR#/"| \
+            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/PASSE2/$in_dbpasswd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s/DBNAME/$in_dbname/ ; s#HOME_DIR#$HOME_DIR#"| \
             /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     else
         cat $TPL_MAIL | \
-            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s#HOME_DIR#$HOME_DIR#;; 39,58d"| \
+            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s#HOME_DIR#$HOME_DIR# ; 39,58d"| \
             /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     fi
 
