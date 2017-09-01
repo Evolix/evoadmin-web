@@ -71,7 +71,7 @@ function web_add($form, $admin_mail) {
     if ( $form->getField('domain_alias')->getValue() ) {
         $domain_alias = preg_split('/,/', $form->getField('domain_alias')->getValue());
         foreach ( $domain_alias as $domain ) {
-            $exec_cmd = 'web-add-multi.sh add-alias '.$form->getField('username')->getValue().' ';
+            $exec_cmd = 'web-add.sh add-alias '.$form->getField('username')->getValue().' ';
             $domain = trim($domain);
             $exec_cmd .= $domain.' '. $server_list;
             sudoexec($exec_cmd, $exec_output, $exec_return);
