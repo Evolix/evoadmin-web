@@ -13,16 +13,11 @@
  * @version 1.0
  */
 
-// sha256 hashs (TODO: move in conf file)
-$logins=array();
-$logins['foo'] = 'd5d3c723fb82cb0078f399888af78204234535ec2ef3da56710fdd51f90d2477';
-$logins['bar'] = '7938c84d6e43d1659612a7ea7c1101ed02e52751bb64597a8c20ebaba8ba4303';
-
 if ((empty($_GET['form']) || $_GET['form']!=1) && !empty($_POST)) {
   $username=$_POST['login'];
   $password=$_POST['passw'];
 
-  if (hash("sha256",$password) == $logins[$username]) {
+  if (hash("sha256",$password) == $conf['logins'][$username]) {
     $_SESSION['auth']=1;
     $_SESSION['user']=$username;
     $_SESSION['error']='';

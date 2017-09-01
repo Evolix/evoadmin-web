@@ -36,3 +36,8 @@ $oriconf['noreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv
 $oriconf['postponedreplication'] = array('srv00.example.com', 'srv01.example.com', 'srv02.example.com');
 $oriconf['immediatereplication'] = array('srv00.example.com', 'srv01.example.com');
 $oriconf['postponedreplication_mode'] = array('1 fois/jour', '3 fois/jour', '1 fois/jour');
+
+// auth (sha256 hashs)
+$oriconf['logins'] = array();
+//$oriconf['logins']['foo'] = 'd5d3c723fb82cb0078f399888af78204234535ec2ef3da56710fdd51f90d2477';
+//$oriconf['logins']['bar'] = '7938c84d6e43d1659612a7ea7c1101ed02e52751bb64597a8c20ebaba8ba4303';
