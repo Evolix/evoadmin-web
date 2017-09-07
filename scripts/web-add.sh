@@ -581,14 +581,16 @@ op_del() {
         rm /etc/apache2/sites-available/$login.conf
         rm /etc/awstats/awstats.$login.conf
         sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
-        rm /var/lib/lxc/php??/rootfs/etc/php5/fpm/pool.d/${login}.conf /var/lib/lxc/php??/rootfs/etc/php/7.0/fpm/pool.d/${login}.conf
         apache2ctl configtest
         for php_version in ${PHP_VERSIONS[@]}; do
             if [ "$php_version" = "70" ]; then
+                phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php7.0-fpm"
             else
+                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
             fi
+            rm /var/lib/lxc/php${php_version}/rootfs/${phpfpm_dir}/${login}.conf
             lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
         done
     elif [ "$WEB_SERVER" == "nginx" ]; then
