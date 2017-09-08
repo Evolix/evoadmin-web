@@ -62,6 +62,5 @@
     #php_admin_value upload_max_filesize 8M
     #php_admin_flag allow_url_fopen Off
     php_admin_value sendmail_path "/usr/sbin/sendmail -t -i -f www-XXX"
-    php_admin_value error_log "HOME_DIR/XXX/log/php.log"
     php_admin_value open_basedir "/usr/share/php:HOME_DIR/XXX:/tmp"
 
