@@ -107,7 +107,5 @@ if (!(ini_set('include_path', ini_get('include_path')))) {
     require_once('../conf/config.php');
     test_exist('../conf/config.local.php');
     require_once('../conf/config.local.php');
-    # il faut un acces en lecture au fichier shadow pour pam_auth()
-    test_exist('/etc/shadow');
     $conf = array_merge($oriconf, $localconf);
 }
