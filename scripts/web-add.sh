@@ -292,13 +292,13 @@ create_www_account() {
 
 		my_cnf_file="$HOME_DIR_USER/.my.cnf"
 		cat >$my_cnf_file <<-EOT
-			[client]
-			user = $in_login
-			password = "$in_dbpasswd"
-			
-			[mysql]
-			database = $in_dbname
-		EOT
+[client]
+user = $in_login
+password = "$in_dbpasswd"
+
+[mysql]
+database = $in_dbname
+EOT
 		chown $in_login $my_cnf_file
 		chmod 600 $my_cnf_file
 
