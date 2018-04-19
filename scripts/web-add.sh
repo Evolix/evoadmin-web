@@ -145,14 +145,14 @@ gen_random_passwd() {
 
 validate_login() {
     login=$1
-    
+
     length=${#login}
-    
+
     if [ $length -lt 3 ]; then
         in_error "Le login doit contenir plus de 2 caracteres"
         return 1
     fi
-    
+
     if [ $length -gt $MAX_LOGIN_CHAR ]; then
         in_error "Le login ne doit pas contenir plus de $MAX_LOGIN_CHAR caracteres"
         return 1
@@ -245,7 +245,7 @@ create_www_account() {
         in_error "Ce compte existe deja (ou il a mal été effacé)"
         return 1
     fi
-    
+
     ############################################################################
 
     # Force UID GID if specified
@@ -260,7 +260,7 @@ create_www_account() {
     /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash $OPT_UID $OPT_UID_ARG --force-badname --home "$HOME_DIR_USER" >/dev/null
     [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
     [ -z "$in_sshkey" ] || [ -n "$HOME_DIR_USER" ] && mkdir "$HOME_DIR_USER/.ssh" && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
-        && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh" 
+        && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
     if [ "$WEB_SERVER" == "apache" ]; then
         /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www \
             --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
@@ -314,13 +314,13 @@ create_www_account() {
     ############################################################################
 
     chmod 750 $HOME_DIR_USER/
-    
+
     # Répertoires par défaut
     mkdir -p $HOME_DIR_USER/{log,www,awstats}
     chown $in_login:$in_login $HOME_DIR_USER/www
     chgrp $in_login $HOME_DIR_USER/{log,awstats}
     chmod 750 $HOME_DIR_USER/{log,www,awstats}
-    
+
     # Ajout des logs par defaut
     touch $HOME_DIR_USER/log/access.log
     touch $HOME_DIR_USER/log/error.log
@@ -372,7 +372,7 @@ EOT
     done
 
     ############################################################################
-    
+
     random=$RANDOM
     if [ "$WEB_SERVER" == "apache" ]; then
         vhostfile="/etc/apache2/sites-available/${in_login}.conf"
@@ -394,15 +394,15 @@ EOT
 </VirtualHost>
 EOT
         fi
-    
+
         # On active aussi example.com si domaine commence par "www." comme www.example
         if echo $in_wwwdomain | grep '^www.' > /dev/null; then
             subweb=`echo $in_wwwdomain | sed -e "s/www.//"`
             sed -i -e "s/^\(.*\)#\(ServerAlias\).*$/\1\2 $subweb/" $vhostfile
         fi
-    
+
         a2ensite $in_login >/dev/null
-    
+
         step_ok "Configuration d'Apache"
 
     elif [ "$WEB_SERVER" == "nginx" ]; then
@@ -443,7 +443,7 @@ EOT
     step_ok "Activation d'Awstats"
 
     ############################################################################
-    
+
     if [ "$in_dbname" ]; then
         echo "CREATE DATABASE \`$in_dbname\` $MYSQL_CREATE_DB_OPTS;" | mysql $MYSQL_OPTS
         echo "GRANT ALL PRIVILEGES ON \`$in_dbname\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql $MYSQL_OPTS
@@ -465,7 +465,7 @@ EOT
     fi
 
     ############################################################################
-    
+
     if [ "$in_dbname" ]; then
         cat $TPL_MAIL | \
             sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/PASSE2/$in_dbpasswd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s/DBNAME/$in_dbname/ ; s#HOME_DIR#$HOME_DIR#"| \
@@ -487,7 +487,7 @@ EOT
     step_ok "Exécution du script spécifique"
 
     ############################################################################
-    
+
     if [ "$WEB_SERVER" == "apache" ]; then
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
@@ -543,7 +543,7 @@ EOT
         step_ok "Configuration plugin php-fpm pour munin"
     fi
     ############################################################################
-    
+
     DATE=$(date +"%Y-%m-%d")
     echo "$DATE [web-add.sh] Ajout $in_login" >> /var/log/evolix.log
 }
@@ -606,7 +606,7 @@ op_del() {
             lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
         done
     elif [ "$WEB_SERVER" == "nginx" ]; then
-    
+
         rm /etc/nginx/sites-{available,enabled}/$login
         rm /etc/awstats/awstats.$login.conf
         rm /etc/munin/plugins/phpfpm_${in_login}*
@@ -664,13 +664,13 @@ op_setquota() {
 arg_processing() {
 
     # Détermination de la commande
-    
+
     if [ $# -lt 1 ]; then
         usage
     else
         commandname=$1
         shift
-        
+
         case "$commandname" in
         add)
             op_add $*
@@ -770,7 +770,7 @@ op_add() {
         echo
         echo "Ajout d'un compte WEB"
         echo
-    
+
         until [ "$in_login" ]; do
             echo -n "Entrez le login du nouveau compte : "
             read tmp
@@ -778,53 +778,53 @@ op_add() {
                 in_login="$tmp"
             fi
         done
-    
+
         until [ "$in_passwd" ]; do
             echo -n "Entrez le mot de passe FTP/SFTP/SSH (ou vide pour aleatoire) : "
             read -s tmp
             echo
-    
+
             if [ -z "$tmp" ]; then
                 tmp=`gen_random_passwd`
             fi
-    
+
             if validate_passwd "$tmp"; then
                 in_passwd="$tmp"
             fi
         done
-    
+
         echo -n "Voulez-vous aussi un compte/base MySQL ? [Y|n] "
         read confirm
-        
+
         if [ "$confirm" != "n" ] && [ "$confirm" != "N" ]; then
             until [ "$in_dbname" ]; do
                 echo -n "Entrez le nom de la base de donnees ($in_login par defaut) : "
                 read tmp
-    
+
                 if [ -z "$tmp" ]; then
                     tmp=$in_login
                 fi
-        
+
                 if validate_dbname "$tmp"; then
                     in_dbname="$tmp"
                 fi
             done
-    
+
             until [ "$in_dbpasswd" ]; do
                 echo -n "Entrez le mot de passe MySQL (ou vide pour aleatoire) : "
                 read -s tmp
                 echo
-        
+
                 if [ -z "$tmp" ]; then
                     tmp=`gen_random_passwd`
                 fi
-        
+
                 if validate_passwd "$tmp"; then
                     in_dbpasswd="$tmp"
                 fi
             done
         fi
-    
+
         until [ "$in_wwwdomain" ]; do
             echo -n "Entrez le nom de domaine web (ex: foo.example.com) : "
             read tmp
@@ -842,7 +842,7 @@ op_add() {
                 fi
             done
         fi
-    
+
         until [ "$in_mail" ]; do
             echo -n "Entrez votre adresse mail pour recevoir le mail de creation ($CONTACT_MAIL par défaut) : "
             read tmp
@@ -853,7 +853,7 @@ op_add() {
                 in_mail="$tmp"
             fi
         done
-    
+
     #
     # Mode non interactif
     #
@@ -903,7 +903,7 @@ op_add() {
                 ;;
             esac
         done
-    
+
         shift $(($OPTIND - 1))
         if [ $# -ne 2 ]; then
             usage
@@ -924,7 +924,7 @@ op_add() {
             [ -n "$in_quota" ] && (validate_quota $in_quota || exit 1)
         fi
     fi
-    
+
     echo
     echo "----------------------------------------------"
     echo "Nom du compte : $in_login"
@@ -941,7 +941,7 @@ op_add() {
     echo "Envoi du mail récapitulatif à : $in_mail"
     echo "----------------------------------------------"
     echo
-    
+
     if [ -z "$force_confirm" ]; then
         echo -n "Confirmer la création ? [y/N] : "
         read tmp
@@ -952,7 +952,7 @@ op_add() {
             exit 1
         fi
     fi
-    
+
     create_www_account
     echo
     echo " => Compte $in_login créé avec succès"
