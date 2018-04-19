@@ -211,7 +211,17 @@ create_www_account() {
   /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www \
           --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
 
-  sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
+  if grep -qE '^AllowGroups' /etc/ssh/sshd_config; then
+    if ! grep -qE "^AllowGroups(\s+\S+)*(\s+evoadmin-ssh)" /etc/ssh/sshd_config; then
+      sed -i "s/^AllowGroups .*/& evoadmin-ssh/" /etc/ssh/sshd_config
+      groupadd --force evoadmin-ssh
+    fi
+    usermod -a -G evoadmin-ssh "$in_login"
+  else
+    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+      sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
+    fi
+  fi
   /etc/init.d/ssh reload
 
   step_ok "Création des utilisateurs"
@@ -355,8 +365,10 @@ op_del() {
   sed -i.bak "/^$login:/d" /etc/aliases
   sed -i.bak "/^www-$login:/d" /etc/aliases
 
-  sed -i "s/^\(AllowUsers .*\)$login/\1/" /etc/ssh/sshd_config
-  /etc/init.d/ssh reload
+  if grep -E '^AllowUsers' /etc/ssh/sshd_config; then
+    sed -i "s/^\(AllowUsers .*\)$login/\1/" /etc/ssh/sshd_config
+    /etc/init.d/ssh reload
+  fi
 
   if [ -d "$HOME_DIR/$login" ]; then
     mv -i $HOME_DIR/$login $HOME_DIR/$login.`date '+%Y%m%d-%H%M%S'`.bak
