@@ -21,7 +21,7 @@ SCRIPTS_PATH="/usr/share/scripts/evoadmin"
 LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
-
+SSH_GROUP="evolinux-ssh"
 
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
@@ -285,15 +285,13 @@ create_www_account() {
     done
 
     if grep -qE '^AllowGroups' /etc/ssh/sshd_config; then
-        if ! grep -qE "^AllowGroups(\s+\S+)*(\s+evoadmin-ssh)" /etc/ssh/sshd_config; then
-            sed -i "s/^AllowGroups .*/& evoadmin-ssh/" /etc/ssh/sshd_config
-            groupadd --force evoadmin-ssh
+        if ! grep -qE "^AllowGroups(\s+\S+)*(\s+$SSH_GROUP)" /etc/ssh/sshd_config; then
+            sed -i "s/^AllowGroups .*/& $SSH_GROUP/" /etc/ssh/sshd_config
+            groupadd --force $SSH_GROUP
         fi
-        usermod -a -G evoadmin-ssh "$in_login"
-    else
-        if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
-            sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
-        fi
+        usermod -a -G $SSH_GROUP "$in_login"
+    elif grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+        sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
     fi
     /etc/init.d/ssh reload
 
