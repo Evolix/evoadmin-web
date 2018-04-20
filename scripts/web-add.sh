@@ -28,6 +28,7 @@ VHOST_PATH="/etc/apache2/sites-enabled/"
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
+SSH_GROUP="evolinux-ssh"
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
 config_file="/etc/evolinux/web-add.conf"
@@ -212,15 +213,13 @@ create_www_account() {
           --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
 
   if grep -qE '^AllowGroups' /etc/ssh/sshd_config; then
-    if ! grep -qE "^AllowGroups(\s+\S+)*(\s+evoadmin-ssh)" /etc/ssh/sshd_config; then
-      sed -i "s/^AllowGroups .*/& evoadmin-ssh/" /etc/ssh/sshd_config
-      groupadd --force evoadmin-ssh
+    if ! grep -qE "^AllowGroups(\s+\S+)*(\s+$SSH_GROUP)" /etc/ssh/sshd_config; then
+      sed -i "s/^AllowGroups .*/& $SSH_GROUP/" /etc/ssh/sshd_config
+      groupadd --force $SSH_GROUP
     fi
-    usermod -a -G evoadmin-ssh "$in_login"
-  else
-    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
-      sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
-    fi
+    usermod -a -G $SSH_GROUP "$in_login"
+  elif grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+    sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
   fi
   /etc/init.d/ssh reload
 
