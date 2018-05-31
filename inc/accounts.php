@@ -32,6 +32,7 @@ else {
 }
 
 function web_add($form, $admin_mail) {
+    global $conf;
 
     $exec_cmd = 'web-add.sh add -y';
 
