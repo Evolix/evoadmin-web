@@ -31,7 +31,7 @@ HOME_DIR="/home"
 MYSQL_CREATE_DB_OPTS=""
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
-config_file="/etc/evolix/web-add.conf"
+config_file="/etc/evolinux/web-add.conf"
 [ -r $config_file ] && . $config_file
 
 usage() {
@@ -296,9 +296,9 @@ create_www_account() {
 
         if [ "$in_dbname" ]; then
                 echo "CREATE DATABASE \`$in_dbname\` $MYSQL_CREATE_DB_OPTS;" | mysql
-                echo "CREATE DATABASE \`staging_${in_dbname}\` $MYSQL_CREATE_DB_OPTS;" | mysql
+                #echo "CREATE DATABASE \`staging_${in_dbname}\` $MYSQL_CREATE_DB_OPTS;" | mysql
                 echo "GRANT ALL PRIVILEGES ON \`$in_dbname\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql
-                echo "GRANT ALL PRIVILEGES ON \`staging_${in_dbname}\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql
+                #echo "GRANT ALL PRIVILEGES ON \`staging_${in_dbname}\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql
                 echo "FLUSH PRIVILEGES;" | mysql
 
                 my_cnf_file="$HOME_DIR_USER/.my.cnf"
@@ -339,6 +339,7 @@ EOT
         ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
             /etc/munin/plugins/phpfpm_${in_login}_${name}
         done
+        mkdir -p /etc/nginx/evolinux.d/
         cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
 
 # $in_login FPM Status page. Secret part is md5 of pool name.
@@ -400,9 +401,10 @@ op_del() {
                 echo "warning : $HOME_DIR/$login does not exist"
         fi
 
+        rm ${FPM_PATH}/${login}.conf
         rm /etc/nginx/sites-{available,enabled}/$login
         rm /etc/awstats/awstats.$login.conf
-        rm /etc/munin/plugins/phpfpm_${in_login}*
+        rm /etc/munin/plugins/phpfpm_${login}*
         sed -i.bak "/-config=$login/d" /etc/cron.d/awstats
         nginx -t
         set +x
@@ -412,7 +414,7 @@ op_del() {
                 read
 
                 set -x
-                echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql
+                echo "DROP DATABASE \`${dbname}\`; delete from mysql.user where User=\'${login}\' ; FLUSH PRIVILEGES;" | mysql
                 set +x
         fi
 }
