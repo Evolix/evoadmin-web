@@ -52,6 +52,7 @@ PHP_VERSIONS=()
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
 config_file="/etc/evolinux/web-add.conf"
+# shellcheck source=/etc/evolinux/web-add.conf
 [ -r $config_file ] && . $config_file
 
 usage() {
@@ -228,6 +229,7 @@ create_www_account() {
     ############################################################################
 
     if [ -f $PRE_LOCAL_SCRIPT ]; then
+    	# shellcheck source=/usr/share/scripts/evoadmin/web-add.pre-local.sh
         source $PRE_LOCAL_SCRIPT
     fi
 
@@ -479,6 +481,7 @@ EOT
     ############################################################################
 
     if [ -f $LOCAL_SCRIPT ]; then
+    	# shellcheck source=/usr/share/scripts/evoadmin/web-add.local.sh
         source $LOCAL_SCRIPT
     fi
 
