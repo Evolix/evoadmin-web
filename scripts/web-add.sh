@@ -433,7 +433,7 @@ EOT
     if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
         VAR=1
     else
-        VAR=$(($VAR +1))
+        VAR=$((VAR +1))
     fi
 
     echo "$VAR * * * * root umask 033; [ -x /usr/lib/cgi-bin/awstats.pl -a -f /etc/awstats/awstats.$in_login.conf -a -r $HOME_DIR_USER/log/access.log ] && /usr/lib/cgi-bin/awstats.pl -config=$in_login -update >/dev/null" >> /etc/cron.d/awstats
@@ -918,7 +918,7 @@ op_add() {
             esac
         done
 
-        shift $(($OPTIND - 1))
+        shift $((OPTIND - 1))
         if [ $# -ne 2 ]; then
             usage
             exit 1
