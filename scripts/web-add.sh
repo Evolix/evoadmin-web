@@ -193,7 +193,7 @@ validate_mail() {
 
 validate_phpversion() {
     php_version="$1"
-    if [[ ! " ${PHP_VERSIONS[@]} " =~ " ${php_version} " ]]; then
+    if [[ ! " ${PHP_VERSIONS[*]} " =~ ${php_version} ]]; then
         in_error "Version de PHP incorrecte."
         return 1
     fi
@@ -674,25 +674,25 @@ arg_processing() {
 
         case "$commandname" in
         add)
-            op_add $*
+            op_add "$@"
             ;;
         del)
-            op_del $*
+            op_del "$@"
             ;;
         list-vhost)
-            op_listvhost $*
+            op_listvhost "$@"
             ;;
         add-alias)
-            op_aliasadd $*
+            op_aliasadd "$@"
             ;;
         del-alias)
-            op_aliasdel $*
+            op_aliasdel "$@"
             ;;
         setphpversion)
-            op_setphpversion $*
+            op_setphpversion "$@"
             ;;
         setquota)
-            op_setquota $*
+            op_setquota "$@"
             ;;
         *)
             usage
