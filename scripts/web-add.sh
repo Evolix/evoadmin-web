@@ -287,7 +287,7 @@ create_www_account() {
     done
 
     if grep -qE '^AllowGroups' /etc/ssh/sshd_config; then
-        if ! grep -qE "^AllowGroups(\s+\S+)*(\s+$SSH_GROUP)" /etc/ssh/sshd_config; then
+        if ! grep -qE "^AllowGroups(\\s+\\S+)*(\\s+$SSH_GROUP)" /etc/ssh/sshd_config; then
             sed -i "s/^AllowGroups .*/& $SSH_GROUP/" /etc/ssh/sshd_config
             groupadd --force $SSH_GROUP
         fi
@@ -384,7 +384,7 @@ EOT
             cat <<EOT >>"$vhostfile"
     <Proxy "unix:${phpfpm_socket_path}|fcgi://localhost/" timeout=300>
     </Proxy>
-    <FilesMatch "\.php$">
+    <FilesMatch "\\.php$">
         SetHandler proxy:unix:${phpfpm_socket_path}|fcgi://localhost/
     </FilesMatch>
 </VirtualHost>
@@ -396,9 +396,9 @@ EOT
         fi
 
         # On active aussi example.com si domaine commence par "www." comme www.example
-        if echo $in_wwwdomain | grep '^www.' > /dev/null; then
-            subweb=`echo $in_wwwdomain | sed -e "s/www.//"`
-            sed -i -e "s/^\(.*\)#\(ServerAlias\).*$/\1\2 $subweb/" $vhostfile
+        if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
+            subweb="${in_wwwdomain#www.}"
+            sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
         fi
 
         a2ensite "$in_login" >/dev/null
@@ -636,8 +636,8 @@ op_setphpversion() {
 
     validate_phpversion "$phpversion"
 
-    sed -i "s#^\( \+SetHandler proxy:unix:/home/.*/php-fpm\)..\(\.sock\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
-    sed -i "s#^\( \+<Proxy .*unix:/home/.*/php-fpm\)..\(\.sock\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
+    sed -i "s#^\\( \\+SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
+    sed -i "s#^\\( \\+<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
     /etc/init.d/apache2 force-reload >/dev/null
 
     DATE=$(date +"%Y-%m-%d")
@@ -739,7 +739,7 @@ op_aliasadd() {
         vhost="${1}.conf"
         alias=$2
 
-        [ -f $VHOST_PATH/$vhost ] && sed -i -e "s/\(ServerName .*\)/\1\n\tServerAlias $alias/" $VHOST_PATH/$vhost --follow-symlinks
+        [ -f $VHOST_PATH/"$vhost" ] && sed -i -e "s/\\(ServerName .*\\)/\\1\\n\\tServerAlias $alias/" "$VHOST_PATH"/"$vhost" --follow-symlinks
 
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
