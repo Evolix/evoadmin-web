@@ -376,8 +376,7 @@ EOT
     random=$RANDOM
     if [ "$WEB_SERVER" == "apache" ]; then
         vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-        cat $TPL_VHOST | \
-            sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" >$vhostfile
+        sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
 
         if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
             phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
@@ -406,12 +405,12 @@ EOT
         step_ok "Configuration d'Apache"
 
     elif [ "$WEB_SERVER" == "nginx" ]; then
-        cat $TPL_VHOST | \
-            sed -e "
-            s/DOMAIN/${in_wwwdomain}/g;
-            s/LOGIN/${in_login}/g;" > ${VHOST_PATH}/$in_login
-        ln -s /etc/nginx/sites-available/$in_login \
-            /etc/nginx/sites-enabled/$in_login
+        sed -e \
+        "s/DOMAIN/${in_wwwdomain}/g; s/LOGIN/${in_login}/g;" \
+        < "$TPL_VHOST" \
+        > ${VHOST_PATH}/"$in_login"
+        ln -s /etc/nginx/sites-available/"$in_login" \
+            /etc/nginx/sites-enabled/"$in_login"
 
         /etc/init.d/nginx restart
 
@@ -419,17 +418,16 @@ EOT
 
         ############################################################################
 
-        cat $TPL_FPM | \
-        sed -e "s/SED_LOGIN/${in_login}/g;" > ${FPM_PATH}/${in_login}.conf
+        sed -e "s/SED_LOGIN/${in_login}/g;" \
+        < $TPL_FPM > ${FPM_PATH}/"${in_login}".conf
         step_ok "Creation du pool PHP-FPM"
 
         ############################################################################
     fi
 
-    cat $TPL_AWSTATS | \
-        sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
-            > /etc/awstats/awstats.$in_login.conf
-    chmod 644 /etc/awstats/awstats.$in_login.conf
+    sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
+        < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
+    chmod 644 /etc/awstats/awstats."$in_login".conf
 
        VAR=$(grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1)
     if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
@@ -467,13 +465,28 @@ EOT
     ############################################################################
 
     if [ "$in_dbname" ]; then
-        cat $TPL_MAIL | \
-            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/PASSE2/$in_dbpasswd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s/DBNAME/$in_dbname/ ; s#HOME_DIR#$HOME_DIR#"| \
-            /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
+        sed -e "
+        s/LOGIN/$in_login/g ; 
+        s/SERVERNAME/$in_wwwdomain/ ; 
+        s/PASSE1/$in_passwd/ ; 
+        s/PASSE2/$in_dbpasswd/ ; 
+        s/RANDOM/$random/ ; 
+        s/QUOTA/$quota/ ; 
+        s/RCPTTO/$in_mail/ ; 
+        s/DBNAME/$in_dbname/ ; 
+        s#HOME_DIR#$HOME_DIR#" \
+        < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     else
-        cat $TPL_MAIL | \
-            sed -e "s/LOGIN/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/PASSE1/$in_passwd/ ; s/RANDOM/$random/ ; s/QUOTA/$quota/ ; s/RCPTTO/$in_mail/ ; s#HOME_DIR#$HOME_DIR# ; 39,58d"| \
-            /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
+        sed -e "
+            s/LOGIN/$in_login/g ; 
+            s/SERVERNAME/$in_wwwdomain/ ; 
+            s/PASSE1/$in_passwd/ ; 
+            s/RANDOM/$random/ ; 
+            s/QUOTA/$quota/ ; 
+            s/RCPTTO/$in_mail/ ; 
+            s#HOME_DIR#$HOME_DIR# ; 
+            39,58d" \
+            < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     fi
 
     step_ok "Envoi du mail récapitulatif"
