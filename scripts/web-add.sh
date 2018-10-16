@@ -597,7 +597,7 @@ op_del() {
     fi
 
     if [ -d "$HOME_DIR/$login" ]; then
-        mv -i $HOME_DIR/$login $HOME_DIR/$login.`date '+%Y%m%d-%H%M%S'`.bak
+        mv -i $HOME_DIR/"$login" $HOME_DIR/"$login"."$(date '+%Y%m%d-%H%M%S')".bak
     else
         echo "warning : $HOME_DIR/$login does not exist"
     fi
@@ -723,11 +723,11 @@ op_listvhost() {
 
 
     for configfile in $configlist; do
-        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl)\.conf$"; then
-            servername=`awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' $configfile | head -n 1`
-            serveraliases=`perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' $configfile | head -n 1`
-            serveraliases=`echo $serveraliases | sed 's/ \+/,/g'`
-            userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
+        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl)\\.conf$"; then
+            servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
+            serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
+            serveraliases="${serveraliases// \+/,}"
+            userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
             if [ -x /usr/bin/quota ]; then
                 size=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $2}')
                 quota_soft=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $3}')
@@ -740,7 +740,7 @@ op_listvhost() {
                 is_enabled=0
             fi
             if [ "$servername" ] && [ "$userid" ]; then
-                configid=`basename $configfile`
+                configid=$(basename "$configfile")
                 echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled"
             fi
         fi
@@ -799,7 +799,7 @@ op_add() {
             echo
 
             if [ -z "$tmp" ]; then
-                tmp=`gen_random_passwd`
+                tmp=$(gen_random_passwd)
             fi
 
             if validate_passwd "$tmp"; then
@@ -830,7 +830,7 @@ op_add() {
                 echo
 
                 if [ -z "$tmp" ]; then
-                    tmp=`gen_random_passwd`
+                    tmp=$(gen_random_passwd)
                 fi
 
                 if validate_passwd "$tmp"; then
@@ -925,13 +925,13 @@ op_add() {
         else
             in_login=$1
             in_wwwdomain=$2
-            validate_login $in_login || exit 1
-            [ -z "$in_passwd" ] && [ -z "$in_sshkey" ] && in_passwd=`gen_random_passwd`
-            [ -z "$in_sshkey" ] && ( validate_passwd $in_passwd || exit 1 )
-            [ -n "$in_dbname" ] && ( validate_dbname $in_dbname || exit 1 )
-            [ -z "$in_dbpasswd" ] && [ -n "$in_dbname" ] && in_dbpasswd=`gen_random_passwd`
-            [ -n "$in_dbname" ] && ( validate_passwd $in_dbpasswd || exit 1 )
-            validate_wwwdomain $in_wwwdomain || exit 1
+            validate_login "$in_login" || exit 1
+            [ -z "$in_passwd" ] && [ -z "$in_sshkey" ] && in_passwd=$(gen_random_passwd)
+            [ -z "$in_sshkey" ] && ( validate_passwd "$in_passwd" || exit 1 )
+            [ -n "$in_dbname" ] && ( validate_dbname "$in_dbname" || exit 1 )
+            [ -z "$in_dbpasswd" ] && [ -n "$in_dbname" ] && in_dbpasswd=$(gen_random_passwd)
+            [ -n "$in_dbname" ] && ( validate_passwd "$in_dbpasswd" || exit 1 )
+            validate_wwwdomain "$in_wwwdomain" || exit 1
             [ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
             validate_mail $in_mail || exit 1
             [ -n "$in_phpversion" ] && (validate_phpversion "$in_phpversion" || exit 1)
