@@ -574,7 +574,7 @@ op_del() {
     fi
 
     echo "Deleting account $login. Continue ?"
-    read
+    read -r
 
     set -x
     userdel "$login"
@@ -631,7 +631,7 @@ op_del() {
 
     if [ -n "$dbname" ]; then
         echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
-        read
+        read -r
 
         set -x
         echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
@@ -787,7 +787,7 @@ op_add() {
 
         until [ "$in_login" ]; do
             echo -n "Entrez le login du nouveau compte : "
-            read tmp
+            read -r tmp
             if validate_login "$tmp"; then
                 in_login="$tmp"
             fi
@@ -795,7 +795,7 @@ op_add() {
 
         until [ "$in_passwd" ]; do
             echo -n "Entrez le mot de passe FTP/SFTP/SSH (ou vide pour aleatoire) : "
-            read -s tmp
+            read -rs tmp
             echo
 
             if [ -z "$tmp" ]; then
@@ -808,12 +808,12 @@ op_add() {
         done
 
         echo -n "Voulez-vous aussi un compte/base MySQL ? [Y|n] "
-        read confirm
+        read -r confirm
 
         if [ "$confirm" != "n" ] && [ "$confirm" != "N" ]; then
             until [ "$in_dbname" ]; do
                 echo -n "Entrez le nom de la base de donnees ($in_login par defaut) : "
-                read tmp
+                read -r tmp
 
                 if [ -z "$tmp" ]; then
                     tmp=$in_login
@@ -826,7 +826,7 @@ op_add() {
 
             until [ "$in_dbpasswd" ]; do
                 echo -n "Entrez le mot de passe MySQL (ou vide pour aleatoire) : "
-                read -s tmp
+                read -rs tmp
                 echo
 
                 if [ -z "$tmp" ]; then
@@ -841,7 +841,7 @@ op_add() {
 
         until [ "$in_wwwdomain" ]; do
             echo -n "Entrez le nom de domaine web (ex: foo.example.com) : "
-            read tmp
+            read -r tmp
             if validate_wwwdomain "$tmp"; then
                 in_wwwdomain="$tmp"
             fi
@@ -849,8 +849,8 @@ op_add() {
 
         if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
             until [ "$in_phpversion" ]; do
-                echo -n "Entrez la version de PHP désirée parmis ${PHP_VERSIONS[@]} : "
-                read tmp
+                echo -n "Entrez la version de PHP désirée parmis ${PHP_VERSIONS[*]} : "
+                read -r tmp
                 if validate_phpversion "$tmp"; then
                     in_phpversion="$tmp"
                 fi
@@ -859,7 +859,7 @@ op_add() {
 
         until [ "$in_mail" ]; do
             echo -n "Entrez votre adresse mail pour recevoir le mail de creation ($CONTACT_MAIL par défaut) : "
-            read tmp
+            read -r tmp
             if [ -z "$tmp" ]; then
                 tmp="$CONTACT_MAIL"
             fi
@@ -958,7 +958,7 @@ op_add() {
 
     if [ -z "$force_confirm" ]; then
         echo -n "Confirmer la création ? [y/N] : "
-        read tmp
+        read -r tmp
         echo
         if [ "$tmp" != "y" ] && [ "$tmp" != "Y" ]; then
             echo "Annulation..."
