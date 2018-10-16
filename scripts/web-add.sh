@@ -149,12 +149,12 @@ validate_login() {
 
     length=${#login}
 
-    if [ $length -lt 3 ]; then
+    if [ "$length" -lt 3 ]; then
         in_error "Le login doit contenir plus de 2 caracteres"
         return 1
     fi
 
-    if [ $length -gt $MAX_LOGIN_CHAR ]; then
+    if [ "$length" -gt $MAX_LOGIN_CHAR ]; then
         in_error "Le login ne doit pas contenir plus de $MAX_LOGIN_CHAR caracteres"
         return 1
     fi
@@ -164,7 +164,7 @@ validate_passwd() {
     passwd=$1
     length=${#passwd}
 
-    if [ $length -lt 6 ] && [ $length -gt 0 ]; then
+    if [ "$length" -lt 6 ] && [ "$length" -gt 0 ]; then
         in_error "Le mot de passe doit avoir au moins 6 caracteres"
         return 1
     fi
@@ -200,12 +200,12 @@ validate_phpversion() {
 }
 
 validate_quota() {
-    quota_soft=$(echo $1 |cut -f 1 -d:)
-    quota_hard=$(echo $1 |cut -f 2 -d:)
+    quota_soft=$(echo "$1" |cut -f 1 -d:)
+    quota_hard=$(echo "$1" |cut -f 2 -d:)
     if [ -z "$quota_soft" ] || [ -z "$quota_hard" ]; then
         in_error "Le quota soft et le quota hard doivent être spécifiés sous la forme <quota soft>:<quota hard>."
         return 1
-    elif [ $quota_soft -gt $quota_hard ]; then
+    elif [ "$quota_soft" -gt "$quota_hard" ]; then
         in_error "Le quota hard doit être plus grand que le quota soft."
         return 1
     fi
@@ -264,26 +264,26 @@ create_www_account() {
     [ -z "$in_sshkey" ] || [ -n "$HOME_DIR_USER" ] && mkdir "$HOME_DIR_USER/.ssh" && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
         && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
     if [ "$WEB_SERVER" == "apache" ]; then
-        /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www \
-            --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login $OPT_WWWUID $OPT_WWWUID_ARG --ingroup $in_login --force-badname >/dev/null
+        /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www \
+            --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" "$OPT_WWWUID" "$OPT_WWWUID_ARG" --ingroup "$in_login" --force-badname > /dev/null
     elif [ "$WEB_SERVER" == "nginx" ]; then
         # Adding user www-data to group $in_login.
         # And primary group www-data for $in_login.
-        adduser www-data $in_login
-        usermod -g www-data $in_login
+        adduser www-data "$in_login"
+        usermod -g www-data "$in_login"
     fi
 
     # Get uid/gid for newly created accounts
-    uid=$(id -u $in_login)
-    gid=$(id -g $in_login)
-    www_uid=$(id -u www-$in_login)
+    uid=$(id -u "$in_login")
+    gid=$(id -g "$in_login")
+    www_uid=$(id -u www-"$in_login")
 
     # Create users inside all containers
-    for php_version in ${PHP_VERSIONS[@]}; do
-        lxc-attach -n php${php_version} -- /usr/sbin/addgroup "$in_login" --gid $gid --force-badname >/dev/null
-        lxc-attach -n php${php_version} -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid $uid --gid $gid --force-badname --home "$HOME_DIR_USER" >/dev/null
-        lxc-attach -n php${php_version} -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
-        lxc-attach -n php${php_version} -- /usr/sbin/adduser --disabled-password --home $HOME_DIR_USER/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-$in_login --uid $www_uid --ingroup $in_login --force-badname >/dev/null
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        lxc-attach -n php"${php_version}" -- /usr/sbin/addgroup "$in_login" --gid "$gid" --force-badname >/dev/null
+        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" >/dev/null
+        lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
+        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
     done
 
     if grep -qE '^AllowGroups' /etc/ssh/sshd_config; then
@@ -313,49 +313,49 @@ create_www_account() {
 
     ############################################################################
 
-    chmod 750 $HOME_DIR_USER/
+    chmod 750 "$HOME_DIR_USER"/
 
     # Répertoires par défaut
-    mkdir -p $HOME_DIR_USER/{log,www,awstats}
-    chown $in_login:$in_login $HOME_DIR_USER/www
-    chgrp $in_login $HOME_DIR_USER/{log,awstats}
-    chmod 750 $HOME_DIR_USER/{log,www,awstats}
+    mkdir -p "$HOME_DIR_USER"/{log,www,awstats}
+    chown "$in_login":"$in_login" "$HOME_DIR_USER"/www
+    chgrp "$in_login" "$HOME_DIR_USER"/{log,awstats}
+    chmod 750 "$HOME_DIR_USER"/{log,www,awstats}
 
     # Ajout des logs par defaut
-    touch $HOME_DIR_USER/log/access.log
-    touch $HOME_DIR_USER/log/error.log
-    touch $HOME_DIR_USER/log/php.log
-    chgrp $in_login $HOME_DIR_USER/log/access.log
-    chgrp $in_login $HOME_DIR_USER/log/error.log
+    touch "$HOME_DIR_USER"/log/access.log
+    touch "$HOME_DIR_USER"/log/error.log
+    touch "$HOME_DIR_USER"/log/php.log
+    chgrp "$in_login" "$HOME_DIR_USER"/log/access.log
+    chgrp "$in_login" "$HOME_DIR_USER"/log/error.log
     if [ "$WEB_SERVER" == "apache" ]; then
-        chown www-$in_login:$in_login $HOME_DIR_USER/log/php.log
+        chown www-"$in_login":"$in_login" "$HOME_DIR_USER"/log/php.log
     fi
     # There is no php.log for nginx ATM, it will go in error.log.
-    chmod 640 $HOME_DIR_USER/log/access.log
-    chmod 640 $HOME_DIR_USER/log/error.log
-    chmod 640 $HOME_DIR_USER/log/php.log
+    chmod 640 "$HOME_DIR_USER"/log/access.log
+    chmod 640 "$HOME_DIR_USER"/log/error.log
+    chmod 640 "$HOME_DIR_USER"/log/php.log
 
     step_ok "Création du répertoire personnel"
 
     ############################################################################
 
     if [ -n "$in_quota" ]; then
-        quota_soft=$(($(echo $in_quota |cut -f 1 -d:) * 1024 * 1024))
-        quota_hard=$(($(echo $in_quota |cut -f 2 -d:) * 1024 * 1024))
-        setquota --remote --user $in_login $quota_soft $quota_hard 0 0 /home
+        quota_soft=$(($(echo "$in_quota" |cut -f 1 -d:) * 1024 * 1024))
+        quota_hard=$(($(echo "$in_quota" |cut -f 2 -d:) * 1024 * 1024))
+        setquota --remote --user "$in_login" $quota_soft $quota_hard 0 0 /home
     fi
 
     ############################################################################
 
     # Create FPM pool on all containers.
-    for php_version in ${PHP_VERSIONS[@]}; do
+    for php_version in "${PHP_VERSIONS[@]}"; do
         if [ "$php_version" = "70" ]; then
             pool_path="/etc/php/7.0/fpm/pool.d/"
         else
             pool_path="/etc/php5/fpm/pool.d/"
         fi
         phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
-        cat <<EOT >/var/lib/lxc/php${php_version}/rootfs/${pool_path}/${in_login}.conf
+        cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
 [${in_login}]
 user = ${in_login}
 group = ${in_login}
@@ -381,7 +381,7 @@ EOT
 
         if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
             phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
-            cat <<EOT >>$vhostfile
+            cat <<EOT >>"$vhostfile"
     <Proxy "unix:${phpfpm_socket_path}|fcgi://localhost/" timeout=300>
     </Proxy>
     <FilesMatch "\.php$">
@@ -390,7 +390,7 @@ EOT
 </VirtualHost>
 EOT
         else
-            cat <<EOT >>$vhostfile
+            cat <<EOT >>"$vhostfile"
 </VirtualHost>
 EOT
         fi
@@ -401,7 +401,7 @@ EOT
             sed -i -e "s/^\(.*\)#\(ServerAlias\).*$/\1\2 $subweb/" $vhostfile
         fi
 
-        a2ensite $in_login >/dev/null
+        a2ensite "$in_login" >/dev/null
 
         step_ok "Configuration d'Apache"
 
@@ -431,8 +431,8 @@ EOT
             > /etc/awstats/awstats.$in_login.conf
     chmod 644 /etc/awstats/awstats.$in_login.conf
 
-       VAR=`grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1`
-    if [ "$VAR" = "" ] || [ $VAR -ge 59 ]; then
+       VAR=$(grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1)
+    if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
         VAR=1
     else
         VAR=$(($VAR +1))
@@ -450,7 +450,7 @@ EOT
         echo "FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
 
         my_cnf_file="$HOME_DIR_USER/.my.cnf"
-        cat >$my_cnf_file <<-EOT
+        cat > "$my_cnf_file" <<-EOT
 [client]
 user = $in_login
 password = "$in_dbpasswd"
@@ -458,8 +458,8 @@ password = "$in_dbpasswd"
 [mysql]
 database = $in_dbname
 EOT
-        chown $in_login $my_cnf_file
-        chmod 600 $my_cnf_file
+        chown "$in_login" "$my_cnf_file"
+        chmod 600 "$my_cnf_file"
 
         step_ok "Création base de données et compte MySQL"
     fi
@@ -492,7 +492,7 @@ EOT
     if [ "$WEB_SERVER" == "apache" ]; then
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
-        for php_version in ${PHP_VERSIONS[@]}; do
+        for php_version in "${PHP_VERSIONS[@]}"; do
             if [ "$php_version" = "70" ]; then
                 initscript_path="/etc/init.d/php7.0-fpm"
                 binary="php-fpm7.0"
@@ -500,8 +500,8 @@ EOT
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
             fi
-            lxc-attach -n php${php_version} -- $binary --test >/dev/null
-            lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
+            lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
+            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
             step_ok "Rechargement de php-fpm dans php${php_version}"
         done
 
@@ -511,8 +511,8 @@ EOT
 ############################################################################
 
     if [ "$WEB_SERVER" == "nginx" ]; then
-        fpm_status=$(echo -n $in_login | md5sum | cut -d' ' -f1)
-        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_${in_login}_
+        fpm_status=$(echo -n "$in_login" | md5sum | cut -d' ' -f1)
+        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_"${in_login}"_
 
 [phpfpm_${in_login}_*]
 env.url http://munin:%d/fpm_status_$fpm_status
@@ -522,7 +522,7 @@ env.phppool $in_login
 EOT
         for name in average connections memory processes status; do
         ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
-            /etc/munin/plugins/phpfpm_${in_login}_${name}
+            /etc/munin/plugins/phpfpm_"${in_login}"_${name}
         done
         cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
 
@@ -536,7 +536,7 @@ location ~ ^/fpm_status_${fpm_status}$ {
 }
 EOT
         sed -i "s#SED_STATUS#/fpm_status_${fpm_status}#" \
-            ${FPM_PATH}/${in_login}.conf
+            ${FPM_PATH}/"${in_login}".conf
         /etc/init.d/nginx reload
         /etc/init.d/${FPM_SERVICE_NAME} reload
         /etc/init.d/munin-node restart
@@ -564,14 +564,14 @@ op_del() {
     read
 
     set -x
-    userdel $login
+    userdel "$login"
     if [ "$WEB_SERVER" == "apache" ]; then
-        userdel www-$login
+        userdel www-"$login"
     fi
-    groupdel $login
-    for php_version in ${PHP_VERSIONS[@]}; do
-        lxc-attach -n php${php_version} -- userdel -f $login
-        lxc-attach -n php${php_version} -- userdel -f www-$login
+    groupdel "$login"
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        lxc-attach -n php"${php_version}" -- userdel -f "$login"
+        lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
     done
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
@@ -590,12 +590,12 @@ op_del() {
     fi
 
     if [ "$WEB_SERVER" == "apache" ]; then
-        a2dissite $login
-        rm /etc/apache2/sites-available/$login.conf
-        rm /etc/awstats/awstats.$login.conf
+        a2dissite "$login"
+        rm /etc/apache2/sites-available/"$login.conf"
+        rm /etc/awstats/awstats."$login.conf"
         sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
         apache2ctl configtest
-        for php_version in ${PHP_VERSIONS[@]}; do
+        for php_version in "${PHP_VERSIONS[@]}"; do
             if [ "$php_version" = "70" ]; then
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php7.0-fpm"
@@ -603,14 +603,14 @@ op_del() {
                 phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
             fi
-            rm /var/lib/lxc/php${php_version}/rootfs/${phpfpm_dir}/${login}.conf
-            lxc-attach -n php${php_version} -- $initscript_path restart >/dev/null
+            rm /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
         done
     elif [ "$WEB_SERVER" == "nginx" ]; then
 
-        rm /etc/nginx/sites-{available,enabled}/$login
-        rm /etc/awstats/awstats.$login.conf
-        rm /etc/munin/plugins/phpfpm_${in_login}*
+        rm /etc/nginx/sites-{available,enabled}/"$login"
+        rm /etc/awstats/awstats."$login.conf"
+        rm /etc/munin/plugins/phpfpm_"${in_login}"*
         sed -i.bak "/-config=$login/d" /etc/cron.d/awstats
         nginx -t
     fi
@@ -634,7 +634,7 @@ op_setphpversion() {
     login="$1"
     phpversion="$2"
 
-    validate_phpversion $phpversion
+    validate_phpversion "$phpversion"
 
     sed -i "s#^\( \+SetHandler proxy:unix:/home/.*/php-fpm\)..\(\.sock\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
     sed -i "s#^\( \+<Proxy .*unix:/home/.*/php-fpm\)..\(\.sock\)#\1${phpversion}\2#" /etc/apache2/sites-available/${login}.conf
@@ -652,11 +652,11 @@ op_setquota() {
     login="$1"
     quota="$2"
 
-    validate_quota $quota
+    validate_quota "$quota"
 
-    quota_soft=$(($(echo $quota |cut -f 1 -d:) * 1024 * 1024))
-    quota_hard=$(($(echo $quota |cut -f 2 -d:) * 1024 * 1024))
-    setquota --remote --user $login $quota_soft $quota_hard 0 0 /home
+    quota_soft=$(($(echo "$quota" |cut -f 1 -d:) * 1024 * 1024))
+    quota_hard=$(($(echo "$quota" |cut -f 2 -d:) * 1024 * 1024))
+    setquota --remote --user "$login" $quota_soft $quota_hard 0 0 /home
 
     DATE=$(date +"%Y-%m-%d")
     echo "$DATE [web-add.sh] quota set to $quota for $login" >> /var/log/evolix.log
@@ -716,12 +716,12 @@ op_listvhost() {
             serveraliases=`echo $serveraliases | sed 's/ \+/,/g'`
             userid=`awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' $configfile | head -n 1`
             if [ -x /usr/bin/quota ]; then
-                size=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $2}')
-                quota_soft=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $3}')
-                quota_hard=$(quota --no-wrap --human-readable $userid |grep /home |awk '{print $4}')
+                size=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $2}')
+                quota_soft=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $3}')
+                quota_hard=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $4}')
             fi
-            phpversion=$(perl -ne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' $configfile)
-            if [ -e /etc/apache2/sites-enabled/${userid}.conf ]; then
+            phpversion=$(perl -ne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile")
+            if [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
                 is_enabled=1
             else
                 is_enabled=0
@@ -753,7 +753,7 @@ op_aliasdel() {
         vhost="${1}.conf"
         alias=$2
 
-        [ -f $VHOST_PATH/$vhost ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/$vhost --follow-symlinks
+        [ -f $VHOST_PATH/"$vhost" ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/"$vhost" --follow-symlinks
 
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
@@ -921,8 +921,8 @@ op_add() {
             validate_wwwdomain $in_wwwdomain || exit 1
             [ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
             validate_mail $in_mail || exit 1
-            [ -n "$in_phpversion" ] && (validate_phpversion $in_phpversion || exit 1)
-            [ -n "$in_quota" ] && (validate_quota $in_quota || exit 1)
+            [ -n "$in_phpversion" ] && (validate_phpversion "$in_phpversion" || exit 1)
+            [ -n "$in_quota" ] && (validate_quota "$in_quota" || exit 1)
         fi
     fi
 
@@ -961,4 +961,4 @@ op_add() {
 }
 
 # Point d'entrée
-arg_processing $*
+arg_processing "$*"
