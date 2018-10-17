@@ -248,24 +248,39 @@ create_www_account() {
         return 1
     fi
 
-    ############################################################################
+	# Force UID and GID if specified
+    /usr/sbin/adduser \
+    	--gecos "User $in_login" \
+    	--disabled-password \
+    	"$in_login" \
+    	--shell /bin/bash \
+    	${in_uid:+'--uid' "$in_uid"} \
+    	${in_gid:+'--gid' "$in_gid"} \
+    	--force-badname \
+    	--home "$HOME_DIR_USER" >/dev/null
+   
+    [ -z "$in_sshkey" ] \
+    && echo "$in_login:$in_passwd" | chpasswd --md5
+    
+    [ -z "$in_sshkey" ] \
+    || [ -n "$HOME_DIR_USER" ] \
+    && mkdir "$HOME_DIR_USER/.ssh" \
+    && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
+	&& chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
+    && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
-    # Force UID GID if specified
-
-    [ -n "$in_uid" ] && OPT_UID="--uid" && OPT_UID_ARG="$in_uid"
-    [ -n "$in_gid" ] && OPT_GID="--gid" && OPT_GID_ARG="$in_gid"
-    [ -n "$in_wwwuid" ] && OPT_WWWUID="--uid" && OPT_WWWUID_ARG="$in_wwwuid"
-
-    ############################################################################
-
-
-    /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash "$OPT_UID" "$OPT_UID_ARG" "$OPT_GID" "$OPT_GID_ARG"  --force-badname --home "$HOME_DIR_USER" >/dev/null
-    [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
-    [ -z "$in_sshkey" ] || [ -n "$HOME_DIR_USER" ] && mkdir "$HOME_DIR_USER/.ssh" && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
-        && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
     if [ "$WEB_SERVER" == "apache" ]; then
-        /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www \
-            --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" "$OPT_WWWUID" "$OPT_WWWUID_ARG" --ingroup "$in_login" --force-badname > /dev/null
+    	# Force UID if specified
+        /usr/sbin/adduser \
+        	--gecos "WWW $in_login" \
+        	--disabled-password \
+        	www-"$in_login" \
+            --shell /bin/false \
+            ${in_wwwuid:+'--uid' "$in_wwwuid"} \
+            --ingroup "$in_login" \
+            --force-badname \
+            --home "$HOME_DIR_USER"/www \
+            --no-create-home > /dev/null
     elif [ "$WEB_SERVER" == "nginx" ]; then
         # Adding user www-data to group $in_login.
         # And primary group www-data for $in_login.
@@ -974,4 +989,4 @@ op_add() {
 }
 
 # Point d'entrée
-arg_processing "$*"
+arg_processing "$@"
