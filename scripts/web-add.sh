@@ -248,7 +248,7 @@ create_www_account() {
         return 1
     fi
 
-	# Force UID and GID if specified
+	# Create user and force UID / GID if specified
     /usr/sbin/adduser \
     	--gecos "User $in_login" \
     	--disabled-password \
@@ -269,8 +269,8 @@ create_www_account() {
 	&& chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-    	# Force UID if specified
+    if [ "$WEB_SERVER" == "apache" ]; then	  
+        # Create www user and force UID if specified
         /usr/sbin/adduser \
         	--gecos "WWW $in_login" \
         	--disabled-password \
