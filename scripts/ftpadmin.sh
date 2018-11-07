@@ -54,7 +54,7 @@ log_msg() {
 
 get_user_login_by_UID() {
     uid=$1
-    grep $uid /etc/passwd | awk -F : "{if (\$3==$uid) print \$1}"
+    grep "$uid" /etc/passwd | awk -F : "{if (\$3==$uid) print \$1}"
 }
 
 list_accounts_by_UID() {
