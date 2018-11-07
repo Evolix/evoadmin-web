@@ -48,8 +48,8 @@ EOT
 }
 
 log_msg() {
-    curdate=`date +"%Y/%m/%d %H:%M:%S"`
-    echo "$curdate $1" >>$FTPLOG_PATH
+    curdate="$(date +"%Y/%m/%d %H:%M:%S")"
+    echo "$curdate $1" >> "$FTPLOG_PATH"
 }
 
 get_user_login_by_UID() {
