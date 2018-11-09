@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ############################################################
 #                                                          #
@@ -12,6 +12,11 @@
 ############################################################
 
 # vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
+
+set -o errexit
+set -o pipefail
+set -o nounset
+#set -x
 
 VPASSWD_PATH="/etc/proftpd/vpasswd"
 FTPLOG_PATH="/var/log/evolix-ftp.log"
@@ -118,8 +123,7 @@ delete_account() {
   log_msg "Suppression du compte $account_name"
 }
 
-
-while getopts a:u:n:f:p: opt; do
+while getopts ha:u:n:f:p: opt; do
    case "$opt" in
    a)
     in_action=$OPTARG
@@ -136,26 +140,67 @@ while getopts a:u:n:f:p: opt; do
    p)
     in_password=$OPTARG
     ;;
+   h)
+    usage
+    exit 1
+    ;;
+   *)
+    usage
+    exit 1
+    ;;
    esac
 done
 
-case "$in_action" in
+case "${in_action-}" in
    l)
-    account_list=`list_accounts_by_UID $in_userid`
-    echo -e -n $account_list
+    echo -e "$(list_accounts_by_UID "${in_userid-}")"
     exit 1
     ;;
    a)
-    echo -e -n `add_account $in_userid $in_accountname $in_workpath $in_password`
+    if [[ -z "${in_userid-}" ]]; then
+        echo "User ID not specified"
+    elif [[ $in_userid = *[!0-9]* ]]; then
+        echo "User ID must be a non negative integer"
+    elif [[ -z "${in_accountname-}" ]]; then
+        echo "Account name not specified"
+    elif [[ -z "${in_workpath-}" ]]; then
+        echo "A directory was not specified"
+    elif [[ -z "${in_password-}" ]]; then
+        echo "A password was not specified"
+    else
+        echo -e -n \
+            "$(add_account \
+                "$in_userid" \
+                "$in_accountname" \
+                "$in_workpath" \
+                "$in_password")"
+    fi
     exit 1
     ;;
    m)
-    echo -e -n `edit_password $in_accountname $in_password`
+    if [[ -z "${in_accountname-}" ]]; then
+        echo "Account name not specified"    
+    elif [[ -z "${in_password-}" ]]; then
+        echo "A password was not specified"
+    else
+        echo -e -n \
+            "$(edit_password \
+                "$in_accountname" \
+                "$in_password")"
+    fi
     exit 1;
     ;;
    d)
-    echo -e -n `delete_account $in_accountname`
+    if [[ -z "${in_accountname-}" ]]; then
+        echo "Account name not specified"
+    else
+        echo -e -n \
+            "$(delete_account "$in_accountname")"
+    fi
     exit 1;
     ;;
+   *)
+    usage
+    exit 1
+    ;;
 esac
-
