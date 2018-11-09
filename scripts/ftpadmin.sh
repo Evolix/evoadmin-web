@@ -87,18 +87,17 @@ add_account() {
   passwd=$4
 
   cmd="{if (\$3==$user_id) print \$4}"
-  user_gid=`awk -F : "$cmd" /etc/passwd`
+  user_gid="$(awk -F : "$cmd" /etc/passwd)"
 
-  # Si le répoertoire de travail du compte FTP n'existe pas, on le crée
-  if [ ! -d "$path" ]; then
-    mkdir -p $path
-    chown $user_id:$user_gid $path
+  # Si le répertoire de travail du compte FTP n'existe pas, on le crée
+  if [[ ! -d "$path" ]]; then
+    mkdir -p "$path"
+    chown "$user_id":"$user_gid" "$path"
     # fix by tmartin : s/655/755/
-    chmod 755 $path
-    setfacl -R -d -m 'o:rX' $path
+    chmod 755 "$path"
   fi
 
-  echo `echo $passwd | ftpasswd --passwd --file=$VPASSWD_PATH --name=$account_name --uid=$user_id --gid=$user_gid --home=$path --shell=/bin/false --stdin`
+  echo "$passwd" | ftpasswd --passwd --file=$VPASSWD_PATH --name="$account_name" --uid="$user_id" --gid="$user_gid" --home="$path" --shell=/bin/false --stdin
   log_msg "Creation du compte $account_name (uid=$user_id, gid=$user_gid, home=$path)"
 }
 
