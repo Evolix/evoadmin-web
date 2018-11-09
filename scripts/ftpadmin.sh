@@ -105,7 +105,7 @@ edit_password() {
   account_name=$1
   passwd=$2
 
-  echo `echo $passwd | ftpasswd --passwd --file=$VPASSWD_PATH --name=$account_name --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --change-password --stdin`
+  echo "$passwd" | ftpasswd --passwd --file="$VPASSWD_PATH" --name="$account_name" --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --change-password --stdin
 
 }
 
