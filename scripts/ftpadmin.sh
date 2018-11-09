@@ -119,7 +119,7 @@ delete_account() {
 
   account_name=$1
 
-  echo `ftpasswd --passwd --file=$VPASSWD_PATH --name=$account_name --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --delete-user`
+  ftpasswd --passwd --file=$VPASSWD_PATH --name="$account_name" --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --delete-user
   log_msg "Suppression du compte $account_name"
 }
 
