@@ -155,7 +155,7 @@ if ($action=="add") {
 
 } elseif ($action=="delete") {
 
-  sudoexec("ftpadmin.sh -a d -u $user_id -n $account -f /dev/null -p azertyuiop", $standard_output, $function_output);
+  sudoexec("ftpadmin.sh -a d -n $account -f /dev/null -p azertyuiop", $standard_output, $function_output);
 
 
   $_SESSION['error'] = null;
