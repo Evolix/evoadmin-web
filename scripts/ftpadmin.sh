@@ -60,36 +60,24 @@ get_user_login_by_UID() {
 list_accounts_by_UID() {
   uid=$1
 
-  account_list=''
-  oldIFS=IFS
-  IFS=$'\n'
-
-  for line in `cat $VPASSWD_PATH`
+  while IFS=$'\n' read -r line;
   do
-     line_uid=`echo $line | cut -d":" -f3`
+     line_uid="$(echo "$line" | cut -d":" -f3)"
 
-     if [ ! "$uid" ] ||  [ "$line_uid" == "$uid" ]; then
-       username=`get_user_login_by_UID $line_uid`
-       account=`echo $line | cut -d":" -f1`
-       path=`echo $line | cut -d":" -f6`
-       if [ -r $path/.size ]; then
-           size=`cat $path/.size`
-       else
-           size=0
-       fi
-       #modif=`cat $path/.lastmodified`       
+     if [[ ! "$uid" ]] ||  [[ "$line_uid" == "$uid" ]]; then
+       username="$(get_user_login_by_UID "$line_uid")"
+       account="$(echo "$line" | cut -d":" -f1)"
+       path="$(echo "$line" | cut -d":" -f6)"
+       size="$(du -s "$path" | cut -f 1)"
+       #modif="$(cat $path/.lastmodified)"
        # Passage en minuscule ?
-       #account=`echo $account | tr '[A-Z]' '[a-z]'`
-       #path=`echo $path | tr '[A-Z]' '[a-z]'`
+       #account="$(echo $account | tr '[A-Z]' '[a-z]')"
+       #path="$(echo $path | tr '[A-Z]' '[a-z]')"
 
-       account_list="${account_list}$username:$account:$path:$size:$modif\n"
+       echo "$username:$account:$path:$size${modif:+:$modif}"
        
      fi
-  done
-
-  echo "$account_list"
-
-  IFS=$oldIFS
+  done < "$VPASSWD_PATH"
 }
 
 add_account() {
