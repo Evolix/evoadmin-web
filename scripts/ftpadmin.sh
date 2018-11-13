@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ############################################################
 #                                                          #
@@ -12,6 +12,11 @@
 ############################################################
 
 # vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
+
+set -o errexit
+set -o pipefail
+set -o nounset
+#set -x
 
 VPASSWD_PATH="/etc/proftpd/vpasswd"
 FTPLOG_PATH="/var/log/evolix-ftp.log"
@@ -48,48 +53,36 @@ EOT
 }
 
 log_msg() {
-    curdate=`date +"%Y/%m/%d %H:%M:%S"`
-    echo "$curdate $1" >>$FTPLOG_PATH
+    curdate="$(date +"%Y/%m/%d %H:%M:%S")"
+    echo "$curdate $1" >> "$FTPLOG_PATH"
 }
 
 get_user_login_by_UID() {
     uid=$1
-    grep $uid /etc/passwd | awk -F : "{if (\$3==$uid) print \$1}"
+    grep "$uid" /etc/passwd | awk -F : "{if (\$3==$uid) print \$1}"
 }
 
 list_accounts_by_UID() {
   uid=$1
 
-  account_list=''
-  oldIFS=IFS
-  IFS=$'\n'
-
-  for line in `cat $VPASSWD_PATH`
+  while IFS=$'\n' read -r line;
   do
-     line_uid=`echo $line | cut -d":" -f3`
+     line_uid="$(echo "$line" | cut -d":" -f3)"
 
-     if [ ! "$uid" ] ||  [ "$line_uid" == "$uid" ]; then
-       username=`get_user_login_by_UID $line_uid`
-       account=`echo $line | cut -d":" -f1`
-       path=`echo $line | cut -d":" -f6`
-       if [ -r $path/.size ]; then
-           size=`cat $path/.size`
-       else
-           size=0
-       fi
-       #modif=`cat $path/.lastmodified`       
+     if [[ ! "$uid" ]] ||  [[ "$line_uid" == "$uid" ]]; then
+       username="$(get_user_login_by_UID "$line_uid")"
+       account="$(echo "$line" | cut -d":" -f1)"
+       path="$(echo "$line" | cut -d":" -f6)"
+       size="$(du -s "$path" | cut -f 1)"
+       #modif="$(cat $path/.lastmodified)"
        # Passage en minuscule ?
-       #account=`echo $account | tr '[A-Z]' '[a-z]'`
-       #path=`echo $path | tr '[A-Z]' '[a-z]'`
+       #account="$(echo $account | tr '[A-Z]' '[a-z]')"
+       #path="$(echo $path | tr '[A-Z]' '[a-z]')"
 
-       account_list="${account_list}$username:$account:$path:$size:$modif\n"
+       echo "$username:$account:$path:$size${modif:+:$modif}"
        
      fi
-  done
-
-  echo "$account_list"
-
-  IFS=$oldIFS
+  done < "$VPASSWD_PATH"
 }
 
 add_account() {
@@ -99,18 +92,17 @@ add_account() {
   passwd=$4
 
   cmd="{if (\$3==$user_id) print \$4}"
-  user_gid=`awk -F : "$cmd" /etc/passwd`
+  user_gid="$(awk -F : "$cmd" /etc/passwd)"
 
-  # Si le répoertoire de travail du compte FTP n'existe pas, on le crée
-  if [ ! -d "$path" ]; then
-    mkdir -p $path
-    chown $user_id:$user_gid $path
+  # Si le répertoire de travail du compte FTP n'existe pas, on le crée
+  if [[ ! -d "$path" ]]; then
+    mkdir -p "$path"
+    chown "$user_id":"$user_gid" "$path"
     # fix by tmartin : s/655/755/
-    chmod 755 $path
-    setfacl -R -d -m 'o:rX' $path
+    chmod 755 "$path"
   fi
 
-  echo `echo $passwd | ftpasswd --passwd --file=$VPASSWD_PATH --name=$account_name --uid=$user_id --gid=$user_gid --home=$path --shell=/bin/false --stdin`
+  echo "$passwd" | ftpasswd --passwd --file=$VPASSWD_PATH --name="$account_name" --uid="$user_id" --gid="$user_gid" --home="$path" --shell=/bin/false --stdin
   log_msg "Creation du compte $account_name (uid=$user_id, gid=$user_gid, home=$path)"
 }
 
@@ -118,7 +110,7 @@ edit_password() {
   account_name=$1
   passwd=$2
 
-  echo `echo $passwd | ftpasswd --passwd --file=$VPASSWD_PATH --name=$account_name --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --change-password --stdin`
+  echo "$passwd" | ftpasswd --passwd --file="$VPASSWD_PATH" --name="$account_name" --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --change-password --stdin
 
 }
 
@@ -127,12 +119,11 @@ delete_account() {
 
   account_name=$1
 
-  echo `ftpasswd --passwd --file=$VPASSWD_PATH --name=$account_name --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --delete-user`
+  ftpasswd --passwd --file=$VPASSWD_PATH --name="$account_name" --uid=9999 --gid=9999 --home=/dev/null --shell=/dev/null --delete-user
   log_msg "Suppression du compte $account_name"
 }
 
-
-while getopts a:u:n:f:p: opt; do
+while getopts ha:u:n:f:p: opt; do
    case "$opt" in
    a)
     in_action=$OPTARG
@@ -149,26 +140,67 @@ while getopts a:u:n:f:p: opt; do
    p)
     in_password=$OPTARG
     ;;
+   h)
+    usage
+    exit 1
+    ;;
+   *)
+    usage
+    exit 1
+    ;;
    esac
 done
 
-case "$in_action" in
+case "${in_action-}" in
    l)
-    account_list=`list_accounts_by_UID $in_userid`
-    echo -e -n $account_list
+    echo -e "$(list_accounts_by_UID "${in_userid-}")"
     exit 1
     ;;
    a)
-    echo -e -n `add_account $in_userid $in_accountname $in_workpath $in_password`
+    if [[ -z "${in_userid-}" ]]; then
+        echo "User ID not specified"
+    elif [[ $in_userid = *[!0-9]* ]]; then
+        echo "User ID must be a non negative integer"
+    elif [[ -z "${in_accountname-}" ]]; then
+        echo "Account name not specified"
+    elif [[ -z "${in_workpath-}" ]]; then
+        echo "A directory was not specified"
+    elif [[ -z "${in_password-}" ]]; then
+        echo "A password was not specified"
+    else
+        echo -e -n \
+            "$(add_account \
+                "$in_userid" \
+                "$in_accountname" \
+                "$in_workpath" \
+                "$in_password")"
+    fi
     exit 1
     ;;
    m)
-    echo -e -n `edit_password $in_accountname $in_password`
+    if [[ -z "${in_accountname-}" ]]; then
+        echo "Account name not specified"    
+    elif [[ -z "${in_password-}" ]]; then
+        echo "A password was not specified"
+    else
+        echo -e -n \
+            "$(edit_password \
+                "$in_accountname" \
+                "$in_password")"
+    fi
     exit 1;
     ;;
    d)
-    echo -e -n `delete_account $in_accountname`
+    if [[ -z "${in_accountname-}" ]]; then
+        echo "Account name not specified"
+    else
+        echo -e -n \
+            "$(delete_account "$in_accountname")"
+    fi
     exit 1;
     ;;
+   *)
+    usage
+    exit 1
+    ;;
 esac
-
