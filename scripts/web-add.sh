@@ -592,14 +592,13 @@ op_del() {
     read -r
 
     set -x
-    userdel "$login"
     if [ "$WEB_SERVER" == "apache" ]; then
         userdel www-"$login"
     fi
-    groupdel "$login"
+    userdel "$login"
     for php_version in "${PHP_VERSIONS[@]}"; do
-        lxc-attach -n php"${php_version}" -- userdel -f "$login"
         lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+        lxc-attach -n php"${php_version}" -- userdel -f "$login"
     done
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
