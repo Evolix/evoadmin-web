@@ -109,6 +109,9 @@ del LOGIN [DBNAME]
 list-vhost LOGIN
 
    List Apache vhost for user LOGIN
+   
+fix-vhosts
+	Fixes non-symlinked vhosts
 
 add-alias VHOST ALIAS
 
@@ -709,6 +712,9 @@ arg_processing() {
             ;;
         list-vhost)
             op_listvhost "$@"
+            ;;        
+        fix-vhosts)
+            op_fixvhosts "$@"
             ;;
         add-alias)
             op_aliasadd "$@"
@@ -986,6 +992,21 @@ op_add() {
     echo
     echo " => Compte $in_login créé avec succès"
     echo
+}
+
+# Some people forget to use the --follow-symlinks flag with sed(1),
+# thus not carrying changes over to /etc/sites-available.
+op_fixvhosts() {
+    ln_vhosts_dir="$(echo "$VHOST_PATH" | sed 's/available/enabled')"
+    non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
+
+    for ln_path in $non_ln_vhosts
+    do
+        vhost_name=$(basename "$ln_path")
+
+        mv "$ln_path" "$VHOST_PATH/$vhost_name"
+        ln -s "$VHOST_PATH/$vhost_name" "$ln_path"
+    done
 }
 
 # Point d'entrée
