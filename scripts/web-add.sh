@@ -26,7 +26,7 @@ SSH_GROUP="evolinux-ssh"
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
 if [ "$WEB_SERVER" == "apache" ]; then
-    VHOST_PATH="/etc/apache2/sites-available/"
+    VHOST_PATH="/etc/apache2/sites-available"
     TPL_VHOST="$SCRIPTS_PATH/vhost"
     TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
 
@@ -767,7 +767,7 @@ op_aliasadd() {
         vhost="${1}.conf"
         alias=$2
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i -e "s/\\(ServerName .*\\)/\\1\\n\\tServerAlias $alias/" "$VHOST_PATH"/"$vhost" --follow-symlinks
+        [ -f $VHOST_PATH/"$vhost" ] && sed -i "/ServerName .*/a \\\tServerAlias $alias" "$VHOST_PATH"/"$vhost" --follow-symlinks
 
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
