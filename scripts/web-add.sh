@@ -997,7 +997,7 @@ op_add() {
 # Some people forget to use the --follow-symlinks flag with sed(1),
 # thus not carrying changes over to /etc/sites-available.
 op_fixvhosts() {
-    ln_vhosts_dir="$(echo "$VHOST_PATH" | sed 's/available/enabled')"
+    ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
     non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
 
     for ln_path in $non_ln_vhosts
@@ -1005,7 +1005,7 @@ op_fixvhosts() {
         vhost_name=$(basename "$ln_path")
 
         mv "$ln_path" "$VHOST_PATH/$vhost_name"
-        ln -s "$VHOST_PATH/$vhost_name" "$ln_path"
+        a2ensite "$vhostname"
     done
 }
 
