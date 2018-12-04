@@ -110,8 +110,8 @@ list-vhost LOGIN
 
    List Apache vhost for user LOGIN
    
-fix-vhosts
-	Fixes non-symlinked vhosts
+check-vhosts -f
+	List suggested changes to vhosts, apply fixes with -f
 
 add-alias VHOST ALIAS
 
@@ -713,8 +713,8 @@ arg_processing() {
         list-vhost)
             op_listvhost "$@"
             ;;        
-        fix-vhosts)
-            op_fixvhosts "$@"
+        check-vhosts)
+            op_checkvhosts "$@"
             ;;
         add-alias)
             op_aliasadd "$@"
@@ -996,17 +996,38 @@ op_add() {
 
 # Some people forget to use the --follow-symlinks flag with sed(1),
 # thus not carrying changes over to /etc/sites-available.
-op_fixvhosts() {
+op_checkvhosts() {
     ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
     non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
-
-    for ln_path in $non_ln_vhosts
+    
+	while getopt f opt; do
+		case "$opt" in
+		f)
+			apply=1
+			;;
+		*)
+			usage
+			exit 1
+			;;
+		esac
+	done
+	
+	for ln_path in $non_ln_vhosts
     do
-        vhost_name=$(basename "$ln_path")
+		vhost_name=$(basename "$ln_path")
+		fix_conf="mv $ln_path $VHOST_PATH/$vhost_name"
+		fix_ln="a2ensite $vhost_name"
 
-        mv "$ln_path" "$VHOST_PATH/$vhost_name"
-        a2ensite "$vhostname"
-    done
+		if [[ -z "$apply" ]]; then
+			echo "Suggested fixes for $vhost_name:"
+			echo "diff $ln_path $VHOST_PATH/$vhost_name"
+			echo "$fix_conf"
+			echo "$fix_ln"
+		else
+			$fix_conf
+			$fix_ln
+		fi
+	done
 }
 
 # Point d'entrée
