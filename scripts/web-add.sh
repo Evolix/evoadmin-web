@@ -737,7 +737,7 @@ op_listvhost() {
 
 
     for configfile in $configlist; do
-        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl)\\.conf$"; then
+        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
             serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
             serveraliases="${serveraliases// \+/,}"
