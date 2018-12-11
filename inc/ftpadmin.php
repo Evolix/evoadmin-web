@@ -256,6 +256,7 @@ function get_owner_list() {
 
     foreach(array_keys($usernames) as $cur) {
         if(preg_match('/^www-/', $cur)) { continue; }
+        if($cur == "evoadmin") { continue; }
         if(empty($usernames["www-$cur"])) { continue; }
         $owner_list[] = $cur;
     }
