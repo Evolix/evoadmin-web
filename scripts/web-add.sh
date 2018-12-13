@@ -1000,12 +1000,12 @@ op_checkvhosts() {
     ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
     non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
     
-	while getopt f opt; do
+	while getopts f opt; do
 		case "$opt" in
 		f)
 			apply=1
 			;;
-		*)
+		?)
 			usage
 			exit 1
 			;;
