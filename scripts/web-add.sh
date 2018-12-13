@@ -26,7 +26,7 @@ SSH_GROUP="evolinux-ssh"
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
 if [ "$WEB_SERVER" == "apache" ]; then
-    VHOST_PATH="/etc/apache2/sites-available/"
+    VHOST_PATH="/etc/apache2/sites-available"
     TPL_VHOST="$SCRIPTS_PATH/vhost"
     TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
 
@@ -109,6 +109,9 @@ del LOGIN [DBNAME]
 list-vhost LOGIN
 
    List Apache vhost for user LOGIN
+   
+check-vhosts -f
+	List suggested changes to vhosts, apply fixes with -f
 
 add-alias VHOST ALIAS
 
@@ -708,6 +711,9 @@ arg_processing() {
             ;;
         list-vhost)
             op_listvhost "$@"
+            ;;        
+        check-vhosts)
+            op_checkvhosts "$@"
             ;;
         add-alias)
             op_aliasadd "$@"
@@ -766,7 +772,7 @@ op_aliasadd() {
         vhost="${1}.conf"
         alias=$2
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i -e "s/\\(ServerName .*\\)/\\1\\n\\tServerAlias $alias/" "$VHOST_PATH"/"$vhost" --follow-symlinks
+        [ -f $VHOST_PATH/"$vhost" ] && sed -i "/ServerName .*/a \\\tServerAlias $alias" "$VHOST_PATH"/"$vhost" --follow-symlinks
 
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
@@ -985,6 +991,42 @@ op_add() {
     echo
     echo " => Compte $in_login créé avec succès"
     echo
+}
+
+# Some people forget to use the --follow-symlinks flag with sed(1),
+# thus not carrying changes over to /etc/sites-available.
+op_checkvhosts() {
+    ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
+    non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
+    
+	while getopts f opt; do
+		case "$opt" in
+		f)
+			apply=1
+			;;
+		?)
+			usage
+			exit 1
+			;;
+		esac
+	done
+	
+	for ln_path in $non_ln_vhosts
+    do
+		vhost_name=$(basename "$ln_path")
+		fix_conf="mv $ln_path $VHOST_PATH/$vhost_name"
+		fix_ln="a2ensite $vhost_name"
+
+		if [[ -z "$apply" ]]; then
+			echo "Suggested fixes for $vhost_name:"
+			echo "diff $ln_path $VHOST_PATH/$vhost_name"
+			echo "$fix_conf"
+			echo "$fix_ln"
+		else
+			$fix_conf
+			$fix_ln
+		fi
+	done
 }
 
 # Point d'entrée
