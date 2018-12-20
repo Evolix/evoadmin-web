@@ -27,7 +27,7 @@ Automatiquement via Evolinux.
 
 TODO
 
-## Paquet
+### Paquet
 
 TODO
 
@@ -66,3 +66,7 @@ $ git checkout wheezy-dev
 $ git commit
 $ git push
 ```
+
+## Licence
+
+Evoadmin-web est un projet [Evolix](https://evolix.com) et est distribué sour licence AGPLv3, voir le fichier [LICENSE](LICENSE) pour les détails.
