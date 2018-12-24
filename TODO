@@ -1,7 +1,7 @@
-* Verification des paramètres passés dans le script ftpadmin.sh
-* Vérifier lors de la suppression que c'est bien la personne a qui appartient le compte qui lance la commande
-* Tableau "sortable" (TableKit ?)
-* Mettre en place EvoLog et logger la sortie des scripts
-* Validation plus (très) stricte sur les entrées de formulaire
-* Listage des comptes utilisateurs
-* Total espace disque FTP
+* Verify parameters passed to ftpadmin.sh
+* Verify that the the person who deletes an account, actually owns it.
+* Sortable HTML tables
+* Add logging
+* Stricter validation on HTML inputs
+* Be able to list user accounts
+* Display FTP account space
