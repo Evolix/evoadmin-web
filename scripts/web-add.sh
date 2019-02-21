@@ -753,7 +753,7 @@ op_listvhost() {
                 quota_soft=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $3}')
                 quota_hard=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $4}')
             fi
-            phpversion=$(perl -ne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile")
+            phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile" | head -n 1)
             if [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
                 is_enabled=1
             else
