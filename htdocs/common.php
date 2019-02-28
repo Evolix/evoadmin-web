@@ -27,7 +27,7 @@ function test_exist($file) {
 }
 
 function http_redirect($path) {
-    header('Location: http://'.$_SERVER['HTTP_HOST'].$path);
+    header('Location: '.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'].$path);
     exit(0);
 }
 
