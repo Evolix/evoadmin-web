@@ -746,7 +746,7 @@ op_listvhost() {
         if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
             serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
-            serveraliases="${serveraliases// \+/,}"
+            serveraliases="$(echo $serveraliases | sed 's/ \+/,/g')"
             userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
             if [ -x /usr/bin/quota ]; then
                 size=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $2}')
