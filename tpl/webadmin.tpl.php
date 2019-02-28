@@ -104,6 +104,8 @@
       } ?>
       </tbody>
     </table>
+    <br>
+    Nombre total de comptes : <?= count($vhost_list); ?>
 <?php
     } else {
         print '<p>Aucun domaine existant !</p>';
