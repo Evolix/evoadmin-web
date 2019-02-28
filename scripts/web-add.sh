@@ -263,8 +263,8 @@ create_www_account() {
     	--home "$HOME_DIR_USER" >/dev/null
    
     [ -z "$in_sshkey" ] \
-    && echo "$in_login:$in_passwd" | chpasswd --md5
-    
+    && echo "$in_login:$in_passwd" | chpasswd
+
     [ -z "$in_sshkey" ] \
     || [ -n "$HOME_DIR_USER" ] \
     && mkdir "$HOME_DIR_USER/.ssh" \
@@ -300,7 +300,7 @@ create_www_account() {
     for php_version in "${PHP_VERSIONS[@]}"; do
         lxc-attach -n php"${php_version}" -- /usr/sbin/addgroup "$in_login" --gid "$gid" --force-badname >/dev/null
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" >/dev/null
-        lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
+        lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
     done
 

@@ -199,7 +199,7 @@ create_www_account() {
         /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" \
         --shell /bin/bash $OPT_UID $OPT_UID_ARG --force-badname \
         --home "$HOME_DIR_USER" >/dev/null
-        [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd --md5
+        [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd
         [ -z "$in_sshkey" ] || [ -n "$HOME_DIR_USER" ] \
         && mkdir "$HOME_DIR_USER/.ssh" \
         && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
