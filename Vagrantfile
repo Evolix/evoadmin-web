@@ -22,7 +22,9 @@ sed -e '/RewriteCond/ s/^#*/#/' -i /etc/apache2/sites-available/evoadmin.conf
 systemctl restart apache2
 
 rm -rf /home/evoadmin/www/
+rm -rf /usr/share/scripts/evoadmin/
 ln -s /vagrant/ /home/evoadmin/www
+ln -s /vagrant/scripts /usr/share/scripts/evoadmin
 SCRIPT
 
   config.vm.define :packweb do |node|
