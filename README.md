@@ -33,6 +33,34 @@ TODO
 
 ### Conteneurs LXC (Multi PHP)
 
+Installer le paquet nécessaire :
+
+~~~
+apt install lxc 
+~~~
+
+Modifier la configuration de LXC :
+
+~~~
+# cat /etc/lxc/default.conf
+
+# Set the default network virtualization method.
+lxc.network.type = none
+
+# Mount /home into containers.
+# lxc.mount.entry = /home home none bind 0 0
+
+# Only one tty is enough.
+# This require that you disabled others tty ([2-6]) in systemd.
+lxc.tty = 1
+
+# Run 64bits containers
+lxc.arch = x86_64
+
+# Start containers on boot by default
+lxc.start.auto = 1
+~~~
+
 #### PHP 5.6
 
 On installe un conteneur Debian Jessie :
