@@ -36,7 +36,7 @@ TODO
 Installer le paquet nécessaire :
 
 ~~~
-apt install lxc 
+apt install lxc debootstrap
 ~~~
 
 Modifier la configuration de LXC :
@@ -99,7 +99,7 @@ lxc-attach -n php56 /etc/init.d/php5-fpm restart
 On installe un conteneur Debian Stretch :
 
 ~~~
-/usr/bin/lxc-create --name php70 --template debian --bdev dir --logfile /var/log/lxc/lxc-php70.log --logpriority INFO -- -t download --arch amd64 --release stretch
+/usr/bin/lxc-create --name php70 --template debian --bdev dir --logfile /var/log/lxc/lxc-php70.log --logpriority INFO -- --arch amd64 --release stretch
 ~~~
 
 Puis on installe les paquets PHP 7.0 dans ce conteneur :
