@@ -146,6 +146,13 @@ hostname=example.com
 FromLineOverride=YES
 ~~~
 
+Si vous rencontrez l'erreur "File not found" avec les fichiers php, bien vérifier que le rootfs des conteneurs est en 755 :
+
+~~~
+chmod 755 /var/lib/lxc/php56/rootfs
+chmod 755 /var/lib/lxc/php70/rootfs
+~~~
+
 ####
 
 Une fois les conteneurs installés, il faut configurer evoadmin-web pour lui diniquer les versions disponibles de PHP dans **/etc/evolinux/web-add.conf** :
