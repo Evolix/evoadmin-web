@@ -48,7 +48,7 @@ Modifier la configuration de LXC :
 lxc.network.type = none
 
 # Mount /home into containers.
-# lxc.mount.entry = /home home none bind 0 0
+lxc.mount.entry = /home home none bind 0 0
 
 # Only one tty is enough.
 # This require that you disabled others tty ([2-6]) in systemd.
@@ -60,6 +60,8 @@ lxc.arch = x86_64
 # Start containers on boot by default
 lxc.start.auto = 1
 ~~~
+
+Note : Ne pas oublier le paramètre lié au montage du /home de l'hôte dans le conteneur !
 
 #### PHP 5.6
 
