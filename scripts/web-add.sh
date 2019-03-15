@@ -369,6 +369,8 @@ create_www_account() {
     for php_version in "${PHP_VERSIONS[@]}"; do
         if [ "$php_version" = "70" ]; then
             pool_path="/etc/php/7.0/fpm/pool.d/"
+        elif [ "$php_version" = "73" ]; then
+            pool_path="/etc/php/7.3/fpm/pool.d/"
         else
             pool_path="/etc/php5/fpm/pool.d/"
         fi
@@ -527,6 +529,9 @@ EOT
             if [ "$php_version" = "70" ]; then
                 initscript_path="/etc/init.d/php7.0-fpm"
                 binary="php-fpm7.0"
+            elif [ "$php_version" = "73" ]; then
+                initscript_path="/etc/init.d/php7.3-fpm"
+                binary="php-fpm7.3"
             else
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
@@ -627,10 +632,13 @@ op_del() {
         apache2ctl configtest
         for php_version in "${PHP_VERSIONS[@]}"; do
             if [ "$php_version" = "70" ]; then
-                phpfpm_dir="/etc/php5/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.0-fpm"
-            else
                 phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
+                initscript_path="/etc/init.d/php7.0-fpm"
+            elif [ "$php_version" = "73" ]; then
+                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
+                initscript_path="/etc/init.d/php7.3-fpm"
+            else
+                phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
             fi
             rm /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf

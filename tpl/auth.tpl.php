@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2009 Evolix - Tous droits reserves
  *
- * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2 
+ * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
  *
  * @author Gregory Colpart <reg@evolix.fr>
  * @author Thomas Martin <tmartin@evolix.fr>
@@ -17,7 +17,7 @@
 
 <br/><br/>
 <form method="POST">
-<table width="300" align="center">
+<table align="center">
   <tr>
     <td align="right">Utilisateur : &nbsp;</td>
     <td align="left"><input type="text" name="login" /></td>
