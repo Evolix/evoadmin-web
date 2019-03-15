@@ -129,6 +129,44 @@ Il ne reste plus qu'a redémarrer FPM :
 lxc-attach -n php70 /etc/init.d/php7.0-fpm restart
 ~~~
 
+#### PHP 7.3
+
+On installe un conteneur Debian Stretch :
+
+~~~
+/usr/bin/lxc-create --name php73 --template debian --bdev dir --logfile /var/log/lxc/lxc-php73.log --logpriority INFO -- --arch amd64 --release stretch
+~~~
+
+Puis on installe les paquets PHP 7.3 dans ce conteneur :
+
+~~~
+
+lxc-attach -n php73 apt-get update && apt-get install -y --no-install-recommends wget apt-transport-https ca-certificates
+lxc-attach -n php73 wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+lxc-attach -n php73 echo "deb https://packages.sury.org/php/ stretch main" > /etc/apt/sources.list.d/sury.list
+lxc-attach -n php73 apt-get update && apt-get install -y --no-install-recommends php7.3 php7.3-fpm php7.3-cli php7.3-curl php7.3-mysql php7.3-pgsql php7.3-ldap php7.3-imap php7.3-gd php-ssh2 php-gettext composer libphp-phpmailer
+~~~
+
+On configure ensuite PHP via les fichiers **/etc/php/7.3/fpm/conf.d/z-evolinux-defaults.ini** et **/etc/php/7.3/cli/conf.d/z-evolinux-defaults.ini** :
+
+~~~
+[PHP]
+short_open_tag = Off
+expose_php = Off
+display_errors = Off
+log_errors = On
+html_errors = Off
+allow_url_fopen = Off
+disable_functions = exec,shell-exec,system,passthru,putenv,popen
+~~~
+
+Il ne reste plus qu'a redémarrer FPM :
+
+~~~
+lxc-attach -n php73 /etc/init.d/php7.3-fpm restart
+~~~
+
+
 #### Toutes versions
 
 Pour envoyer des mails, on peut installer **ssmtp** qui va forwarder les mails du conteneur vers l'hôte (à faire par conteneur via lxc-attach) :
