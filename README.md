@@ -169,6 +169,12 @@ lxc-attach -n php73 /etc/init.d/php7.3-fpm restart
 
 #### Toutes versions
 
+Il est nécessaire d'activer le mod proxy pour apache2 si ce n'a pas déjà été fait :
+
+~~~
+# a2enmod proxy_fcgi
+~~~
+
 Pour envoyer des mails, on peut installer **ssmtp** qui va forwarder les mails du conteneur vers l'hôte (à faire par conteneur via lxc-attach) :
 
 ~~~
