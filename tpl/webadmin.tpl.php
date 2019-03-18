@@ -38,7 +38,7 @@
             print '<th>&nbsp;PHP&nbsp;</th>';
         }
         ?>
-        <th>&nbsp;Actif&nbsp;</th>
+        <th>&nbsp;Actif ?&nbsp;</th>
         <th>&nbsp;Action&nbsp;</th>
         <!--<th>Opérations</th>-->
         <?php if($conf['cluster']) { ?>
@@ -93,7 +93,7 @@
           if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
             printf('<td>%s</td>', preg_replace("/^(\d)(\d)$/", '\1.\2', $vhost_info['php_version']));
           }
-          printf('<td>%s</td>', $vhost_info['is_enabled']);
+          printf('<td>%s</td>', ($vhost_info['is_enabled'] ? 'Activé' : 'Désactivé' ));
           if (is_superadmin()) {
               printf('<td><a href="/webadmin/edit/%s">Lister/Modifier</a></td>',
                       $vhost_info['owner']);
