@@ -95,7 +95,7 @@
           }
           printf('<td>%s</td>', ($vhost_info['is_enabled'] ? 'Activé' : 'Désactivé' ));
           if (is_superadmin()) {
-              printf('<td><a href="/webadmin/edit/%s">Lister/Modifier</a></td>',
+              printf('<td><a href="/webadmin/edit/%s">Lister/Modifier les alias</a></td>',
                       $vhost_info['owner']);
           }
 
