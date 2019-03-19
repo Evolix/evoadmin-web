@@ -251,7 +251,7 @@ function web_add_cluster($form, $admin_mail) {
 /* Construction du formulaire d'ajout */
 $form = new FormPage("Ajout d'un compte web", FALSE);
 $form->addField('username', new TextInputFormField("Nom d'utilisateur", TRUE, array(20,16)));
-$form->addField('domain', new TextInputFormField("Nom de domaine", TRUE));
+$form->addField('domain', new DomainInputFormField("Nom de domaine", TRUE));
 $form->addField('domain_alias', new TextInputFormField("Alias (séparés par une virgule)", FALSE));
 $form->addField('password_random', 
                 new CheckboxInputFormField("Mot de passe aléatoire ?", FALSE));
