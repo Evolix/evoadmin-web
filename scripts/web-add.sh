@@ -109,7 +109,7 @@ del LOGIN [DBNAME]
 list-vhost LOGIN
 
    List Apache vhost for user LOGIN
-   
+
 check-vhosts -f
 	List suggested changes to vhosts, apply fixes with -f
 
@@ -120,6 +120,10 @@ add-alias VHOST ALIAS
 del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
+
+update-servername VHOST SERVERNAME
+
+    Update the ServerName from an Apache vhost
 
 setphpversion LOGIN VERSION
 
@@ -261,7 +265,7 @@ create_www_account() {
     	${in_gid:+'--gid' "$in_gid"} \
     	--force-badname \
     	--home "$HOME_DIR_USER" >/dev/null
-   
+
     [ -z "$in_sshkey" ] \
     && echo "$in_login:$in_passwd" | chpasswd
 
@@ -272,7 +276,7 @@ create_www_account() {
 	&& chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
-    if [ "$WEB_SERVER" == "apache" ]; then	  
+    if [ "$WEB_SERVER" == "apache" ]; then
         # Create www user and force UID if specified
         /usr/sbin/adduser \
         	--gecos "WWW $in_login" \
@@ -486,25 +490,25 @@ EOT
 
     if [ "$in_dbname" ]; then
         sed -e "
-        s/LOGIN/$in_login/g ; 
-        s/SERVERNAME/$in_wwwdomain/ ; 
-        s/PASSE1/$in_passwd/ ; 
-        s/PASSE2/$in_dbpasswd/ ; 
-        s/RANDOM/$random/ ; 
-        s/QUOTA/$quota/ ; 
-        s/RCPTTO/$in_mail/ ; 
-        s/DBNAME/$in_dbname/ ; 
+        s/LOGIN/$in_login/g ;
+        s/SERVERNAME/$in_wwwdomain/ ;
+        s/PASSE1/$in_passwd/ ;
+        s/PASSE2/$in_dbpasswd/ ;
+        s/RANDOM/$random/ ;
+        s/QUOTA/$quota/ ;
+        s/RCPTTO/$in_mail/ ;
+        s/DBNAME/$in_dbname/ ;
         s#HOME_DIR#$HOME_DIR#" \
         < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     else
         sed -e "
-            s/LOGIN/$in_login/g ; 
-            s/SERVERNAME/$in_wwwdomain/ ; 
-            s/PASSE1/$in_passwd/ ; 
-            s/RANDOM/$random/ ; 
-            s/QUOTA/$quota/ ; 
-            s/RCPTTO/$in_mail/ ; 
-            s#HOME_DIR#$HOME_DIR# ; 
+            s/LOGIN/$in_login/g ;
+            s/SERVERNAME/$in_wwwdomain/ ;
+            s/PASSE1/$in_passwd/ ;
+            s/RANDOM/$random/ ;
+            s/QUOTA/$quota/ ;
+            s/RCPTTO/$in_mail/ ;
+            s#HOME_DIR#$HOME_DIR# ;
             39,58d" \
             < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     fi
@@ -719,7 +723,7 @@ arg_processing() {
             ;;
         list-vhost)
             op_listvhost "$@"
-            ;;        
+            ;;
         check-vhosts)
             op_checkvhosts "$@"
             ;;
@@ -728,6 +732,9 @@ arg_processing() {
             ;;
         del-alias)
             op_aliasdel "$@"
+            ;;
+        update-servername)
+            op_servernameupdate "$@"
             ;;
         setphpversion)
             op_setphpversion "$@"
@@ -798,6 +805,20 @@ op_aliasdel() {
 
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
+
+    else usage
+    fi
+}
+
+op_servernameupdate() {
+    if [ $# -eq 2 ]; then
+      vhost="${1}.conf"
+      servername=$2
+
+      [ -f $VHOST_PATH/"$vhost" ] && sed -i "s/ServerName .*/ServerName $servername/" $VHOST_PATH/"$vhost" --follow-symlinks
+
+      apache2ctl configtest 2>/dev/null
+      /etc/init.d/apache2 force-reload >/dev/null
 
     else usage
     fi
@@ -1006,7 +1027,7 @@ op_add() {
 op_checkvhosts() {
     ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
     non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
-    
+
 	while getopts f opt; do
 		case "$opt" in
 		f)
@@ -1018,7 +1039,7 @@ op_checkvhosts() {
 			;;
 		esac
 	done
-	
+
 	for ln_path in $non_ln_vhosts
     do
 		vhost_name=$(basename "$ln_path")
