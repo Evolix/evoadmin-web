@@ -403,7 +403,53 @@ class TextInputFormField extends FormField {
         $out = '';
         $out .= "<p>\n";
         $out .= $this->getLabelHTML();
-        $out .= $this->getInputHTML(); 
+        $out .= $this->getInputHTML();
+        $out .= $this->getErrorHTML();
+        $out .= "</p>\n\n";
+        return $out;
+    }
+}
+
+class DomainInputFormField extends FormField {
+    protected $mandatory = NULL;
+    protected $textsize = NULL;
+
+    public function __construct($label, $mandatory=TRUE) {
+        parent::__construct($label);
+        $this->mandatory = $mandatory;
+        $this->textsize = $textsize;
+    }
+
+    public function verify($set_error) {
+        if($this->mandatory && (!strlen($this->value))) {
+            if($set_error) $this->error = 'Champ obligatoire';
+            return FALSE;
+        }
+
+        if (!preg_match("/^[a-z0-9-.]+\.[a-z]{2,}$/i", $this->value)) {
+            if($set_error) $this->error = 'Ceci n\'est pas un nom de domaine';
+            return FALSE;
+        }
+
+        return TRUE;
+    }
+
+    public function getInputHTML() {
+        $input = '';
+        $input .= '<input type="text" id="'.$this->name.'"';
+        $input .= ' name="'.$this->name.'" value="'.htmlspecialchars($this->value,ENT_QUOTES).'"';
+        $input .= ' maxlength="'.$this->textsize[1].'" size="'.$this->textsize[0].'" ';
+        if($this->read_only) { $input .= 'readonly="readonly="'; }
+        if($this->disabled) { $input .= 'disabled="disabled="'; }
+        $input .= '/>';
+        return $input;
+    }
+
+    public function __toString() {
+        $out = '';
+        $out .= "<p>\n";
+        $out .= $this->getLabelHTML();
+        $out .= $this->getInputHTML();
         $out .= $this->getErrorHTML();
         $out .= "</p>\n\n";
         return $out;
