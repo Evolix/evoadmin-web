@@ -426,7 +426,7 @@ class DomainInputFormField extends FormField {
             return FALSE;
         }
 
-        if (!preg_match("/^[a-z0-9-.]+\.[a-z]{2,}$/i", $this->value)) {
+        if (!preg_match("/^[a-z0-9-.]+\.[a-z0-9-]{2,}$/i", $this->value)) {
             if($set_error) $this->error = 'Ceci n\'est pas un nom de domaine';
             return FALSE;
         }
@@ -476,7 +476,7 @@ class DomainListInputFormField extends FormField {
         if(strlen($this->value)){
           $list = explode(',', $this->value);
           foreach ($list as $value) {
-            if (!preg_match("/^[a-z0-9-.]+\.[a-z]{2,}$/i", $value)) {
+            if (!preg_match("/^[a-z0-9-.]+\.[a-z0-9-]{2,}$/i", $value)) {
                 if($set_error) $this->error = 'Ceci n\'est pas un nom de domaine';
                 return FALSE;
             }
