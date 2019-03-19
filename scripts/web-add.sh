@@ -814,8 +814,10 @@ op_servernameupdate() {
     if [ $# -eq 2 ]; then
       vhost="${1}.conf"
       servername=$2
+      old_servername=$(grep ServerName $VHOST_PATH/"$vhost" | awk '{print $2;}')
 
-      [ -f $VHOST_PATH/"$vhost" ] && sed -i "s/ServerName .*/ServerName $servername/" $VHOST_PATH/"$vhost" --follow-symlinks
+      [ -f $VHOST_PATH/"$vhost" ] && sed -i "s/ServerName .*/ServerName $servername/" $VHOST_PATH/"$vhost" --follow-symlinks \
+      && sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" $VHOST_PATH/"$vhost" --follow-symlinks
 
       apache2ctl configtest 2>/dev/null
       /etc/init.d/apache2 force-reload >/dev/null
