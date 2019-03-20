@@ -104,7 +104,7 @@ if (isset($_GET['del']) ) {
     include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
         $form = new FormPage("Ajout d'un alias", FALSE);
-        $form->addField('domain_alias', new TextInputFormField("Alias", FALSE));
+        $form->addField('domain_alias', new DomainInputFormField("Alias", TRUE));
 
         if (!empty($_POST)) {
             $form->isCurrentPage(TRUE);
@@ -204,6 +204,17 @@ if (isset($_GET['del']) ) {
                         print "</center>";
                     }
                 }
+            }
+            else {
+              print "<h2>Ajout d'un serveralias</h2><hr>";
+                    print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
+                    print "   <fieldset>";
+                    print "        <legend>Ajout d'un serveralias</legend>";
+                    print $form;
+                    print "        <p><input type=\"submit\" value=\"Créer\"/></p>";
+                    print "     </fieldset>";
+                    print "</form>";
+
             }
         } else {
 			print "<h2>Ajout d'un serveralias</h2><hr>";
