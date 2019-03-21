@@ -187,8 +187,9 @@ class FormPage {
         }
     }
 
-    public function addField($name, $obj) {
+    public function addField($name, $obj, $default_value="") {
         $obj->setName($name);
+        if ($default_value != "") $obj->setValue($default_value);
         array_push($this->fields, array($name, $obj));
     }
 
