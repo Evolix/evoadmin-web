@@ -814,9 +814,9 @@ op_servernameupdate() {
     if [ $# -eq 2 ]; then
       vhost="${1}.conf"
       servername=$2
-      old_servername=$(grep ServerName $VHOST_PATH/"$vhost" | awk '{print $2;}')
-
-      [ -f $VHOST_PATH/"$vhost" ] && sed -i "s/ServerName .*/ServerName $servername/" $VHOST_PATH/"$vhost" --follow-symlinks \
+      old_servername=$(grep ServerName $VHOST_PATH/"$vhost" | awk '{print $2;}' | head -n1)
+      # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
+      [ -f $VHOST_PATH/"$vhost" ] && sed -i "s/ServerName .*/ServerName $servername/g" $VHOST_PATH/"$vhost" --follow-symlinks \
       && sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" $VHOST_PATH/"$vhost" --follow-symlinks
 
       apache2ctl configtest 2>/dev/null
