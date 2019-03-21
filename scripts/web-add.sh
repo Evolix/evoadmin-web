@@ -674,8 +674,8 @@ op_setphpversion() {
 
     validate_phpversion "$phpversion"
 
-    sed -i "s#^\\( \\+SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
-    sed -i "s#^\\( \\+<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
+    sed -i "s#^\\(\s*SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
+    sed -i "s#^\\(\s*<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
     /etc/init.d/apache2 force-reload >/dev/null
 
     DATE=$(date +"%Y-%m-%d")
