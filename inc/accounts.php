@@ -250,7 +250,7 @@ function web_add_cluster($form, $admin_mail) {
 
 /* Construction du formulaire d'ajout */
 $form = new FormPage("Ajout d'un compte web", FALSE);
-$form->addField('username', new TextInputFormField("Nom d'utilisateur", TRUE, array(20,16)));
+$form->addField('username', new AlphaNumericalTextInputFormField("Nom d'utilisateur", TRUE, array(20,16)));
 $form->addField('domain', new DomainInputFormField("Nom de domaine", TRUE));
 $form->addField('domain_alias', new DomainListInputFormField("Alias (séparés par une virgule, sans espaces)", FALSE));
 $form->addField('password_random',
@@ -263,13 +263,13 @@ $form->addField('mysql_db',
                                            FALSE));
 $form->getField('mysql_db')->setValue(TRUE);
 $form->addField('mysql_dbname',
-                new TextInputFormField("Nom de la base MySQL", FALSE, array(20,16)));
-//$form->getField('mysql_dbname')->setDisabled();
-$form->addField('mysql_password_random', 
+                new AlphaNumericalTextInputFormField("Nom de la base MySQL", FALSE, array(20,16)));
+
+$form->addField('mysql_password_random',
                 new CheckboxInputFormField("Mot de passe MySQL aléatoire ?",
                                            FALSE));
 $form->getField('mysql_password_random')->setValue(TRUE);
-//$form->getField('mysql_password_random')->setDisabled();
+
 $form->addField('mysql_password',
                 new PasswordInputFormField('Mot de passe MySQL', FALSE));
 $form->getField('mysql_password')->setDisabled();
