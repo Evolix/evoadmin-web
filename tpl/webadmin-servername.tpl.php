@@ -13,7 +13,7 @@
 
 ?>
 
-<h2>Server Name</h2>
+<h2>ServerNames</h2>
 
 <?php
 
@@ -22,7 +22,7 @@
     <table id="tab-list">
         <thead>
         <tr>
-           <th>Server Name</th>
+           <th>ServerName</th>
            <?php if (is_superadmin()) {
                print '<th>Action</th>';
            } ?>
@@ -43,12 +43,7 @@
     </table>
 <?php
    } else {
-       print "<p>Aucun alias existant pour le domaine $domain !</p>";
-        if (is_superadmin()) {
-            print "<center>";
-            printf('<p><a href="/webadmin/edit/%s?add">Ajouter un alias</a></p>', $domain);
-            print "</center>";
-        }
+       print "<p>Aucun ServerName existant pour le domaine $domain !</p>";
    }
 
 

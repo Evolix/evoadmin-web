@@ -24,8 +24,8 @@ if (isset($_GET['edit']) ) {
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
     include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
-        $form = new FormPage("Modification du Server Name", FALSE);
-        $form->addField('domain_servername', new TextInputFormField("Server Name", FALSE), $_GET['edit']);
+        $form = new FormPage("Modification du ServerName", FALSE);
+        $form->addField('domain_servername', new DomainInputFormField("ServerName", FALSE), $_GET['edit']);
 
         if (!empty($_POST)) {
             $form->isCurrentPage(TRUE);
@@ -114,14 +114,14 @@ if (isset($_GET['edit']) ) {
                     if ($exec_return == 0) {
                         //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
                         print "<center>";
-                        printf ('<p>Le Server Name %s du domaine %s a bien été modifié</p>', $servername['servername'], $servername['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des Server Names</a></p>', $_SERVER['REDIRECT_URL']);
+                        printf ('<p>Le ServerName %s du domaine %s a bien été modifié</p>', $servername['servername'], $servername['domain']);
+                        printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
                         print "</center>";
                     }
                     else {
                         print "<center>";
-                        printf ('<p>Echec dans la modification du Server Name %s du domaine %s</p>', $servername['servername'], $servername['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des Server Names</a></p>', $_SERVER['REDIRECT_URL']);
+                        printf ('<p>Echec dans la modification du ServerName %s du domaine %s</p>', $servername['servername'], $servername['domain']);
+                        printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
                         print "</center>";
                     }
                 }
@@ -130,7 +130,7 @@ if (isset($_GET['edit']) ) {
 			print "<h2>Modification du ServerName</h2><hr>";
             print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
             print "   <fieldset>";
-            print "        <legend>Modification du Server Name</legend>";
+            print "        <legend>Modification du ServerName</legend>";
             print $form;
             print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
             print "     </fieldset>";
