@@ -43,7 +43,7 @@ add_mx () {
         return 0
     fi
 
-    if ! grep -q -E "^$mx_subdomain[ \t]+IN[ \t]+MX[ \t]+[[:digit:]]+[ \t]+$mx$" $zonefile; then
+    if ! grep -q -P "^$mx_subdomain[ \t]+IN[ \t]+MX[ \t]+[[:digit:]]+[ \t]+$mx$" $zonefile; then
         echo "$mx_subdomain           IN MX      $mx_priority $mx" >>$zonefile
     else
         log ERR "MX Record $mx already exists."
@@ -58,7 +58,7 @@ add_subdomain () {
 
     zonefile="$BINDROOT/db.$domain"
 
-    if ! grep -q -E "^$subdomain[ \t]+IN[ \t]+(CNAME|A)[ \t]+" $zonefile; then
+    if ! grep -q -P "^$subdomain[ \t]+IN[ \t]+(CNAME|A)[ \t]+" $zonefile; then
         echo "$subdomain   IN CNAME   @" >>$zonefile
     else
         log ERR "CNAME or A record for $subdomain already exists."
@@ -73,7 +73,7 @@ inc_and_reload () {
     zonefile="$BINDROOT/db.$domain"
 
     # Set the date for serial (only if greater than actual serial)
-    serial=$(grep -E '^[ \t]*[0-9]{10}[ \t]*; serial' $zonefile | sed "s/^[ \t]*\([0-9]\{10\}\)[ \t]*; serial/\1/")
+    serial=$(grep -P '^[ \t]*[0-9]{10}[ \t]*; serial' $zonefile | sed "s/^[ \t]*\([0-9]\{10\}\)[ \t]*; serial/\1/")
     if [ `date "+%Y%m%d%H"` -gt $serial ]; then serial=$(date "+%Y%m%d%H"); else serial=$(( $serial + 1 )); fi
     sed -i "s/^\([ \t]*\)[0-9]\{10\}\([ \t]*; serial\)/\1$serial\2/" \
       $zonefile
