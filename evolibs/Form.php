@@ -463,9 +463,10 @@ class DomainInputFormField extends FormField {
     protected $mandatory = NULL;
     protected $textsize = NULL;
 
-    public function __construct($label, $mandatory=TRUE) {
+    public function __construct($label, $mandatory=TRUE, $hidden=FALSE) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
+        $this->hidden = $hidden;
         $this->textsize = $textsize;
     }
 
@@ -485,7 +486,10 @@ class DomainInputFormField extends FormField {
 
     public function getInputHTML() {
         $input = '';
-        $input .= '<input type="text" id="'.$this->name.'"';
+        if ($this->hidden)
+          $input .= '<input type="hidden" id="'.$this->name.'"';
+        else
+          $input .= '<input type="text" id="'.$this->name.'"';
         $input .= ' name="'.$this->name.'" value="'.htmlspecialchars($this->value,ENT_QUOTES).'"';
         $input .= ' maxlength="'.$this->textsize[1].'" size="'.$this->textsize[0].'" ';
         if($this->read_only) { $input .= 'readonly="readonly="'; }
@@ -497,9 +501,13 @@ class DomainInputFormField extends FormField {
     public function __toString() {
         $out = '';
         $out .= "<p>\n";
-        $out .= $this->getLabelHTML();
-        $out .= $this->getInputHTML();
-        $out .= $this->getErrorHTML();
+        if ($this->hidden) {
+          $out .= $this->getInputHTML();
+        } else {
+          $out .= $this->getLabelHTML();
+          $out .= $this->getInputHTML();
+          $out .= $this->getErrorHTML();
+        }
         $out .= "</p>\n\n";
         return $out;
     }
