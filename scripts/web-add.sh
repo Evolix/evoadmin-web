@@ -111,6 +111,7 @@ list-vhost LOGIN
    List Apache vhost for user LOGIN
 
 check-vhosts -f
+
 	List suggested changes to vhosts, apply fixes with -f
 
 add-alias VHOST ALIAS
@@ -121,9 +122,14 @@ del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
 
-update-servername VHOST SERVERNAME
+list-servername LOGIN
 
-    Update the ServerName from an Apache vhost
+    List ServerName(s) for user LOGIN
+
+update-servername VHOST SERVERNAME OLD_SERVERNAME
+
+    Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
+    Also apply to rules
 
 setphpversion LOGIN VERSION
 
@@ -733,6 +739,9 @@ arg_processing() {
         del-alias)
             op_aliasdel "$@"
             ;;
+        list-servername)
+            op_listservername "$@"
+            ;;
         update-servername)
             op_servernameupdate "$@"
             ;;
@@ -810,13 +819,26 @@ op_aliasdel() {
     fi
 }
 
+op_listservername() {
+  if [ $# -eq 1 ]; then
+    configfile="$VHOST_PATH/${1}.conf";
+
+    for servername in $(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq); do
+      echo "$servername";
+    done
+
+  else usage
+  fi
+}
+
 op_servernameupdate() {
-    if [ $# -eq 2 ]; then
+    if [ $# -eq 3 ]; then
       vhost="${1}.conf"
       servername=$2
-      old_servername=$(grep ServerName $VHOST_PATH/"$vhost" | awk '{print $2;}' | head -n1)
+      old_servername=$3
+
       # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
-      [ -f $VHOST_PATH/"$vhost" ] && sed -i "s/ServerName .*/ServerName $servername/g" $VHOST_PATH/"$vhost" --follow-symlinks \
+      [ -f $VHOST_PATH/"$vhost" ] && sed -i "/^ *ServerName/ s/$old_servername/$servername/g" $VHOST_PATH/"$vhost" --follow-symlinks \
       && sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" $VHOST_PATH/"$vhost" --follow-symlinks
 
       apache2ctl configtest 2>/dev/null
