@@ -109,6 +109,10 @@ if (isset($_GET['edit']) ) {
 
                     $account_name=$servername['domain'];
 
+                    // $exec_cmd_check_occurence = 'web-add.sh';
+                    // grep -RE "^.*(ServerName|ServerAlias)[[:space:]]wutang[[:space:]]"
+                    // faire un if else
+
                     $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'];
                     sudoexec($exec_cmd, $exec_output, $exec_return);
                     if ($exec_return == 0) {
@@ -168,7 +172,9 @@ if (isset($_GET['edit']) ) {
         $alias_list = $bdd->list_serveralias($domain);
     }
     else {
-        $cmd = 'web-add.sh list-vhost';
+
+      $cmd = 'web-add.sh list-vhost ' . $domain;
+
 	    if(!is_superadmin()) {
 	    	$cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
 	    }
