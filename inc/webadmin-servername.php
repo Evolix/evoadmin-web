@@ -26,6 +26,7 @@ if (isset($_GET['edit']) ) {
 
         $form = new FormPage("Modification du ServerName", FALSE);
         $form->addField('domain_servername', new DomainInputFormField("ServerName", FALSE), $_GET['edit']);
+        $form->addField('previous_servername', new DomainInputFormField("", FALSE, TRUE), $_GET['edit']);
 
         if (!empty($_POST)) {
             $form->isCurrentPage(TRUE);
@@ -33,6 +34,7 @@ if (isset($_GET['edit']) ) {
 
             if ($form->verify(TRUE)) {
                 if ($conf['cluster']) {
+                  // TODO: Adapt the script for cluster mode
                     if (is_mcluster_mode()) {
                         // If the user has not yet selected a cluster, redirect-it to home page.
                         if (empty($_SESSION['cluster'])) {
@@ -46,12 +48,13 @@ if (isset($_GET['edit']) ) {
                     $bdd = new bdd();
                     $bdd->open($cache);
 
-                    $serveralias = array (
+                    $servername = array (
                         'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
-                        'alias'  => $form->getField('domain_alias')->getValue(),
+                        'servername' => $form->getField('domain_servername')->getValue(),
+                        'previous_servername' => $form->getField('previous_servername')->getValue(),
                     );
 
-                    $account_name=$serveralias['domain'];
+                    $account_name=$servername['domain'];
                     $account = $bdd->get_account($account_name);
 
 
@@ -105,6 +108,7 @@ if (isset($_GET['edit']) ) {
                     $servername = array (
                         'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
                         'servername'  => $form->getField('domain_servername')->getValue(),
+                        'previous_servername' => $form->getField('previous_servername')->getValue(),
                     );
 
                     $account_name=$servername['domain'];
@@ -113,7 +117,7 @@ if (isset($_GET['edit']) ) {
                     // grep -RE "^.*(ServerName|ServerAlias)[[:space:]]wutang[[:space:]]"
                     // faire un if else
 
-                    $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'];
+                    $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'] . ' ' . $servername['previous_servername'];
                     sudoexec($exec_cmd, $exec_output, $exec_return);
                     if ($exec_return == 0) {
                         //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
@@ -173,7 +177,7 @@ if (isset($_GET['edit']) ) {
     }
     else {
 
-      $cmd = 'web-add.sh list-vhost ' . $domain;
+      $cmd = 'web-add.sh list-servername ' . $domain;
 
 	    if(!is_superadmin()) {
 	    	$cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
@@ -181,11 +185,7 @@ if (isset($_GET['edit']) ) {
 	    sudoexec($cmd, $data_output, $exec_return);
 
 	    foreach($data_output as $data_line) {
-	    	$data_split = explode(':', $data_line);
-        if ($data_split[0] == $domain && $data_split[2] != '') {
-          // Fonctionne uniquement pour un seul et même servername par conf
-          array_push($servername_list, $data_split[2]);
-        }
+        array_push($servername_list, $data_line);
 	    }
     }
 
