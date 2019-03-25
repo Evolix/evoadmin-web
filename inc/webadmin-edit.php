@@ -188,9 +188,9 @@ if (isset($_GET['del']) ) {
 
                     $account_name=$serveralias['domain'];
 
-                    $check_occurence_return = check_occurence_name($serveralias['alias']);
+                    $is_alias_present = check_occurence_name($serveralias['alias']);
 
-                    if ($check_occurence_return == 1) {
+                    if (!$is_alias_present) {
                       $exec_cmd = 'web-add.sh add-alias ' . $serveralias['domain'] . ' ' . $serveralias['alias'];
                       sudoexec($exec_cmd, $exec_output, $exec_return);
                       if ($exec_return == 0) {

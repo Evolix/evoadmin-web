@@ -113,9 +113,9 @@ if (isset($_GET['edit']) ) {
 
                     $account_name=$servername['domain'];
 
-                    $check_occurence_return = check_occurence_name($servername['servername']);
-                  
-                    if ($check_occurence_return == 1) {
+                    $is_servername_present = check_occurence_name($servername['servername']);
+
+                    if (!$is_servername_present) {
                       $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'] . ' ' . $servername['previous_servername'];
                       sudoexec($exec_cmd, $exec_output, $exec_return);
 
