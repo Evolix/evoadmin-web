@@ -188,10 +188,8 @@ if (isset($_GET['del']) ) {
 
                     $account_name=$serveralias['domain'];
 
-                    $check_occurence_cmd = 'web-add.sh check-occurence ' . $serveralias['alias'];
-                    sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
+                    $check_occurence_return = check_occurence_name($serveralias['alias']);
 
-                    // Check if the name is present in vhosts already, returns 1 if no
                     if ($check_occurence_return == 1) {
                       $exec_cmd = 'web-add.sh add-alias ' . $serveralias['domain'] . ' ' . $serveralias['alias'];
                       sudoexec($exec_cmd, $exec_output, $exec_return);

@@ -113,14 +113,12 @@ if (isset($_GET['edit']) ) {
 
                     $account_name=$servername['domain'];
 
-                    $check_occurence_cmd = 'web-add.sh check-occurence ' . $servername['servername'];
-                    sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
-
-                    // Check if the name is present in vhosts already, returns 1 if no
+                    $check_occurence_return = check_occurence_name($servername['servername']);
+                  
                     if ($check_occurence_return == 1) {
                       $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'] . ' ' . $servername['previous_servername'];
                       sudoexec($exec_cmd, $exec_output, $exec_return);
-                      
+
                       if ($exec_return == 0) {
                           //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
                           print "<center>";
