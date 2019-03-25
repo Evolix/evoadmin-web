@@ -135,6 +135,18 @@ check-occurence NAME
 
     List all occurences of NAME in vhosts
 
+list-user-itk DOMAIN LOGIN
+
+    List the assigned ITK user for the DOMAIN specified
+
+enable-user-itk DOMAIN LOGIN
+
+    Enable the assigned ITK user for the DOMAIN specified
+
+disable-user-itk DOMAIN LOGIN
+
+    Disable the assigned ITK user for the DOMAIN specified
+
 setphpversion LOGIN VERSION
 
     Change PHP version for LOGIN
@@ -752,6 +764,15 @@ arg_processing() {
         check-occurence)
             op_checkoccurencename "$@"
             ;;
+        list-user-itk)
+            op_listuseritk "$@"
+            ;;
+        enable-user-itk)
+            op_enableuseritk "$@"
+            ;;
+        disable-user-itk)
+            op_disableuseritk "$@"
+            ;;
         setphpversion)
             op_setphpversion "$@"
             ;;
@@ -766,6 +787,7 @@ arg_processing() {
 }
 
 op_listvhost() {
+    # cas pour afficher usage à faire
     if [ $# -eq 1 ]; then
         configlist="$VHOST_PATH/${1}.conf";
     else
@@ -871,6 +893,39 @@ op_checkoccurencename() {
 
     echo "$servernames" "$aliases" | grep -w "$name"
 
+  else usage
+  fi
+}
+
+op_listuseritk() {
+  if [ $# -eq 2 ]; then
+    domain=${1}
+    configfile="$VHOST_PATH"/"${2}".conf
+
+    sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $2}'
+  else usage
+  fi
+}
+
+op_enableuseritk() {
+  if [ $# -eq 2 ]; then
+    domain=${1}
+    configfile="$VHOST_PATH"/"${2}".conf
+    user=$(op_listuseritk "${1}" "${2}")
+    echo $user
+
+    sed -i "/^ *AssignUserID ${user}/ s/${user}/www-${user}/" $VHOST_PATH/"${2}".conf --follow-symlinks
+  else usage
+  fi
+}
+
+op_disableuseritk() {
+  if [ $# -eq 2 ]; then
+    domain=${1}
+    configfile="$VHOST_PATH"/"${2}".conf
+    user=$(op_listuseritk "${1}" "${2}")
+    echo $user
+    sed -i "/^ *AssignUserID ${user}/ s/${user}/${user:4}/" $VHOST_PATH/"${2}".conf --follow-symlinks
   else usage
   fi
 }
