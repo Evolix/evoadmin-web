@@ -185,23 +185,36 @@ if (isset($_GET['del']) ) {
                         'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
                         'alias'  => $form->getField('domain_alias')->getValue(),
                     );
-                    
+
                     $account_name=$serveralias['domain'];
 
-                    $exec_cmd = 'web-add.sh add-alias ' . $serveralias['domain'] . ' ' . $serveralias['alias'];
-                    sudoexec($exec_cmd, $exec_output, $exec_return);
-                    if ($exec_return == 0) {
-                        //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
-                        print "<center>";
-                        printf ('<p>L\'alias %s du domaine %s a bien été créé</p>', $serveralias['alias'], $serveralias['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
-                        print "</center>";
+                    $check_occurence_cmd = 'web-add.sh check-occurence ' . $serveralias['alias'];
+                    sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
+
+                    // Check if the name is present in vhosts already, returns 1 if no
+                    if ($check_occurence_return == 1) {
+                      $exec_cmd = 'web-add.sh add-alias ' . $serveralias['domain'] . ' ' . $serveralias['alias'];
+                      sudoexec($exec_cmd, $exec_output, $exec_return);
+                      if ($exec_return == 0) {
+                          //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
+                          print "<center>";
+                          printf ('<p>L\'alias %s du domaine %s a bien été créé</p>', $serveralias['alias'], $serveralias['domain']);
+                          printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                          print "</center>";
+                      }
+                      else {
+                          print "<center>";
+                          printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
+                          printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                          print "</center>";
+                      }
                     }
                     else {
-                        print "<center>";
-                        printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
-                        print "</center>";
+                      print "<center>";
+                      printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
+                      print  ('<p>L\'alias existe dans d\'autres vhosts.');
+                      printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                      print "</center>";
                     }
                 }
             }
