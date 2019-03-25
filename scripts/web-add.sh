@@ -131,6 +131,10 @@ update-servername VHOST SERVERNAME OLD_SERVERNAME
     Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
     Also apply to rules
 
+check-occurence NAME
+
+    List all occurences of NAME in vhosts
+
 setphpversion LOGIN VERSION
 
     Change PHP version for LOGIN
@@ -745,6 +749,9 @@ arg_processing() {
         update-servername)
             op_servernameupdate "$@"
             ;;
+        check-occurence)
+            op_checkoccurencename "$@"
+            ;;
         setphpversion)
             op_setphpversion "$@"
             ;;
@@ -846,6 +853,26 @@ op_servernameupdate() {
 
     else usage
     fi
+}
+
+op_checkoccurencename() {
+  if [ $# -eq 1 ]; then
+    name=${1}
+    configlist="$VHOST_PATH/*";
+    servernames=''
+    aliases=''
+
+    for configfile in $configlist; do
+      if [ -r "$configfile" ]; then
+        aliases="$aliases $(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
+        servernames="$servernames $(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)"
+      fi
+    done
+
+    echo "$servernames" "$aliases" | grep -w "$name"
+
+  else usage
+  fi
 }
 
 op_add() {
