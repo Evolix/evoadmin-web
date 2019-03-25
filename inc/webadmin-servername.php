@@ -25,8 +25,8 @@ if (isset($_GET['edit']) ) {
     include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
         $form = new FormPage("Modification du ServerName", FALSE);
-        $form->addField('domain_servername', new DomainInputFormField("ServerName", FALSE), $_GET['edit']);
-        $form->addField('previous_servername', new DomainInputFormField("", FALSE, TRUE), $_GET['edit']);
+        $form->addField('domain_servername', new DomainInputFormField("ServerName", TRUE), $_GET['edit']);
+        $form->addField('previous_servername', new DomainInputFormField("", TRUE, TRUE), $_GET['edit']);
 
         if (!empty($_POST)) {
             $form->isCurrentPage(TRUE);
@@ -133,16 +133,25 @@ if (isset($_GET['edit']) ) {
                         print "</center>";
                     }
                 }
+            } else {
+              print "<h2>Modification du ServerName</h2><hr>";
+              print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
+              print "   <fieldset>";
+              print "        <legend>Modification du ServerName</legend>";
+              print $form;
+              print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
+              print "     </fieldset>";
+              print "</form>";
             }
         } else {
-			print "<h2>Modification du ServerName</h2><hr>";
-            print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
-            print "   <fieldset>";
-            print "        <legend>Modification du ServerName</legend>";
-            print $form;
-            print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
-            print "     </fieldset>";
-            print "</form>";
+          print "<h2>Modification du ServerName</h2><hr>";
+          print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
+          print "   <fieldset>";
+          print "        <legend>Modification du ServerName</legend>";
+          print $form;
+          print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
+          print "     </fieldset>";
+          print "</form>";
 
         }
 
