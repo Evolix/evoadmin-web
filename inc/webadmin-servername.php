@@ -33,8 +33,8 @@ if (isset($_GET['edit']) ) {
             $form->initFields();
 
             if ($form->verify(TRUE)) {
+                // TODO: Adapt the script for cluster mode
                 if ($conf['cluster']) {
-                  // TODO: Adapt the script for cluster mode
                     if (is_mcluster_mode()) {
                         // If the user has not yet selected a cluster, redirect-it to home page.
                         if (empty($_SESSION['cluster'])) {
@@ -113,24 +113,34 @@ if (isset($_GET['edit']) ) {
 
                     $account_name=$servername['domain'];
 
-                    // $exec_cmd_check_occurence = 'web-add.sh';
-                    // grep -RE "^.*(ServerName|ServerAlias)[[:space:]]wutang[[:space:]]"
-                    // faire un if else
+                    $check_occurence_cmd = 'web-add.sh check-occurence ' . $servername['servername'];
+                    sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
 
-                    $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'] . ' ' . $servername['previous_servername'];
-                    sudoexec($exec_cmd, $exec_output, $exec_return);
-                    if ($exec_return == 0) {
-                        //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
-                        print "<center>";
-                        printf ('<p>Le ServerName %s du domaine %s a bien été modifié</p>', $servername['servername'], $servername['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
-                        print "</center>";
+                    // Check if the name is present in vhosts already, returns 1 if no
+                    if ($check_occurence_return == 1) {
+                      $exec_cmd = 'web-add.sh update-servername ' . $servername['domain'] . ' ' . $servername['servername'] . ' ' . $servername['previous_servername'];
+                      sudoexec($exec_cmd, $exec_output, $exec_return);
+                      
+                      if ($exec_return == 0) {
+                          //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
+                          print "<center>";
+                          printf ('<p>Le ServerName %s a bien été modifié</p>', $servername['servername']);
+                          printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
+                          print "</center>";
+                      }
+                      else {
+                          print "<center>";
+                          printf ('<p>Echec dans la modification du ServerName %s</p>', $servername['servername']);
+                          printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
+                          print "</center>";
+                      }
                     }
                     else {
-                        print "<center>";
-                        printf ('<p>Echec dans la modification du ServerName %s du domaine %s</p>', $servername['servername'], $servername['domain']);
-                        printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
-                        print "</center>";
+                      print "<center>";
+                      printf ('<p>Echec dans la modification du ServerName %s</p>', $servername['servername']);
+                      print  ('<p>Le domaine existe déjà dans d\'autres vhosts.');
+                      printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $_SERVER['REDIRECT_URL']);
+                      print "</center>";
                     }
                 }
             } else {
