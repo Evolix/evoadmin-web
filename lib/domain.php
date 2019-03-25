@@ -27,3 +27,10 @@ function domain_add($name, $IP, $with_mxs, $gmail=false) {
     return array($exec_cmd, $exec_return, $exec_output);
 }
 
+// Check if the name is present in vhosts already, returns 1 if no
+function check_occurence_name($name) {
+  $check_occurence_cmd = 'web-add.sh check-occurence ' . $name;
+  sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
+
+  return $check_occurence_return;
+}
