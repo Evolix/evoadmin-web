@@ -34,8 +34,15 @@
 
         print '</pre>';
     } else {
-?>
 
+        if (isset($errors_check)) {
+          print '<p class="form-error"><strong>Erreur(s) : </strong><br>';
+          foreach ($errors_check as $error) {
+            printf('%s<br>', $error);
+          }
+          print '</p>';
+        }
+?>
 <form name="form-add" id="form-add" action="" method="POST">
     <fieldset>
         <legend>Ajout d'un compte</legend>
