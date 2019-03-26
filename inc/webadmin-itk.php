@@ -18,7 +18,6 @@ require_once EVOADMIN_BASE . '../lib/domain.php';
 
 global $conf;
 
-var_dump($_SESSION);
 if (isset($_GET['enable']) ) {
     require_once EVOADMIN_BASE . '../evolibs/Form.php';
 

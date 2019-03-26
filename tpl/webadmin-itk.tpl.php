@@ -54,7 +54,7 @@
     </table>
 <?php
    } else {
-       print "<p>Aucun ServerName existant pour le domaine $domain !</p>";
+       print "<p>La sécurité ITK ne semble pas en place pour le domaine $domain</p>";
    }
 
 

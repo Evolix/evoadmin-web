@@ -39,7 +39,14 @@
         }
         ?>
         <th>&nbsp;Actif ?&nbsp;</th>
-        <th>&nbsp;Action&nbsp;</th>
+
+        <?php if(is_superadmin()) {
+            print '<th>&nbsp;Alias&nbsp;</th>';
+            print '<th>&nbsp;ServerName&nbsp;</th>';
+            print '<th>&nbsp;Sécurité&nbsp;</th>';
+        }
+        ?>
+
         <!--<th>Opérations</th>-->
         <?php if($conf['cluster']) { ?>
     <th>Bdd</th>
@@ -95,7 +102,11 @@
           }
           printf('<td>%s</td>', ($vhost_info['is_enabled'] ? 'Activé' : 'Désactivé' ));
           if (is_superadmin()) {
-              printf('<td><a href="/webadmin/edit/%s">Lister/Modifier les alias</a></td>',
+              printf('<td><a href="/webadmin/edit/%s">Gérer</a></td>',
+                      $vhost_info['owner']);
+              printf('<td><a href="/webadmin/servername/%s">Modifier</a></td>',
+                      $vhost_info['owner']);
+              printf('<td><a href="/webadmin/itk/%s">Gérer</a></td>',
                       $vhost_info['owner']);
           }
 
