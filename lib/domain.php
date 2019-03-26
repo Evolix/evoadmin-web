@@ -17,25 +17,37 @@ function domain_add($name, $IP, $with_mxs, $gmail=false) {
             $exec_cmd .= ' -m mail,10';
             $exec_cmd .= ' -m backup.quai13.net.,20';
         }
-#        mail('tech@evolix.fr', '[TAF] Ajouter '.$name.' sur quai13-backup', wordwrap('Ajouter le domaine '.$name.' à la directive relay_domains dans le fichier /etc/postfix/main.cf sur quai13-backup, pour mettre en place le MX secondaire du domaine.', 70));
     }
 
     $exec_cmd .= " -a $IP $name";
 
-    //echo $exec_cmd."\n";
     sudoexec($exec_cmd, $exec_output, $exec_return);
     return array($exec_cmd, $exec_return, $exec_output);
 }
 
+/**
+ * Ensure that the domain (or list of domains) do no exists in any other
+ * apache config file. Either as a ServerName or ServerAlias
+ *
+ * @param string $name Domain (or list of domains separated by commas)
+ *
+ * @return boolean True if one occurence is found. Else otherwise
+ */
 function check_occurence_name($name) {
 
-  $exploded_names = explode(',', $name);
+    // If no domain are given, that should be okay
+    if(strlen($name) === 0){
+        return false;
+    }
 
-  foreach ($exploded_names as $current_name) {
-    $check_occurence_cmd = 'web-add.sh check-occurence ' . $current_name;
-    sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
-    if ($check_occurence_return == 0) return true;
-  }
+    $exploded_names = explode(',', $name);
 
-  return false;
+    foreach ($exploded_names as $current_name) {
+        $check_occurence_cmd = 'web-add.sh check-occurence ' . escapeshellarg($current_name);
+
+        sudoexec($check_occurence_cmd, $check_occurence_output, $check_occurence_return);
+        if ($check_occurence_return == 0) return true;
+    }
+
+    return false;
 }
