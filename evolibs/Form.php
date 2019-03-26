@@ -426,7 +426,7 @@ class AlphaNumericalTextInputFormField extends FormField {
             return FALSE;
         }
 
-        if (!preg_match("/^(?!-)(?!_)[[a-zA-Z0-9-_]+(?<!-)(?<!_)$/i", $this->value)) {
+        if (!preg_match("/^(?!-)(?!_)[[a-zA-Z0-9-_]*(?<!-)(?<!_)$/i", $this->value)) {
             if($set_error) $this->error = 'Seul les caractères a-z A-Z 0-9 sont autorisés (- et _ le sont excepté en début et fin)';
             return FALSE;
         }
