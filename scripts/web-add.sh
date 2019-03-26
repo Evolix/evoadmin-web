@@ -910,9 +910,9 @@ op_enableuseritk() {
   if [ $# -eq 2 ]; then
     domain=${1}
     configfile="$VHOST_PATH"/"${2}".conf
-    user=$(op_listuseritk "${1}" "${2}")
+    group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
 
-    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $user/    AssignUserID www-$user/" $configfile --follow-symlinks
+    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" $configfile --follow-symlinks
 
     apache2ctl configtest 2>/dev/null
     /etc/init.d/apache2 force-reload >/dev/null
@@ -925,9 +925,9 @@ op_disableuseritk() {
   if [ $# -eq 2 ]; then
     domain=${1}
     configfile="$VHOST_PATH"/"${2}".conf
-    user=$(op_listuseritk "${1}" "${2}")
+    group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
 
-    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $user/    AssignUserID ${user:4}/" $configfile --follow-symlinks
+    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" $configfile --follow-symlinks
 
     apache2ctl configtest 2>/dev/null
     /etc/init.d/apache2 force-reload >/dev/null
