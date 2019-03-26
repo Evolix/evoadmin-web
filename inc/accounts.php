@@ -388,19 +388,20 @@ if(!empty($_POST)) {
 
     /* Test de validation du formulaire */
     if($form->verify(TRUE)) {
-      $is_domain_present = check_occurence_name($form->getField('domain')->getValue());
-      $is_alias_present = check_occurence_name($form->getField('domain_alias')->getValue());
+        $errors_check = array();
 
-      if (!$is_domain_present && !$is_alias_present) {
+        if(check_occurence_name($form->getField('domain')->getValue())){
+            array_push($errors_check, "Domaine déjà présent dans d'autres vhosts.");
+        }
+        if(check_occurence_name($form->getField('domain_alias')->getValue())){
+            array_push($errors_check, "Alias déjà présent(s) dans d'autres vhosts.");
+        }
+
+      if (count($errors_check) === 0) {
         if ($conf['cluster'])
             $exec_info = web_add_cluster($form, $conf['admin']['mail']);
         else
             $exec_info = web_add($form, $conf['admin']['mail']);
-      }
-      else {
-        $errors_check = array();
-        if ($is_domain_present) array_push($errors_check, "Domaine déjà présent dans d'autres vhosts.");
-        if ($is_alias_present) array_push($errors_check, "Alias déjà présent(s) dans d'autres vhosts.");
       }
     }
 }
