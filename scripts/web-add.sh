@@ -787,7 +787,6 @@ arg_processing() {
 }
 
 op_listvhost() {
-    # cas pour afficher usage à faire
     if [ $# -eq 1 ]; then
         configlist="$VHOST_PATH/${1}.conf";
     else
@@ -902,7 +901,7 @@ op_listuseritk() {
     domain=${1}
     configfile="$VHOST_PATH"/"${2}".conf
 
-    sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $2}'
+    sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $2}' | uniq
   else usage
   fi
 }
@@ -912,9 +911,12 @@ op_enableuseritk() {
     domain=${1}
     configfile="$VHOST_PATH"/"${2}".conf
     user=$(op_listuseritk "${1}" "${2}")
-    echo $user
 
-    sed -i "/^ *AssignUserID ${user}/ s/${user}/www-${user}/" $VHOST_PATH/"${2}".conf --follow-symlinks
+    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $user/    AssignUserID www-$user/" $configfile --follow-symlinks
+
+    apache2ctl configtest 2>/dev/null
+    /etc/init.d/apache2 force-reload >/dev/null
+
   else usage
   fi
 }
@@ -924,8 +926,12 @@ op_disableuseritk() {
     domain=${1}
     configfile="$VHOST_PATH"/"${2}".conf
     user=$(op_listuseritk "${1}" "${2}")
-    echo $user
-    sed -i "/^ *AssignUserID ${user}/ s/${user}/${user:4}/" $VHOST_PATH/"${2}".conf --follow-symlinks
+
+    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $user/    AssignUserID ${user:4}/" $configfile --follow-symlinks
+
+    apache2ctl configtest 2>/dev/null
+    /etc/init.d/apache2 force-reload >/dev/null
+
   else usage
   fi
 }
