@@ -837,26 +837,45 @@ op_aliasdel() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
+        vhost_file="${VHOST_PATH}/${vhost}"
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/"$vhost" --follow-symlinks
+        if [ -f "${vhost_file}" ]; then
+            sed -i -e "/ServerAlias $alias/d" "${vhost_file}" --follow-symlinks
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
 
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
-    else usage
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
+    else
+        usage
     fi
 }
 
 op_listservername() {
-  if [ $# -eq 1 ]; then
-    configfile="$VHOST_PATH/${1}.conf";
+    if [ $# -eq 1 ]; then
+        vhost_file="$VHOST_PATH/${1}.conf";
 
-    for servername in $(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq); do
-      echo "$servername";
-    done
+        if [ -f "${vhost_file}" ]; then
+            servernames=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$vhost_file" | uniq)
 
-  else usage
-  fi
+            for servername in $servernames; do
+                echo "$servername";
+            done
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
+    else
+        usage
+    fi
 }
 
 op_servernameupdate() {
@@ -864,76 +883,101 @@ op_servernameupdate() {
       vhost="${1}.conf"
       servername=$2
       old_servername=$3
+      vhost_file="${VHOST_PATH}/${vhost}"
 
       # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
-      [ -f $VHOST_PATH/"$vhost" ] && sed -i "/^ *ServerName/ s/$old_servername/$servername/g" $VHOST_PATH/"$vhost" --follow-symlinks \
-      && sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" $VHOST_PATH/"$vhost" --follow-symlinks
+      if [ -f "${vhost_file}" ]; then
+          sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
+          sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
+      fi
 
-      apache2ctl configtest 2>/dev/null
-      /etc/init.d/apache2 force-reload >/dev/null
+      configtest_out=$(apache2ctl configtest)
+      configtest_rc=$?
 
-    else usage
+      if [ "$configtest_rc" = "0" ]; then
+          /etc/init.d/apache2 force-reload >/dev/null
+      else
+          echo $configtest_out >&2
+      fi
+    else
+        usage
     fi
 }
 
 op_checkoccurencename() {
-  if [ $# -eq 1 ]; then
-    name=${1}
-    configlist="$VHOST_PATH/*";
-    servernames=''
-    aliases=''
+    if [ $# -eq 1 ]; then
+        name=${1}
+        configlist="$VHOST_PATH/*";
+        servernames=''
+        aliases=''
 
-    for configfile in $configlist; do
-      if [ -r "$configfile" ]; then
-        aliases="$aliases $(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
-        servernames="$servernames $(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)"
-      fi
-    done
+        for configfile in $configlist; do
+            if [ -r "$configfile" ]; then
+                alias=$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)
+                aliases="$aliases $alias"
+        
+                servername=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)
+                servernames="$servernames $servername"
+            fi
+        done
 
-    echo "$servernames" "$aliases" | grep -w "$name"
-
-  else usage
-  fi
+        echo "$servernames" "$aliases" | grep -w "$name"
+    else
+        usage
+    fi
 }
 
 op_listuseritk() {
-  if [ $# -eq 2 ]; then
-    domain=${1}
-    configfile="$VHOST_PATH"/"${2}".conf
-
-    sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $2}' | uniq
-  else usage
-  fi
+    if [ $# -eq 2 ]; then
+        domain=${1}
+        configfile="$VHOST_PATH/${2}.conf"
+  
+        sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $2}' | uniq
+    else
+        usage
+    fi
 }
 
 op_enableuseritk() {
-  if [ $# -eq 2 ]; then
-    domain=${1}
-    configfile="$VHOST_PATH"/"${2}".conf
-    group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 2 ]; then
+        domain=${1}
+        configfile="$VHOST_PATH/${2}.conf"
+        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $3}' | uniq)
 
-    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" $configfile --follow-symlinks
+        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
 
-    apache2ctl configtest 2>/dev/null
-    /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
-  else usage
-  fi
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
+    else
+        usage
+    fi
 }
 
 op_disableuseritk() {
-  if [ $# -eq 2 ]; then
-    domain=${1}
-    configfile="$VHOST_PATH"/"${2}".conf
-    group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 2 ]; then
+        domain=${1}
+        configfile="$VHOST_PATH"/"${2}".conf
+        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
 
-    sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" $configfile --follow-symlinks
+        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
 
-    apache2ctl configtest 2>/dev/null
-    /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
-  else usage
-  fi
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
+    else
+        usage
+    fi
 }
 
 op_add() {
