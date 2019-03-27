@@ -88,6 +88,16 @@ function load_config_cluster($cluster) {
 }
 
 /**
+ * Return wether or not this evoadmin install is a multi PHP install
+ *
+ * @return boolean - True when it's a multi PHP system
+ */
+function is_multiphp()
+{
+    return array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1;
+}
+
+/**
  * Includes
  */
 
