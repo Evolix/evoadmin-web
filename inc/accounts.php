@@ -348,7 +348,7 @@ if ($conf['bindadmin']) {
 }
 
 if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
-    $form->addField('php_version', new SelectFormField("Version de PHP", FALSE, $conf['php_versions']));
+    $form->addField('php_version', new SelectFormField("Version de PHP", TRUE, $conf['php_versions']));
 }
 
 if ($conf['quota']) {
