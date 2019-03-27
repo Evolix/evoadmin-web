@@ -879,7 +879,7 @@ class SelectFormField extends FormField {
     }
 
     public function verify($set_error) {
-        if($this->mandatory && empty($this->value)) {
+        if($this->mandatory && strlen($this->value) === 0) {
             if($set_error) $this->error = 'Champ obligatoire';
             return FALSE;
         }
@@ -894,7 +894,7 @@ class SelectFormField extends FormField {
         $input .= '  <option value="">-- Choisissez --</option>'."\n";
         foreach ($this->list as $value => $label) {
             $input .= '  <option value="'.htmlspecialchars($value,ENT_QUOTES).'"';
-            if ($this->value == $value) $input.=' selected="selected"';
+            if ($this->value == $value && strlen($this->value) !== 0) $input.=' selected="selected"';
             $input .= '>'.$label.'</option>'."\n";
         }
         $input .= "</select>\n";
