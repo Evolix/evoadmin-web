@@ -348,7 +348,7 @@ if ($conf['bindadmin']) {
 }
 
 if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
-    $form->addField('php_version', new SelectFormField("Version de PHP", FALSE, $conf['php_versions']));
+    $form->addField('php_version', new SelectFormField("Version de PHP", TRUE, $conf['php_versions']));
 }
 
 if ($conf['quota']) {
@@ -388,11 +388,22 @@ if(!empty($_POST)) {
 
     /* Test de validation du formulaire */
     if($form->verify(TRUE)) {
+        $errors_check = array();
+
+        if(check_occurence_name($form->getField('domain')->getValue())){
+            array_push($errors_check, "Domaine déjà présent dans d'autres vhosts.");
+        }
+        if(check_occurence_name($form->getField('domain_alias')->getValue())){
+            array_push($errors_check, "Alias déjà présent(s) dans d'autres vhosts.");
+        }
+
+      if (count($errors_check) === 0) {
         if ($conf['cluster'])
             $exec_info = web_add_cluster($form, $conf['admin']['mail']);
         else
             $exec_info = web_add($form, $conf['admin']['mail']);
-    }   
+      }
+    }
 }
 
 include_once EVOADMIN_BASE . '../tpl/header.tpl.php';

@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2009 Evolix - Tous droits reserves
  *
- * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2 
+ * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
  *
  * @author Gregory Colpart <reg@evolix.fr>
  * @author Thomas Martin <tmartin@evolix.fr>
@@ -15,7 +15,7 @@
 
 ?>
 
-<h2>Domaines</h2>
+<h2>Liste des comptes web</h2>
 
 <?php if(count($vhost_list) > 0) { ?>
     <table id="tab-list">
@@ -39,7 +39,12 @@
         }
         ?>
         <th>&nbsp;Actif ?&nbsp;</th>
-        <th>&nbsp;Action&nbsp;</th>
+
+        <?php if(is_superadmin()) {
+            print '<th>Administration</th>';
+        }
+        ?>
+
         <!--<th>Opérations</th>-->
         <?php if($conf['cluster']) { ?>
     <th>Bdd</th>
@@ -58,7 +63,7 @@
           }
           printf('<td><a href="http://%s">http://%s</a></td>',
                   $vhost_info['server_name'], $vhost_info['server_name']);
-    
+
           if ($conf['cluster']) {
               if (empty($vhost_info['bdd']))
                   printf('<td bgcolor="#696969"/>');
@@ -94,9 +99,15 @@
             printf('<td>%s</td>', preg_replace("/^(\d)(\d)$/", '\1.\2', $vhost_info['php_version']));
           }
           printf('<td>%s</td>', ($vhost_info['is_enabled'] ? 'Activé' : 'Désactivé' ));
+
           if (is_superadmin()) {
-              printf('<td><a href="/webadmin/edit/%s">Lister/Modifier les alias</a></td>',
-                      $vhost_info['owner']);
+              printf('<td>');
+              printf('<a href="/webadmin/edit/%s">Alias</a> - ', $vhost_info['owner']);
+              printf('<a href="/webadmin/servername/%s">Servername</a> - ', $vhost_info['owner']);
+              printf('<a href="/webadmin/itk/%s">ITK</a> - ', $vhost_info['owner']);
+              printf('<a href="/webadmin/php/%s">PHP</a>', $vhost_info['owner']);
+              printf('</td>');
+
           }
 
           print '</tr>';

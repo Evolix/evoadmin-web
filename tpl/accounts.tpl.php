@@ -13,9 +13,7 @@
  * @version 1.0
  */
 
-?>
 
-<?php 
     if(!empty($exec_info)) {
         print '<pre>';
         if ($conf['debug'] == TRUE)
@@ -23,7 +21,7 @@
 
         if ($exec_info[1]) {
             print "La commande a <strong>échoué</strong>\n";
-	    print_r($exec_info);
+            print_r($exec_info);
         }
         else print "Le compte a été créé avec succès\n";
 
@@ -34,12 +32,21 @@
 
         print '</pre>';
     } else {
+
+        // If there is validation errors, display them
+        if (isset($errors_check)) {
+            print '<p class="form-error"><strong>Erreur(s) : </strong><br>';
+            foreach ($errors_check as $error) {
+                printf('%s<br>', $error);
+            }
+            print '</p>';
+        }
 ?>
 
 <form name="form-add" id="form-add" action="" method="POST">
     <fieldset>
         <legend>Ajout d'un compte</legend>
-<?php print $form; ?>
+        <?= $form ?>
         <p><input type="submit" value="Créer"/></p>
     </fieldset>
 </form>

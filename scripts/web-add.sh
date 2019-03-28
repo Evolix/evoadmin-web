@@ -109,8 +109,9 @@ del LOGIN [DBNAME]
 list-vhost LOGIN
 
    List Apache vhost for user LOGIN
-   
+
 check-vhosts -f
+
 	List suggested changes to vhosts, apply fixes with -f
 
 add-alias VHOST ALIAS
@@ -120,6 +121,31 @@ add-alias VHOST ALIAS
 del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
+
+list-servername LOGIN
+
+    List ServerName(s) for user LOGIN
+
+update-servername VHOST SERVERNAME OLD_SERVERNAME
+
+    Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
+    Also apply to rules
+
+check-occurence NAME
+
+    List all occurences of NAME in vhosts
+
+list-user-itk DOMAIN LOGIN
+
+    List the assigned ITK user for the DOMAIN specified
+
+enable-user-itk DOMAIN LOGIN
+
+    Enable the assigned ITK user for the DOMAIN specified
+
+disable-user-itk DOMAIN LOGIN
+
+    Disable the assigned ITK user for the DOMAIN specified
 
 setphpversion LOGIN VERSION
 
@@ -261,7 +287,7 @@ create_www_account() {
     	${in_gid:+'--gid' "$in_gid"} \
     	--force-badname \
     	--home "$HOME_DIR_USER" >/dev/null
-   
+
     [ -z "$in_sshkey" ] \
     && echo "$in_login:$in_passwd" | chpasswd
 
@@ -272,7 +298,7 @@ create_www_account() {
 	&& chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
-    if [ "$WEB_SERVER" == "apache" ]; then	  
+    if [ "$WEB_SERVER" == "apache" ]; then
         # Create www user and force UID if specified
         /usr/sbin/adduser \
         	--gecos "WWW $in_login" \
@@ -486,25 +512,25 @@ EOT
 
     if [ "$in_dbname" ]; then
         sed -e "
-        s/LOGIN/$in_login/g ; 
-        s/SERVERNAME/$in_wwwdomain/ ; 
-        s/PASSE1/$in_passwd/ ; 
-        s/PASSE2/$in_dbpasswd/ ; 
-        s/RANDOM/$random/ ; 
-        s/QUOTA/$quota/ ; 
-        s/RCPTTO/$in_mail/ ; 
-        s/DBNAME/$in_dbname/ ; 
+        s/LOGIN/$in_login/g ;
+        s/SERVERNAME/$in_wwwdomain/ ;
+        s/PASSE1/$in_passwd/ ;
+        s/PASSE2/$in_dbpasswd/ ;
+        s/RANDOM/$random/ ;
+        s/QUOTA/$quota/ ;
+        s/RCPTTO/$in_mail/ ;
+        s/DBNAME/$in_dbname/ ;
         s#HOME_DIR#$HOME_DIR#" \
         < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     else
         sed -e "
-            s/LOGIN/$in_login/g ; 
-            s/SERVERNAME/$in_wwwdomain/ ; 
-            s/PASSE1/$in_passwd/ ; 
-            s/RANDOM/$random/ ; 
-            s/QUOTA/$quota/ ; 
-            s/RCPTTO/$in_mail/ ; 
-            s#HOME_DIR#$HOME_DIR# ; 
+            s/LOGIN/$in_login/g ;
+            s/SERVERNAME/$in_wwwdomain/ ;
+            s/PASSE1/$in_passwd/ ;
+            s/RANDOM/$random/ ;
+            s/QUOTA/$quota/ ;
+            s/RCPTTO/$in_mail/ ;
+            s#HOME_DIR#$HOME_DIR# ;
             39,58d" \
             < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
     fi
@@ -719,7 +745,7 @@ arg_processing() {
             ;;
         list-vhost)
             op_listvhost "$@"
-            ;;        
+            ;;
         check-vhosts)
             op_checkvhosts "$@"
             ;;
@@ -728,6 +754,24 @@ arg_processing() {
             ;;
         del-alias)
             op_aliasdel "$@"
+            ;;
+        list-servername)
+            op_listservername "$@"
+            ;;
+        update-servername)
+            op_servernameupdate "$@"
+            ;;
+        check-occurence)
+            op_checkoccurencename "$@"
+            ;;
+        list-user-itk)
+            op_listuseritk "$@"
+            ;;
+        enable-user-itk)
+            op_enableuseritk "$@"
+            ;;
+        disable-user-itk)
+            op_disableuseritk "$@"
             ;;
         setphpversion)
             op_setphpversion "$@"
@@ -793,13 +837,146 @@ op_aliasdel() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
+        vhost_file="${VHOST_PATH}/${vhost}"
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i -e "/ServerAlias $alias/d" $VHOST_PATH/"$vhost" --follow-symlinks
+        if [ -f "${vhost_file}" ]; then
+            sed -i -e "/ServerAlias $alias/d" "${vhost_file}" --follow-symlinks
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
 
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
-    else usage
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
+    else
+        usage
+    fi
+}
+
+op_listservername() {
+    if [ $# -eq 1 ]; then
+        vhost_file="$VHOST_PATH/${1}.conf";
+
+        if [ -f "${vhost_file}" ]; then
+            servernames=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$vhost_file" | uniq)
+
+            for servername in $servernames; do
+                echo "$servername";
+            done
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
+    else
+        usage
+    fi
+}
+
+op_servernameupdate() {
+    if [ $# -eq 3 ]; then
+      vhost="${1}.conf"
+      servername=$2
+      old_servername=$3
+      vhost_file="${VHOST_PATH}/${vhost}"
+
+      # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
+      if [ -f "${vhost_file}" ]; then
+          sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
+          sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
+      fi
+
+      configtest_out=$(apache2ctl configtest)
+      configtest_rc=$?
+
+      if [ "$configtest_rc" = "0" ]; then
+          /etc/init.d/apache2 force-reload >/dev/null
+      else
+          echo $configtest_out >&2
+      fi
+    else
+        usage
+    fi
+}
+
+op_checkoccurencename() {
+    if [ $# -eq 1 ]; then
+        name=${1}
+        configlist="$VHOST_PATH/*";
+        servernames=''
+        aliases=''
+
+        for configfile in $configlist; do
+            if [ -r "$configfile" ]; then
+                alias=$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)
+                aliases="$aliases $alias"
+        
+                servername=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)
+                servernames="$servernames $servername"
+            fi
+        done
+
+        echo "$servernames" "$aliases" | grep -w "$name"
+    else
+        usage
+    fi
+}
+
+op_listuseritk() {
+    if [ $# -eq 2 ]; then
+        domain=${1}
+        configfile="$VHOST_PATH/${2}.conf"
+  
+        sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $2}' | uniq
+    else
+        usage
+    fi
+}
+
+op_enableuseritk() {
+    if [ $# -eq 2 ]; then
+        domain=${1}
+        configfile="$VHOST_PATH/${2}.conf"
+        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $3}' | uniq)
+
+        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
+
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
+
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
+    else
+        usage
+    fi
+}
+
+op_disableuseritk() {
+    if [ $# -eq 2 ]; then
+        domain=${1}
+        configfile="$VHOST_PATH"/"${2}".conf
+        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
+
+        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
+
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
+    else
+        usage
     fi
 }
 
@@ -1006,7 +1183,7 @@ op_add() {
 op_checkvhosts() {
     ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
     non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
-    
+
 	while getopts f opt; do
 		case "$opt" in
 		f)
@@ -1018,7 +1195,7 @@ op_checkvhosts() {
 			;;
 		esac
 	done
-	
+
 	for ln_path in $non_ln_vhosts
     do
 		vhost_name=$(basename "$ln_path")

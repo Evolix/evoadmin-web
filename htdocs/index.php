@@ -4,7 +4,7 @@
  * common DirectoryIndex page
  *
  * Copyright (c) 2009 Evolix - Tous droits reserves
- * 
+ *
  * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
  *
  * @author Gregory Colpart <reg@evolix.fr>
@@ -24,7 +24,7 @@ define('EVOADMIN_BASE','./');
 session_name('EVOADMINWEB_SESS');
 session_start();
 
-error_reporting(E_ALL | E_NOTICE);
+error_reporting(E_ALL);
 header('Content-Type: text/html; charset=utf-8');
 
 /**
@@ -47,6 +47,18 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 } elseif (preg_match('#^/webadmin/?$#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin.php';
+
+} elseif (preg_match('#^/webadmin/servername/(.*)/?$#', $uri, $params)) {
+
+    include_once EVOADMIN_BASE . '../inc/webadmin-servername.php';
+
+} elseif (preg_match('#^/webadmin/itk/(.*)/?$#', $uri, $params)) {
+
+    include_once EVOADMIN_BASE . '../inc/webadmin-itk.php';
+
+} elseif (preg_match('#^/webadmin/php/(.*)/?$#', $uri, $params)) {
+
+    include_once EVOADMIN_BASE . '../inc/webadmin-php.php';
 
 } elseif (preg_match('#^/webadmin/edit/(.*)/?$#', $uri, $params)) {
 
@@ -75,4 +87,3 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 } else {
     die ("Cette page n'existe pas !!!");
 }
-
