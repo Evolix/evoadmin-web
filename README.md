@@ -95,8 +95,8 @@ Puis on installe les paquets PHP 7.3 dans ce conteneur :
 # lxc-start -n php73
 # lxc-attach -n php73
 
-# apt-get update && apt-get install -y --no-install-recommends wget apt-transport-https ca-certificates
-# wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
+# apt-get update && apt-get install -y --no-install-recommends wget apt-transport-https ca-certificates gnupg
+# curl https://packages.sury.org/php/apt.gpg | apt-key add
 # echo "deb https://packages.sury.org/php/ stretch main" > /etc/apt/sources.list.d/sury.list
 # apt-get update && apt-get install -y --no-install-recommends php7.3 php7.3-fpm php7.3-cli php7.3-curl php7.3-mysql php7.3-pgsql php7.3-ldap php7.3-imap php7.3-gd php-ssh2 php-gettext composer libphp-phpmailer
 ~~~
@@ -106,7 +106,9 @@ Puis on installe les paquets PHP 7.3 dans ce conteneur :
 Dans les containers, il faut ajouter le fichier **z-evolinux-defaults.ini** dans le dossier **conf.d** des réglages de PHP FPM et CLI
 
 > Pour PHP5 **/etc/php5/fpm/conf.d/z-evolinux-defaults.ini** et  **/etc/php5/cli/conf.d/z-evolinux-defaults.ini**
+>
 > Pour PHP7.0  **/etc/php/7.0/fpm/conf.d/z-evolinux-defaults.ini** et  **/etc/php/7.0/cli/conf.d/z-evolinux-defaults.ini**
+>
 > Pour PHP7.3  **/etc/php/7.3/fpm/conf.d/z-evolinux-defaults.ini** et **/etc/php/7.3/cli/conf.d/z-evolinux-defaults.ini**
 
 ~~~
@@ -156,9 +158,9 @@ Il est nécessaire d'activer le mod proxy pour apache2 si ce n'a pas déjà ét�
 Si vous rencontrez l'erreur "File not found" avec les fichiers php, bien vérifier que le rootfs des conteneurs est en 755 :
 
 ~~~
-chmod 755 /var/lib/lxc/php56/rootfs
-chmod 755 /var/lib/lxc/php70/rootfs
-chmod 755 /var/lib/lxc/php73/rootfs
+# chmod 755 /var/lib/lxc/php56/rootfs
+# chmod 755 /var/lib/lxc/php70/rootfs
+# chmod 755 /var/lib/lxc/php73/rootfs
 ~~~
 
 #### Email
@@ -166,7 +168,7 @@ chmod 755 /var/lib/lxc/php73/rootfs
 Pour envoyer des mails, on peut installer **ssmtp** qui va forwarder les mails du conteneur vers l'hôte (à faire par conteneur via lxc-attach) :
 
 ~~~
-apt install ssmtp
+# apt install ssmtp
 ~~~
 
 Editer **/etc/ssmtp/ssmtp.conf** (remplacer example.com par le hostname complet de votre machine) :
