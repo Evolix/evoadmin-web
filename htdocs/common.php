@@ -92,8 +92,8 @@ function load_config_cluster($cluster) {
  *
  * @return boolean - True when it's a multi PHP system
  */
-function is_multiphp()
-{
+function is_multiphp() {
+    global $conf;
     return array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1;
 }
 
