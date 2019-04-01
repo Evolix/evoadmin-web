@@ -31,6 +31,20 @@ See (CONTRIBUTING.md)[CONTRIBUTING.md]
 
 ## License
 
+### Manual
+
+TODO
+
+### Package
+
+TODO
+
+## Contributing
+
+See (CONTRIBUTING.md)[CONTRIBUTING.md]
+
+## License
+
 Evoadmin-web is an [Evolix](https://evolix.com) project and is
 distributed under the AGPLv3, please see the (LICENSE](LICENSE) for
 more details.
