@@ -20,21 +20,20 @@ global $conf;
 
 if (isset($params[2]) && $params[2] != "") {
     $redirect_url = "/webadmin/" . $params[1] . "/itk/";
+
     if (isset($params[3]) && $params[3] == "") http_redirect($redirect_url);
 
+    require_once EVOADMIN_BASE . '../evolibs/Form.php';
+
+    include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
+    include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
+
+    $servername = array (
+        'domain' => $params[1],
+        'servername'  => $params[3]
+    );
+
     if ($params[2] == "enable") {
-        require_once EVOADMIN_BASE . '../evolibs/Form.php';
-
-        include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
-        include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
-
-
-        # TODO: sanitize $_GET
-        $servername = array (
-            'domain' => $params[1],
-            'servername'  => $params[3]
-        );
-
         $enable_cmd = 'web-add.sh enable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
 
         sudoexec($enable_cmd, $enable_cmd_output, $enable_cmd_return);
@@ -43,22 +42,8 @@ if (isset($params[2]) && $params[2] != "") {
           print 'Sécurité ITK activée.';
           printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
         }
-
-        include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
     }
     elseif ($params[2] == "disable") {
-        require_once EVOADMIN_BASE . '../evolibs/Form.php';
-
-        include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
-        include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
-
-
-        # TODO: sanitize $_GET
-        $servername = array (
-            'domain' => $params[1],
-            'servername'  => $params[3]
-        );
-
         $disable_cmd = 'web-add.sh disable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
 
         sudoexec($disable_cmd, $disable_cmd_output, $disable_cmd_return);
@@ -67,9 +52,8 @@ if (isset($params[2]) && $params[2] != "") {
           print 'Sécurité ITK désactivée';
           printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
         }
-
-        include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
     }
+    include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
 }
 
 else {
