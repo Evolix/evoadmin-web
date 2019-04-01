@@ -107,7 +107,7 @@
               if(is_multiphp()) {
                   printf('<a href="/webadmin/php/%s">PHP</a>', $vhost_info['owner']);
               } else {
-                  printf('<a href="/webadmin/itk/%s">ITK</a>', $vhost_info['owner']);
+                  printf('<a href="/webadmin/%s/itk/">ITK</a>', $vhost_info['owner']);
               }
               printf('</td>');
 

@@ -38,14 +38,18 @@
                 printf('<td>%s</td>',
                     $data_list[$i]['user']);
                 if (is_superadmin()) {
-
                   if (strpos($data_list[$i]['user'], 'www') !== false) {
                     $action = ['disable', 'Désactiver'];
                   } else {
                     $action = ['enable', 'Activer'];
                   }
 
-                  printf('<td><a href="/webadmin/itk/%s?%s=%s">'.$action[1].'</a></td>',
+                  // AssignUserID not set in the vhost, override previous action
+                  if (empty($data_list[$i]['user'])) {
+                      $action = ["", ""];
+                  }
+
+                  printf('<td><a href="/webadmin/%s/itk/%s/%s/">'.$action[1].'</a></td>',
                           $domain, $action[0], $data_list[$i]['servername']);
                 }
                 print '</tr>';

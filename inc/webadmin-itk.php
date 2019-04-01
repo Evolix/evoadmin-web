@@ -18,58 +18,60 @@ require_once EVOADMIN_BASE . '../lib/domain.php';
 
 global $conf;
 
-if (isset($_GET['enable']) ) {
-    require_once EVOADMIN_BASE . '../evolibs/Form.php';
+if (isset($params[2]) && $params[2] != "") {
+    $redirect_url = "/webadmin/" . $params[1] . "/itk/";
+    if (isset($params[3]) && $params[3] == "") http_redirect($redirect_url);
 
-    include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
-    include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
+    if ($params[2] == "enable") {
+        require_once EVOADMIN_BASE . '../evolibs/Form.php';
+
+        include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
+        include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
 
-    # TODO: sanitize $_GET
-    $servername = array (
-        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
-        'servername'  => $_GET['enable']
-    );
+        # TODO: sanitize $_GET
+        $servername = array (
+            'domain' => $params[1],
+            'servername'  => $params[3]
+        );
 
-    $enable_cmd = 'web-add.sh enable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
+        $enable_cmd = 'web-add.sh enable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
 
-    sudoexec($enable_cmd, $enable_cmd_output, $enable_cmd_return);
+        sudoexec($enable_cmd, $enable_cmd_output, $enable_cmd_return);
 
-    if ($enable_cmd_return == 0) {
-      print 'Sécurité ITK activée.';
-      printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $_SERVER['REDIRECT_URL']);
+        if ($enable_cmd_return == 0) {
+          print 'Sécurité ITK activée.';
+          printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
+        }
+
+        include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
     }
+    elseif ($params[2] == "disable") {
+        require_once EVOADMIN_BASE . '../evolibs/Form.php';
 
-    include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
-
-
-}
-elseif (isset($_GET['disable']) ) {
-    require_once EVOADMIN_BASE . '../evolibs/Form.php';
-
-    include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
-    include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
+        include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
+        include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
 
-    # TODO: sanitize $_GET
-    $servername = array (
-        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
-        'servername'  => $_GET['disable']
-    );
+        # TODO: sanitize $_GET
+        $servername = array (
+            'domain' => $params[1],
+            'servername'  => $params[3]
+        );
 
-    $disable_cmd = 'web-add.sh disable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
+        $disable_cmd = 'web-add.sh disable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
 
-    sudoexec($disable_cmd, $disable_cmd_output, $disable_cmd_return);
+        sudoexec($disable_cmd, $disable_cmd_output, $disable_cmd_return);
 
-    if ($disable_cmd_return == 0) {
-      print 'Sécurité ITK désactivée';
-      printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $_SERVER['REDIRECT_URL']);
+        if ($disable_cmd_return == 0) {
+          print 'Sécurité ITK désactivée';
+          printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
+        }
+
+        include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
     }
-
-    include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
-
-
 }
+
 else {
 
     $domain = $params[1];
