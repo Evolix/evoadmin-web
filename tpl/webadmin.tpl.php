@@ -102,7 +102,7 @@
 
           if (is_superadmin()) {
               printf('<td>');
-              printf('<a href="/webadmin/edit/%s">Alias</a> - ', $vhost_info['owner']);
+              printf('<a href="/webadmin/%s/alias/">Alias</a> - ', $vhost_info['owner']);
               printf('<a href="/webadmin/%s/domain/">Servername</a> - ', $vhost_info['owner']);
               if(is_multiphp()) {
                   printf('<a href="/webadmin/php/%s">PHP</a>', $vhost_info['owner']);

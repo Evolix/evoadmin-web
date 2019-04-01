@@ -15,13 +15,13 @@
 
 <h2>Server Alias</h2>
 
-<?php 
+<?php
 
-    if(count($alias_list) > 0) { 
-        
+    if(count($alias_list) > 0) {
+
         if (is_superadmin()) {
             print "<center>";
-            printf('<p><a href="/webadmin/edit/%s?add">Ajouter un alias</a></p>', $domain);
+            printf('<p><a href="/webadmin/%s/alias/add/">Ajouter un alias</a></p>', $domain);
             print "</center>";
         }?>
 
@@ -35,28 +35,27 @@
         </tr>
         </thead>
         <tbody>
-        <?php 
-            for ( $i=0; $i < count($alias_list); ++$i ) { 
+        <?php
+            for ( $i=0; $i < count($alias_list); ++$i ) {
                 print '<tr>';
                 printf('<td><a href="http://%s">http://%s</a></td>',
                     $alias_list[$i]['alias'], $alias_list[$i]['alias']);
-                if (is_superadmin()) 
-                    printf('<td><a href="/webadmin/edit/%s?del=%s">Supprimer</a></td>', 
+                if (is_superadmin())
+                    printf('<td><a href="/webadmin/%s/alias/delete/%s/">Supprimer</a></td>',
                             $domain, $alias_list[$i]['alias']);
                 print '</tr>';
         } ?>
         </tbody>
     </table>
-<?php 
+<?php
    } else {
        print "<p>Aucun alias existant pour le domaine $domain !</p>";
         if (is_superadmin()) {
             print "<center>";
-            printf('<p><a href="/webadmin/edit/%s?add">Ajouter un alias</a></p>', $domain);
+            printf('<p><a href="/webadmin/%s/alias/add/">Ajouter un alias</a></p>', $domain);
             print "</center>";
         }
    }
 
 
 ?>
-

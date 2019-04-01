@@ -18,21 +18,24 @@ require_once EVOADMIN_BASE . '../lib/domain.php';
 
 global $conf;
 
-if (isset($_GET['del']) ) {
+$redirect_url = "/webadmin/" . $params[1] . "/alias/";
+
+if (isset($params[2]) && $params[2] == "delete") {
+    if (isset($params[3]) && $params[3] == "") http_redirect($redirect_url);
 
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
     include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
-    $alias = htmlspecialchars($_GET['del']);
+    $alias = $params[3];
 
-    if (isset($_GET['modif']) && ($_GET['modif'] == 'yes')) {
+    if (isset($_POST["confirm-delete-alias"])) {
 
         print "<center>";
         print "<p>Suppression de $alias...</p>";
 
 
         $serveralias = array (
-            'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
+            'domain' => $params[1],
             'alias'  => $alias
         );
 
@@ -77,27 +80,29 @@ if (isset($_GET['del']) ) {
             sudoexec($exec_cmd, $exec_output, $exec_return);
             if ($exec_return == 0) {
                 printf ('<p>Alias %s est supprimé.</p>', $serveralias['alias']);
-            } else 
+            } else
                 print "<p>La suppression a échouée. Veuillez contacter votre administrateur.</p>";
 
         }
-        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $redirect_url);
         print "</center>";
 
-    } else if ( ! isset($_GET['modif']) ) {
+    } else {
 
         print "<center>";
+        print "<form name=\"form-confirm-delete-alias\" id=\"form-confirm-delete-alias\" action=\"\" method=\"POST\">";
         print "<p>Confirmez vous la suppression de $alias ?</p>";
-        printf ('<p><a href="%s?del=%s&modif=yes">Confirmer la suppression</a></p>', $_SERVER['REDIRECT_URL'], $alias);
-        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+        print "    <p><input type=\"hidden\" name=\"confirm-delete-alias\" value=\"confirm\">";
+        print "    <p><input type=\"submit\" value=\"Confirmer la suppression\"/ style=\"margin-left:0px;\"></p>";
+        print "</form>";
+        printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $redirect_url);
         print "</center>";
     }
 
 
     include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
-
-} else if (isset($_GET['add']) ) {
-
+}
+elseif (isset($params[2]) && $params[2] == "add") {
     require_once EVOADMIN_BASE . '../evolibs/Form.php';
 
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
@@ -182,7 +187,7 @@ if (isset($_GET['del']) ) {
                 }
                 else {
                     $serveralias = array (
-                        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
+                        'domain' => $params[1],
                         'alias'  => $form->getField('domain_alias')->getValue(),
                     );
 
@@ -197,13 +202,13 @@ if (isset($_GET['del']) ) {
                           //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
                           print "<center>";
                           printf ('<p>L\'alias %s du domaine %s a bien été créé</p>', $serveralias['alias'], $serveralias['domain']);
-                          printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                          printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $redirect_url);
                           print "</center>";
                       }
                       else {
                           print "<center>";
                           printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
-                          printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                          printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $redirect_url);
                           print "</center>";
                       }
                     }
@@ -211,7 +216,7 @@ if (isset($_GET['del']) ) {
                       print "<center>";
                       printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
                       print  ('<p>L\'alias existe dans d\'autres vhosts.');
-                      printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $_SERVER['REDIRECT_URL']);
+                      printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $redirect_url);
                       print "</center>";
                     }
                 }
@@ -240,9 +245,9 @@ if (isset($_GET['del']) ) {
         }
 
     include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
+}
 
-
-} else {
+else {
 
     $domain = $params[1];
     $alias_list = array();
