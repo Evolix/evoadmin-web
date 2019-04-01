@@ -56,7 +56,7 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-itk.php';
 
-} elseif (preg_match('#^/webadmin/php/(.*)/?$#', $uri, $params)) {
+} elseif (preg_match('#^/webadmin/(.*)/php/$#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-php.php';
 

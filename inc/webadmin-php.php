@@ -56,7 +56,7 @@ else {
                 if ($exec_return == 0) {
 
                     print "<center>";
-                    printf ('<p>La version de PHP bien été modifié</p>');
+                    printf ('<p>La version de PHP a bien été modifiée</p>');
                     printf ('<p><a href="/webadmin">Retour à liste des comptes</a></p>');
                     print "</center>";
 
@@ -64,7 +64,7 @@ else {
                 else {
                     print "<center>";
                     printf ('<h2>ERREUR</h2>');
-                    printf ('<p>Une erreur innatendue s\'est produite </p>');
+                    printf ('<p>Une erreur inattendue s\'est produite </p>');
 
                         if ($conf['debug'] == TRUE) {
                             print '<pre>';
