@@ -403,7 +403,7 @@ create_www_account() {
         phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
         cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
 [${in_login}]
-user = ${in_login}
+user = www-${in_login}
 group = ${in_login}
 
 listen = ${phpfpm_socket_path}
