@@ -612,18 +612,58 @@ EOT
 }
 
 op_del() {
-    if [ $# -lt 1 ]; then
-        usage
-        exit 1
-    else
+
+    #
+    # Mode interactif
+    #
+
+    if [ $# -eq 0 ]; then
+        echo
+        echo "Suppression d'un compte WEB"
+        echo
+
+        until [ "$login" ]; do
+            echo -n "Entrez le login du compte à supprimer : "
+            read -r tmp
+            login="$tmp"
+        done
+
+        echo -n "Voulez-vous aussi supprimer un compte/base MySQL ? [y|N]"
+        read -r confirm
+
+        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+            echo -n "Entrez le nom de la base de donnees ($login par defaut) : "
+            read -r tmp
+
+            if [ -z "$tmp" ]; then
+                dbname=$login
+            else
+                dbname="$tmp"
+            fi
+        fi
+
+        echo -n "Continuer la suppression du compte $login ? [y/N] : "
+        read -r tmp
+        echo
+        if [ "$tmp" != "y" ] && [ "$tmp" != "Y" ]; then
+            echo "Annulation..."
+            echo
+            exit 1
+        fi
+
+    #
+    # Mode non interactif
+    #
+
+    elif [ $# -gt 0 ] && [ $# -le 2 ]; then
         login=$1
         if [ $# -eq 2 ]; then
             dbname=$2
         fi
+    else
+        usage
+        exit 1
     fi
-
-    echo "Deleting account $login. Continue ?"
-    read -r
 
     set -x
     if [ "$WEB_SERVER" == "apache" ]; then
@@ -681,9 +721,6 @@ op_del() {
     set +x
 
     if [ -n "$dbname" ]; then
-        echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
-        read -r
-
         set -x
         echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
         set +x
@@ -915,7 +952,7 @@ op_checkoccurencename() {
             if [ -r "$configfile" ]; then
                 alias=$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)
                 aliases="$aliases $alias"
-        
+
                 servername=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)
                 servernames="$servernames $servername"
             fi
@@ -931,7 +968,7 @@ op_listuseritk() {
     if [ $# -eq 2 ]; then
         domain=${1}
         configfile="$VHOST_PATH/${2}.conf"
-  
+
         sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $2}' | uniq
     else
         usage
