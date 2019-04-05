@@ -100,11 +100,17 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
 
    Example : web-add.sh add -m testdb -r 56 testlogin testdomain.com
 
-del LOGIN [DBNAME]
+del [ [OPTIONS] LOGIN [DBNAME] ]
 
    Delete account and all files related (Apache, Awstats, etc)
    Archive home directory.
    Remove MySQL database only if DBNAME is specified.
+
+   -y
+      Don't ask for confirmation
+
+   Example : web-add.sh del -y testlogin testdatabase
+
 
 list-vhost LOGIN
 
@@ -642,7 +648,50 @@ op_del() {
             fi
         fi
 
-        echo -n "Continuer la suppression du compte $login ? [y/N] : "
+    #
+    # Mode non interactif
+    #
+
+    else
+        while getopts hy opt; do
+            case "$opt" in
+            y)
+                force_confirm=1
+                ;;
+            h)
+                usage
+                exit 1
+                ;;
+            ?)
+                usage
+                exit 1
+                ;;
+            esac
+        done
+
+        shift $((OPTIND - 1))
+        if [ $# -gt 0 ] && [ $# -le 2 ]; then
+            login=$1
+            if [ $# -eq 2 ]; then
+                dbname=$2
+            fi
+        else
+            usage
+            exit 1
+        fi
+    fi
+
+    echo
+    echo "----------------------------------------------"
+    echo "Nom du compte : $login"
+    if [ "$dbname" ]; then
+        echo "Base de données MySQL : $dbname"
+    fi
+    echo "----------------------------------------------"
+    echo
+
+    if [ -z "$force_confirm" ]; then
+        echo -n "Confirmer la suppression ? [y/N] : "
         read -r tmp
         echo
         if [ "$tmp" != "y" ] && [ "$tmp" != "Y" ]; then
@@ -650,19 +699,6 @@ op_del() {
             echo
             exit 1
         fi
-
-    #
-    # Mode non interactif
-    #
-
-    elif [ $# -gt 0 ] && [ $# -le 2 ]; then
-        login=$1
-        if [ $# -eq 2 ]; then
-            dbname=$2
-        fi
-    else
-        usage
-        exit 1
     fi
 
     set -x
