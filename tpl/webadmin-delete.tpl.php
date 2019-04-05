@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Edition d'un domaine
+ * Suppression d'un compte web
  *
  * Copyright (c) 2009 Evolix - Tous droits reserves
  *

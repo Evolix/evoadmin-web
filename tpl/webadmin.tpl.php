@@ -110,6 +110,7 @@
               } else {
                   printf('<a href="/webadmin/%s/itk/">ITK</a>', $vhost_info['owner']);
               }
+              printf('<a href="/webadmin/%s/delete/"> - Supprimer</a>', $vhost_info['owner']);
               printf('</td>');
 
           }
