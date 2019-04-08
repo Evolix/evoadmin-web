@@ -48,19 +48,19 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin.php';
 
-} elseif (preg_match('#^/webadmin/servername/(.*)/?$#', $uri, $params)) {
+} elseif (preg_match('#^/webadmin/(.*)/domain/?(edit)?/?(.*)?/$#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-servername.php';
 
-} elseif (preg_match('#^/webadmin/itk/(.*)/?$#', $uri, $params)) {
+} elseif (preg_match('#^/webadmin/(.*)/itk/?(enable|disable)?/?(.*)?/$#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-itk.php';
 
-} elseif (preg_match('#^/webadmin/php/(.*)/?$#', $uri, $params)) {
+} elseif (preg_match('#^/webadmin/(.*)/php/$#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-php.php';
 
-} elseif (preg_match('#^/webadmin/edit/(.*)/?$#', $uri, $params)) {
+} elseif (preg_match('#^/webadmin/(.*)/alias/?(add|delete)?/?(.*)?/$#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin-edit.php';
 

@@ -95,6 +95,7 @@
             printf('<td>%s</td>', $vhost_info['quota_hard']);
             printf('<td>%s</td>', $vhost_info['occupation']);
           }
+
           if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
             printf('<td>%s</td>', preg_replace("/^(\d)(\d)$/", '\1.\2', $vhost_info['php_version']));
           }
@@ -102,12 +103,12 @@
 
           if (is_superadmin()) {
               printf('<td>');
-              printf('<a href="/webadmin/edit/%s">Alias</a> - ', $vhost_info['owner']);
-              printf('<a href="/webadmin/servername/%s">Servername</a> - ', $vhost_info['owner']);
+              printf('<a href="/webadmin/%s/alias/">Alias</a> - ', $vhost_info['owner']);
+              printf('<a href="/webadmin/%s/domain/">Servername</a> - ', $vhost_info['owner']);
               if(is_multiphp()) {
-                  printf('<a href="/webadmin/php/%s">PHP</a>', $vhost_info['owner']);
+                  printf('<a href="/webadmin/%s/php/">PHP</a>', $vhost_info['owner']);
               } else {
-                  printf('<a href="/webadmin/itk/%s">ITK</a>', $vhost_info['owner']);
+                  printf('<a href="/webadmin/%s/itk/">ITK</a>', $vhost_info['owner']);
               }
               printf('</td>');
 
