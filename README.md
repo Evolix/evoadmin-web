@@ -180,6 +180,20 @@ hostname=example.com
 FromLineOverride=YES
 ~~~
 
+#### PHP-CLI
+
+
+~~~
+$ cat /usr/local/bin/exec73
+#!/bin/bash
+
+php_cmd=$(printf "/usr/bin/php %q" "$@" )
+lxc-attach -n php73 -- su - "$SUDO_USER" -c "$php_cmd"
+~~~
+
+Il faut ensuite s'assurer que ce script peut être exécuté via sudo.
+
+
 
 ## Méthodes de collaboration
 
