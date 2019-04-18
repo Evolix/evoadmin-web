@@ -419,6 +419,14 @@ EOT
 
     ############################################################################
 
+    # Install Composer for the user
+    sudo -u $login mkdir "$HOME_DIR_USER"/bin
+    sudo -u $login wget -q -O "$HOME_DIR_USER"/setup-composer.php https://getcomposer.org/installer
+    sudo -u $login php -q -d allow_url_fopen=On "$HOME_DIR_USER"/setup-composer.php --install-dir="$HOME_DIR_USER"/bin --filename=composer
+    step_ok "Installation de Composer pour $login"
+
+    ############################################################################
+
     random=$RANDOM
     if [ "$WEB_SERVER" == "apache" ]; then
         vhostfile="/etc/apache2/sites-available/${in_login}.conf"
