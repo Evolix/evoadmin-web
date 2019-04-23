@@ -720,6 +720,11 @@ class PasswordInputFormField extends FormField {
             return FALSE;
         }
 
+        if(!preg_match('#.*[/]+.*#',$this->value)==0){
+            if($set_error) $this->error = 'Votre mot de passe doit contenir le caractère \'/\'';
+            return FALSE;
+        }
+
         return TRUE;
     }
 
