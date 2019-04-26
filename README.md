@@ -167,6 +167,12 @@ Si vous rencontrez l'erreur "File not found" avec les fichiers php, bien vérifi
 
 Pour envoyer des mails, on peut installer **ssmtp** qui va forwarder les mails du conteneur vers l'hôte (à faire par conteneur via lxc-attach) :
 
+Avant d'installer le paquet, il faut ajouter le hostname du conteneur dans */etc/hosts*, sinon la configuration du paquet retourne une erreur :
+
+~~~
+127.0.0.1     php70
+~~~
+
 ~~~
 # apt install ssmtp
 ~~~
