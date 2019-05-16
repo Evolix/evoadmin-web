@@ -13,7 +13,7 @@
 
 ?>
 
-<h2>Servernames</h2>
+<h2>Servername</h2>
 
 <?php
 
