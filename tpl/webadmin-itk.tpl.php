@@ -22,7 +22,7 @@
     <table id="tab-list">
         <thead>
         <tr>
-           <th>ServerName</th>
+           <th>Servername</th>
            <th>Utilisateur</th>
            <?php if (is_superadmin()) {
                print '<th>Action</th>';

@@ -22,9 +22,9 @@
       <thead>
       <tr>
         <?php if(is_superadmin()) {
-            print '<th>Propriétaire</th>';
+            print '<th>Virtual Host</th>';
         } ?>
-        <th>Domaine</th>
+        <th>Servername</th>
         <?php if(is_superadmin()) {
             print '<th>Alias</th>';
         }
@@ -61,7 +61,7 @@
           if(is_superadmin()) {
             printf('<td>%s</td>', $vhost_info['owner']);
           }
-          printf('<td><a href="http://%s">http://%s</a></td>',
+          printf('<td>%s</td>',
                   $vhost_info['server_name'], $vhost_info['server_name']);
 
           if ($conf['cluster']) {
@@ -87,7 +87,7 @@
                   printf('<td>%s</td>', $vhost_info['slave']);
 	  }
 
-          printf('<td align="left">%s</td>', preg_replace('/,/','<br />',$vhost_info['server_alias']));
+          printf('<td>%s</td>', preg_replace('/,/','<br />',$vhost_info['server_alias']));
 
           if ($conf['quota']) {
             printf('<td>%s</td>', $vhost_info['size']);
@@ -110,7 +110,7 @@
               } else {
                   printf('<a href="/webadmin/%s/itk/">ITK</a>', $vhost_info['owner']);
               }
-              printf('<a href="/webadmin/%s/delete/"> - Supprimer</a>', $vhost_info['owner']);
+              printf('<a href="/webadmin/%s/delete/">Supprimer</a>', $vhost_info['owner']);
               printf('</td>');
 
           }

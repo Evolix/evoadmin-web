@@ -5,7 +5,7 @@
  *
  * Copyright (c) 2009 Evolix - Tous droits reserves
  *
- * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2 
+ * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
  *
  * @author Thomas Martin <tmartin@evolix.fr>
  * @version 1.0
@@ -38,7 +38,7 @@
         <?php
             for ( $i=0; $i < count($alias_list); ++$i ) {
                 print '<tr>';
-                printf('<td><a href="http://%s">http://%s</a></td>',
+                printf('<td>%s</td>',
                     $alias_list[$i]['alias'], $alias_list[$i]['alias']);
                 if (is_superadmin())
                     printf('<td><a href="/webadmin/%s/alias/delete/%s/">Supprimer</a></td>',

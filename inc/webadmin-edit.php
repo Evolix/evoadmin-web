@@ -222,10 +222,10 @@ elseif (isset($params[2]) && $params[2] == "add") {
                 }
             }
             else {
-              print "<h2>Ajout d'un serveralias</h2><hr>";
+              print "<h2>Ajout d'un alias</h2><hr>";
                     print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
                     print "   <fieldset>";
-                    print "        <legend>Ajout d'un serveralias</legend>";
+                    print "        <legend>Ajout d'un alias</legend>";
                     print $form;
                     print "        <p><input type=\"submit\" value=\"Créer\"/></p>";
                     print "     </fieldset>";
@@ -233,10 +233,10 @@ elseif (isset($params[2]) && $params[2] == "add") {
 
             }
         } else {
-			print "<h2>Ajout d'un serveralias</h2><hr>";
+			print "<h2>Ajout d'un alias</h2><hr>";
             print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
             print "   <fieldset>";
-            print "        <legend>Ajout d'un serveralias</legend>";
+            print "        <legend>Ajout d'un alias</legend>";
             print $form;
             print "        <p><input type=\"submit\" value=\"Créer\"/></p>";
             print "     </fieldset>";

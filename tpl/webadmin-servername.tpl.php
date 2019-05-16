@@ -13,7 +13,7 @@
 
 ?>
 
-<h2>ServerNames</h2>
+<h2>Servernames</h2>
 
 <?php
 
@@ -22,7 +22,7 @@
     <table id="tab-list">
         <thead>
         <tr>
-           <th>ServerName</th>
+           <th>Servername</th>
            <?php if (is_superadmin()) {
                print '<th>Action</th>';
            } ?>
@@ -43,7 +43,7 @@
     </table>
 <?php
    } else {
-       print "<p>Aucun ServerName existant pour le domaine $domain !</p>";
+       print "<p>Aucun Servername existant pour le domaine $domain !</p>";
    }
 
 

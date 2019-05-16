@@ -146,10 +146,10 @@ if (isset($params[2]) && $params[2] == "edit") {
                 }
             }
         } else {
-          print "<h2>Modification du ServerName</h2><hr>";
+          print "<h2>Modification du Servername</h2><hr>";
           print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
           print "   <fieldset>";
-          print "        <legend>Modification du ServerName</legend>";
+          print "        <legend>Modification du Servername</legend>";
           print $form;
           print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
           print "     </fieldset>";
