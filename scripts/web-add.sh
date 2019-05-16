@@ -866,7 +866,6 @@ op_listvhost() {
         configlist="$VHOST_PATH/*";
     fi
 
-
     for configfile in $configlist; do
         if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
@@ -896,12 +895,23 @@ op_aliasadd() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
+        vhost_file="${VHOST_PATH}/${vhost}"
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i "/ServerName .*/a \\\tServerAlias $alias" "$VHOST_PATH"/"$vhost" --follow-symlinks
+        if [ -f "${vhost_file}" ]; then
+            sed -i "/ServerName .*/a \\\tServerAlias $alias" "${vhost_file}" --follow-symlinks
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
 
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
     else usage
     fi
 }
