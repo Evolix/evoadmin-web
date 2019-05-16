@@ -128,30 +128,26 @@ del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
 
-list-servername LOGIN
-
-    List ServerName(s) for user LOGIN
-
 update-servername VHOST SERVERNAME OLD_SERVERNAME
 
     Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
-    Also apply to rules
+    Also apply to rewrite rules
 
 check-occurence NAME
 
     List all occurences of NAME in vhosts
 
-list-user-itk DOMAIN LOGIN
+list-user-itk LOGIN
 
-    List the assigned ITK user for the DOMAIN specified
+    List the assigned ITK user for the LOGIN specified
 
-enable-user-itk DOMAIN LOGIN
+enable-user-itk LOGIN
 
-    Enable the assigned ITK user for the DOMAIN specified
+    Enable the assigned ITK user for the LOGIN specified
 
-disable-user-itk DOMAIN LOGIN
+disable-user-itk LOGIN
 
-    Disable the assigned ITK user for the DOMAIN specified
+    Disable the assigned ITK user for the LOGIN specified
 
 setphpversion LOGIN VERSION
 
@@ -828,9 +824,6 @@ arg_processing() {
         del-alias)
             op_aliasdel "$@"
             ;;
-        list-servername)
-            op_listservername "$@"
-            ;;
         update-servername)
             op_servernameupdate "$@"
             ;;
@@ -942,25 +935,6 @@ op_aliasdel() {
     fi
 }
 
-op_listservername() {
-    if [ $# -eq 1 ]; then
-        vhost_file="$VHOST_PATH/${1}.conf";
-
-        if [ -f "${vhost_file}" ]; then
-            servernames=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$vhost_file" | uniq)
-
-            for servername in $servernames; do
-                echo "$servername";
-            done
-        else
-            echo "VHost file \`${vhost_file}' not found'" >&2
-            return 1
-        fi
-    else
-        usage
-    fi
-}
-
 op_servernameupdate() {
     if [ $# -eq 3 ]; then
       vhost="${1}.conf"
@@ -968,7 +942,6 @@ op_servernameupdate() {
       old_servername=$3
       vhost_file="${VHOST_PATH}/${vhost}"
 
-      # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
       if [ -f "${vhost_file}" ]; then
           sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
           sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks

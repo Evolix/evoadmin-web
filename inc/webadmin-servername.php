@@ -197,17 +197,15 @@ if (isset($params[2]) && $params[2] == "edit") {
         $alias_list = $bdd->list_serveralias($domain);
     }
     else {
-
-      $cmd = 'web-add.sh list-servername ' . $domain;
+      $cmd = 'web-add.sh list-vhost ' . $domain;
 
 	    if(!is_superadmin()) {
 	    	$cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
 	    }
 	    sudoexec($cmd, $data_output, $exec_return);
 
-	    foreach($data_output as $data_line) {
-        array_push($servername_list, $data_line);
-	    }
+      $data_vhost = explode(':', $data_output[0]);
+      $servername = $data_vhost[2];
     }
 
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
