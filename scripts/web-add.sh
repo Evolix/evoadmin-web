@@ -1001,23 +1001,21 @@ op_checkoccurencename() {
 }
 
 op_listuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH/${2}.conf"
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH/${1}.conf"
 
-        sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $2}' | uniq
+        awk '/AssignUserID/ {print $2}' "$configfile" | uniq
     else
         usage
     fi
 }
 
 op_enableuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH/${2}.conf"
-        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH/${1}.conf"
+        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
 
-        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
+        sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
 
         configtest_out=$(apache2ctl configtest)
         configtest_rc=$?
@@ -1033,12 +1031,11 @@ op_enableuseritk() {
 }
 
 op_disableuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH"/"${2}".conf
-        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH"/"${1}".conf
+        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
 
-        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+        sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
 
         configtest_out=$(apache2ctl configtest)
         configtest_rc=$?
