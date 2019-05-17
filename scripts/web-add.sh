@@ -876,9 +876,17 @@ op_listvhost() {
             else
                 is_enabled=0
             fi
+
+            count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            if [ "$count_virtualhosts" -eq 1 ]; then
+                is_standard=1
+            else
+                is_standard=0
+            fi
+
             if [ "$servername" ] && [ "$userid" ]; then
                 configid=$(basename "$configfile")
-                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled"
+                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled:$is_standard"
             fi
         fi
     done

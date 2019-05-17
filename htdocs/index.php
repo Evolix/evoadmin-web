@@ -48,30 +48,41 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
 
     include_once EVOADMIN_BASE . '../inc/webadmin.php';
 
-} elseif (preg_match('#^/webadmin/(.*)/domain/?(edit)?/?(.*)?/$#', $uri, $params)) {
+} elseif (preg_match('#^/webadmin?#', $uri)) {
 
-    include_once EVOADMIN_BASE . '../inc/webadmin-servername.php';
+  // Redirect to /webadmin in order to set $_SESSION['non_stanard']
+  if (!isset($_SESSION['non_standard']))
+    http_redirect('/webadmin');
 
-} elseif (preg_match('#^/webadmin/(.*)/itk/?(enable|disable)?/?(.*)?/$#', $uri, $params)) {
+  // block the non-standard vhost modification
+  if (in_array(htmlspecialchars(basename($_SERVER['REDIRECT_URL'])), $_SESSION['non_standard']))
+    http_redirect('/webadmin');
 
-    include_once EVOADMIN_BASE . '../inc/webadmin-itk.php';
+  if (preg_match('#^/webadmin/servername/(.*)/?$#', $uri, $params)) {
 
-} elseif (preg_match('#^/webadmin/(.*)/php/$#', $uri, $params)) {
+      include_once EVOADMIN_BASE . '../inc/webadmin-servername.php';
 
-    include_once EVOADMIN_BASE . '../inc/webadmin-php.php';
+  } elseif (preg_match('#^/webadmin/itk/(.*)/?$#', $uri, $params)) {
 
-} elseif (preg_match('#^/webadmin/(.*)/alias/?(add|delete)?/?(.*)?/$#', $uri, $params)) {
+      include_once EVOADMIN_BASE . '../inc/webadmin-itk.php';
 
-    include_once EVOADMIN_BASE . '../inc/webadmin-edit.php';
+  } elseif (preg_match('#^/webadmin/php/(.*)/?$#', $uri, $params)) {
 
-} elseif (preg_match('#^/webadmin/(.*)/delete/$#', $uri, $params)) {
+      include_once EVOADMIN_BASE . '../inc/webadmin-php.php';
 
-    include_once EVOADMIN_BASE . '../inc/webadmin-delete.php';
+  } elseif (preg_match('#^/webadmin/edit/(.*)/?$#', $uri, $params)) {
 
-} elseif (preg_match('#^/webadmin/suppr/(.*)/?$#', $uri, $params)) {
+      include_once EVOADMIN_BASE . '../inc/webadmin-edit.php';
 
-    include_once EVOADMIN_BASE . '../inc/webadmin-suppr.php';
+  } elseif (preg_match('#^/webadmin/delete/(.*)/?$#', $uri, $params)) {
 
+      include_once EVOADMIN_BASE . '../inc/webadmin-delete.php';
+
+  } elseif (preg_match('#^/webadmin/suppr/(.*)/?$#', $uri, $params)) {
+
+      include_once EVOADMIN_BASE . '../inc/webadmin-suppr.php';
+
+  }
 } elseif (is_superadmin() && preg_match('#^/accounts/?#', $uri, $params)) {
 
     include_once EVOADMIN_BASE . '../inc/accounts.php';

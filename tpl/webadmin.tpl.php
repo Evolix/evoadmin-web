@@ -103,14 +103,18 @@
 
           if (is_superadmin()) {
               printf('<td>');
-              printf('<a href="/webadmin/%s/alias/">Alias</a> - ', $vhost_info['owner']);
-              printf('<a href="/webadmin/%s/domain/">Servername</a> - ', $vhost_info['owner']);
-              if(is_multiphp()) {
-                  printf('<a href="/webadmin/%s/php/">PHP</a>', $vhost_info['owner']);
+              if (!in_array($vhost_info['owner'], $_SESSION['non_standard'])) {
+                printf('<a href="/webadmin/edit/%s">Alias</a> - ', $vhost_info['owner']);
+                printf('<a href="/webadmin/servername/%s">Servername</a> - ', $vhost_info['owner']);
+                if(is_multiphp()) {
+                    printf('<a href="/webadmin/php/%s">PHP</a> - ', $vhost_info['owner']);
+                } else {
+                    printf('<a href="/webadmin/itk/%s">ITK</a> - ', $vhost_info['owner']);
+                }
+                printf('<a href="/webadmin/delete/%s">Supprimer</a>', $vhost_info['owner']);
               } else {
-                  printf('<a href="/webadmin/%s/itk/">ITK</a>', $vhost_info['owner']);
+                print '<span class="form-mandatory-ok">VirtualHost non standard</span>';
               }
-              printf('<a href="/webadmin/%s/delete/">Supprimer</a>', $vhost_info['owner']);
               printf('</td>');
 
           }
