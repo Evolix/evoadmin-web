@@ -27,6 +27,6 @@ fi
 
 grep -q "*:80>" /etc/apache2/sites-enabled/${vhost}.conf
 if [ $? -eq 0 ] ; then
-    sed -i 's@<VirtualHost \*:80>@<VirtualHost \*:80 \*:443>@' /etc/apache2/sites-enabled/${vhost}.conf
-    sed -i "s@</VirtualHost>@Include /etc/apache2/ssl/$vhost.conf\n</VirtualHost>@" /etc/apache2/sites-enabled/${vhost}.conf
+    sed -i --follow-symlinks 's@<VirtualHost \*:80>@<VirtualHost \*:80 \*:443>@' /etc/apache2/sites-enabled/${vhost}.conf
+    sed -i --follow-symlinks "s@</VirtualHost>@Include /etc/apache2/ssl/$vhost.conf\n</VirtualHost>@" /etc/apache2/sites-enabled/${vhost}.conf
 fi
