@@ -42,7 +42,7 @@
               $action = ['enable', 'Activer'];
             }
 
-            printf('<td><a href="/webadmin/itk/%s?%s">'.$action[1].'</a></td>',
+            printf('<td><a href="/webadmin/%s/itk/%s/">'.$action[1].'</a></td>',
                     $domain, $action[0]);
           }
           print '</tr>';

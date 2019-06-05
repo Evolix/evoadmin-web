@@ -18,28 +18,9 @@ require_once EVOADMIN_BASE . '../lib/domain.php';
 
 global $conf;
 
-if (isset($_GET['enable']) ) {
-    require_once EVOADMIN_BASE . '../evolibs/Form.php';
+if (isset($params[2]) && $params[2] != "") {
 
-    include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
-    include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
-
-    $servername = array (
-        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
-    );
-
-    $enable_cmd = 'web-add.sh enable-user-itk ' . $servername['domain'];
-
-    if (isset($params[3]) && $params[3] == "") http_redirect($redirect_url);
-
-    if ($enable_cmd_return == 0) {
-      print 'Sécurité ITK activée.';
-      printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $_SERVER['REDIRECT_URL']);
-    }
-
-    include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
-
-} elseif (isset($_GET['disable']) ) {
+    $redirect_url = "/webadmin/" . $params[1] . "/itk/";
 
     require_once EVOADMIN_BASE . '../evolibs/Form.php';
 
@@ -47,23 +28,31 @@ if (isset($_GET['enable']) ) {
     include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
     $servername = array (
-        'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
+        'domain' => $params[1],
     );
 
-    $disable_cmd = 'web-add.sh disable-user-itk ' . $servername['domain'];
+    if ($params[2] == "enable") {
+      $enable_cmd = 'web-add.sh enable-user-itk ' . $servername['domain'];
 
-        sudoexec($enable_cmd, $enable_cmd_output, $enable_cmd_return);
+      sudoexec($enable_cmd, $enable_cmd_output, $enable_cmd_return);
 
-        if ($enable_cmd_return == 0) {
-          print 'Sécurité ITK activée.';
-          printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
-        }
+      if ($enable_cmd_return == 0) {
+        print 'Sécurité ITK activée.';
+        printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
+      }
     }
     elseif ($params[2] == "disable") {
-        $disable_cmd = 'web-add.sh disable-user-itk ' . $servername['servername'] . ' ' . $servername['domain'];
+      $disable_cmd = 'web-add.sh disable-user-itk ' . $servername['domain'];
+
+      sudoexec($disable_cmd, $disable_cmd_output, $disable_cmd_return);
+
+      if ($disable_cmd_return == 0) {
+        print 'Sécurité ITK désactivée';
+        printf ('<p><a href="%s">Retour à la gestion ITK</a></p>', $redirect_url);
+      }
+    }
 
     include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
-
 } else {
     $domain = $params[1];
 

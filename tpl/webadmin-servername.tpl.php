@@ -34,7 +34,7 @@
           printf('<td>%s</td>',
               $servername);
           if (is_superadmin())
-              printf('<td><a href="/webadmin/servername/%s?edit=%s">Modifier</a></td>',
+              printf('<td><a href="/webadmin/%s/domain/edit/%s/">Modifier</a></td>',
                       $domain, $servername);
           print '</tr>';
         ?>
