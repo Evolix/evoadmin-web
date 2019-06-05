@@ -28,8 +28,8 @@ if (isset($params[2]) && $params[2] == "edit") {
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
     include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
-    $form = new FormPage("Modification du ServerName", FALSE);
-    $form->addField('domain_servername', new DomainInputFormField("ServerName", TRUE), $params[3]);
+    $form = new FormPage("Modification du Servername", FALSE);
+    $form->addField('domain_servername', new DomainInputFormField("Servername", TRUE), $params[3]);
     $form->addField('previous_servername', new DomainInputFormField("", TRUE, TRUE), $params[3]);
 
     if (!empty($_POST)) {
@@ -126,40 +126,40 @@ if (isset($params[2]) && $params[2] == "edit") {
                   if ($exec_return == 0) {
                       //domain_add($serveralias['alias'], gethostbyname($master) , false); TODO avec l'IP du load balancer
                       print "<center>";
-                      printf ('<p>Le ServerName %s a bien été modifié</p>', $servername['servername']);
-                      printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $redirect_url);
+                      printf ('<p>Le Servername %s a bien été modifié</p>', $servername['servername']);
+                      printf ('<p><a href="%s">Retour à la liste des Servernames</a></p>', $redirect_url);
                       print "</center>";
                   }
                   else {
                       print "<center>";
-                      printf ('<p>Echec dans la modification du ServerName %s</p>', $servername['servername']);
-                      printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $redirect_url);
+                      printf ('<p>Echec dans la modification du Servername %s</p>', $servername['servername']);
+                      printf ('<p><a href="%s">Retour à la liste des Servernames</a></p>', $redirect_url);
                       print "</center>";
                   }
                 }
                 else {
                   print "<center>";
-                  printf ('<p>Echec dans la modification du ServerName %s</p>', $servername['servername']);
+                  printf ('<p>Echec dans la modification du Servername %s</p>', $servername['servername']);
                   print  ('<p>Le domaine existe déjà dans d\'autres vhosts.');
-                  printf ('<p><a href="%s">Retour à la liste des ServerNames</a></p>', $redirect_url);
+                  printf ('<p><a href="%s">Retour à la liste des Servernames</a></p>', $redirect_url);
                   print "</center>";
                 }
             }
         } else {
-          print "<h2>Modification du ServerName</h2><hr>";
+          print "<h2>Modification du Servername</h2><hr>";
           print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
           print "   <fieldset>";
-          print "        <legend>Modification du ServerName</legend>";
+          print "        <legend>Modification du Servername</legend>";
           print $form;
           print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
           print "     </fieldset>";
           print "</form>";
         }
     } else {
-      print "<h2>Modification du ServerName</h2><hr>";
+      print "<h2>Modification du Servername</h2><hr>";
       print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
       print "   <fieldset>";
-      print "        <legend>Modification du ServerName</legend>";
+      print "        <legend>Modification du Servername</legend>";
       print $form;
       print "        <p><input type=\"submit\" value=\"Modifier\"/></p>";
       print "     </fieldset>";
@@ -197,17 +197,15 @@ if (isset($params[2]) && $params[2] == "edit") {
         $alias_list = $bdd->list_serveralias($domain);
     }
     else {
-
-      $cmd = 'web-add.sh list-servername ' . $domain;
+      $cmd = 'web-add.sh list-vhost ' . $domain;
 
 	    if(!is_superadmin()) {
 	    	$cmd = sprintf('%s %s', $cmd, $_SESSION['user']);
 	    }
 	    sudoexec($cmd, $data_output, $exec_return);
 
-	    foreach($data_output as $data_line) {
-        array_push($servername_list, $data_line);
-	    }
+      $data_vhost = explode(':', $data_output[0]);
+      $servername = $data_vhost[2];
     }
 
     include_once EVOADMIN_BASE . '../tpl/header.tpl.php';

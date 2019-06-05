@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Apache VirtualHost Management Page 
+ * Apache VirtualHost Management Page
  *
  * Copyright (c) 2009 Evolix - Tous droits reserves
  *
- * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2 
+ * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2
  *
  * @author Gregory Colpart <reg@evolix.fr>
  * @author Thomas Martin <tmartin@evolix.fr>
@@ -68,10 +68,10 @@ if (isset($params[2]) && $params[2] == "delete") {
             sudoexec($exec_cmd, $exec_output, $exec_return);
 
             if ($exec_return == 0) {
-                if (! $bdd->del_serveralias($serveralias)) 
+                if (! $bdd->del_serveralias($serveralias))
                     print "<p>La suppression a échouée. Veuillez contacter votre administrateur.</p>";
                 printf ('<p>Alias %s est supprimé.</p>', $serveralias['alias']);
-            } else 
+            } else
                 print "<p>La suppression a échouée. Veuillez contacter votre administrateur.</p>";
 
         }
@@ -134,7 +134,7 @@ elseif (isset($params[2]) && $params[2] == "add") {
                         'domain' => htmlspecialchars(basename($_SERVER['REDIRECT_URL'])),
                         'alias'  => $form->getField('domain_alias')->getValue(),
                     );
-                    
+
                     $account_name=$serveralias['domain'];
                     $account = $bdd->get_account($account_name);
 
@@ -214,7 +214,7 @@ elseif (isset($params[2]) && $params[2] == "add") {
                     }
                     else {
                       print "<center>";
-                      printf ('<p>Echec dans la creation de l\'alias %s du domaine %s</p>', $serveralias['alias'], $serveralias['domain']);
+                      printf ('<p>Echec dans la creation de l\'alias %s</p>', $serveralias['alias']);
                       print  ('<p>L\'alias existe dans d\'autres vhosts.');
                       printf ('<p><a href="%s">Retour à la liste des alias</a></p>', $redirect_url);
                       print "</center>";
@@ -222,10 +222,10 @@ elseif (isset($params[2]) && $params[2] == "add") {
                 }
             }
             else {
-              print "<h2>Ajout d'un serveralias</h2><hr>";
+              print "<h2>Ajout d'un alias</h2><hr>";
                     print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
                     print "   <fieldset>";
-                    print "        <legend>Ajout d'un serveralias</legend>";
+                    print "        <legend>Ajout d'un alias</legend>";
                     print $form;
                     print "        <p><input type=\"submit\" value=\"Créer\"/></p>";
                     print "     </fieldset>";
@@ -233,10 +233,10 @@ elseif (isset($params[2]) && $params[2] == "add") {
 
             }
         } else {
-			print "<h2>Ajout d'un serveralias</h2><hr>";
+			print "<h2>Ajout d'un alias</h2><hr>";
             print "<form name=\"form-add\" id=\"form-add\" action=\"\" method=\"POST\">";
             print "   <fieldset>";
-            print "        <legend>Ajout d'un serveralias</legend>";
+            print "        <legend>Ajout d'un alias</legend>";
             print $form;
             print "        <p><input type=\"submit\" value=\"Créer\"/></p>";
             print "     </fieldset>";

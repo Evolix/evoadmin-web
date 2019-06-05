@@ -30,6 +30,12 @@ if (!$conf['cluster']) {
 
     /* Récupération de cette liste dans le tableau $vhost_list */
     $vhost_list = array();
+
+    if (!isset($_SESSION['non_standard'])) {
+      $_SESSION['non_standard'] = array();
+    }
+
+
     foreach($data_output as $data_line) {
         $data_split = explode(':', $data_line);
 
@@ -70,6 +76,11 @@ if (!$conf['cluster']) {
             $quota_bas = "";
             $quota_haut = "";
             $occupation = "";
+        }
+
+        // current vhost isn't standard and thus not manageable by evoadmin-web
+        if (!$data_split[9]) {
+          array_push($_SESSION['non_standard'], $data_split[0]);
         }
 
         array_push($vhost_list, array(

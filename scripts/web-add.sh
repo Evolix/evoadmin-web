@@ -100,11 +100,17 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
 
    Example : web-add.sh add -m testdb -r 56 testlogin testdomain.com
 
-del LOGIN [DBNAME]
+del [ [OPTIONS] LOGIN [DBNAME] ]
 
    Delete account and all files related (Apache, Awstats, etc)
    Archive home directory.
    Remove MySQL database only if DBNAME is specified.
+
+   -y
+      Don't ask for confirmation
+
+   Example : web-add.sh del -y testlogin testdatabase
+
 
 list-vhost LOGIN
 
@@ -122,30 +128,26 @@ del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
 
-list-servername LOGIN
-
-    List ServerName(s) for user LOGIN
-
 update-servername VHOST SERVERNAME OLD_SERVERNAME
 
     Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
-    Also apply to rules
+    Also apply to rewrite rules
 
 check-occurence NAME
 
     List all occurences of NAME in vhosts
 
-list-user-itk DOMAIN LOGIN
+list-user-itk LOGIN
 
-    List the assigned ITK user for the DOMAIN specified
+    List the assigned ITK user for the LOGIN specified
 
-enable-user-itk DOMAIN LOGIN
+enable-user-itk LOGIN
 
-    Enable the assigned ITK user for the DOMAIN specified
+    Enable the assigned ITK user for the LOGIN specified
 
-disable-user-itk DOMAIN LOGIN
+disable-user-itk LOGIN
 
-    Disable the assigned ITK user for the DOMAIN specified
+    Disable the assigned ITK user for the LOGIN specified
 
 setphpversion LOGIN VERSION
 
@@ -612,18 +614,88 @@ EOT
 }
 
 op_del() {
-    if [ $# -lt 1 ]; then
-        usage
-        exit 1
+
+    #
+    # Mode interactif
+    #
+
+    if [ $# -eq 0 ]; then
+        echo
+        echo "Suppression d'un compte WEB"
+        echo
+
+        until [ "$login" ]; do
+            echo -n "Entrez le login du compte à supprimer : "
+            read -r tmp
+            login="$tmp"
+        done
+
+        echo -n "Voulez-vous aussi supprimer un compte/base MySQL ? [y|N]"
+        read -r confirm
+
+        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+            echo -n "Entrez le nom de la base de donnees ($login par defaut) : "
+            read -r tmp
+
+            if [ -z "$tmp" ]; then
+                dbname=$login
+            else
+                dbname="$tmp"
+            fi
+        fi
+
+    #
+    # Mode non interactif
+    #
+
     else
-        login=$1
-        if [ $# -eq 2 ]; then
-            dbname=$2
+        while getopts hy opt; do
+            case "$opt" in
+            y)
+                force_confirm=1
+                ;;
+            h)
+                usage
+                exit 1
+                ;;
+            ?)
+                usage
+                exit 1
+                ;;
+            esac
+        done
+
+        shift $((OPTIND - 1))
+        if [ $# -gt 0 ] && [ $# -le 2 ]; then
+            login=$1
+            if [ $# -eq 2 ]; then
+                dbname=$2
+            fi
+        else
+            usage
+            exit 1
         fi
     fi
 
-    echo "Deleting account $login. Continue ?"
-    read -r
+    echo
+    echo "----------------------------------------------"
+    echo "Nom du compte : $login"
+    if [ "$dbname" ]; then
+        echo "Base de données MySQL : $dbname"
+    fi
+    echo "----------------------------------------------"
+    echo
+
+    if [ -z "$force_confirm" ]; then
+        echo -n "Confirmer la suppression ? [y/N] : "
+        read -r tmp
+        echo
+        if [ "$tmp" != "y" ] && [ "$tmp" != "Y" ]; then
+            echo "Annulation..."
+            echo
+            exit 1
+        fi
+    fi
 
     set -x
     if [ "$WEB_SERVER" == "apache" ]; then
@@ -681,9 +753,6 @@ op_del() {
     set +x
 
     if [ -n "$dbname" ]; then
-        echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
-        read -r
-
         set -x
         echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
         set +x
@@ -755,9 +824,6 @@ arg_processing() {
         del-alias)
             op_aliasdel "$@"
             ;;
-        list-servername)
-            op_listservername "$@"
-            ;;
         update-servername)
             op_servernameupdate "$@"
             ;;
@@ -793,7 +859,6 @@ op_listvhost() {
         configlist="$VHOST_PATH/*";
     fi
 
-
     for configfile in $configlist; do
         if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
@@ -811,9 +876,17 @@ op_listvhost() {
             else
                 is_enabled=0
             fi
+
+            count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            if [ "$count_virtualhosts" -eq 1 ]; then
+                is_standard=1
+            else
+                is_standard=0
+            fi
+
             if [ "$servername" ] && [ "$userid" ]; then
                 configid=$(basename "$configfile")
-                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled"
+                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled:$is_standard"
             fi
         fi
     done
@@ -823,12 +896,23 @@ op_aliasadd() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
+        vhost_file="${VHOST_PATH}/${vhost}"
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i "/ServerName .*/a \\\tServerAlias $alias" "$VHOST_PATH"/"$vhost" --follow-symlinks
+        if [ -f "${vhost_file}" ]; then
+            sed -i "/ServerName .*/a \\\tServerAlias $alias" "${vhost_file}" --follow-symlinks
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
 
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
     else usage
     fi
 }
@@ -859,25 +943,6 @@ op_aliasdel() {
     fi
 }
 
-op_listservername() {
-    if [ $# -eq 1 ]; then
-        vhost_file="$VHOST_PATH/${1}.conf";
-
-        if [ -f "${vhost_file}" ]; then
-            servernames=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$vhost_file" | uniq)
-
-            for servername in $servernames; do
-                echo "$servername";
-            done
-        else
-            echo "VHost file \`${vhost_file}' not found'" >&2
-            return 1
-        fi
-    else
-        usage
-    fi
-}
-
 op_servernameupdate() {
     if [ $# -eq 3 ]; then
       vhost="${1}.conf"
@@ -885,7 +950,6 @@ op_servernameupdate() {
       old_servername=$3
       vhost_file="${VHOST_PATH}/${vhost}"
 
-      # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
       if [ -f "${vhost_file}" ]; then
           sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
           sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
@@ -915,7 +979,7 @@ op_checkoccurencename() {
             if [ -r "$configfile" ]; then
                 alias=$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)
                 aliases="$aliases $alias"
-        
+
                 servername=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)
                 servernames="$servernames $servername"
             fi
@@ -928,23 +992,21 @@ op_checkoccurencename() {
 }
 
 op_listuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH/${2}.conf"
-  
-        sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $2}' | uniq
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH/${1}.conf"
+
+        awk '/AssignUserID/ {print $2}' "$configfile" | uniq
     else
         usage
     fi
 }
 
 op_enableuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH/${2}.conf"
-        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH/${1}.conf"
+        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
 
-        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
+        sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
 
         configtest_out=$(apache2ctl configtest)
         configtest_rc=$?
@@ -960,12 +1022,11 @@ op_enableuseritk() {
 }
 
 op_disableuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH"/"${2}".conf
-        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH"/"${1}".conf
+        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
 
-        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+        sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
 
         configtest_out=$(apache2ctl configtest)
         configtest_rc=$?

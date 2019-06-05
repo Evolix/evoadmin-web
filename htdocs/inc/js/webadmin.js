@@ -21,6 +21,12 @@ function switch_disabled(name) {
 }
 
 document.observe("dom:loaded", function() {
+    if (document.getElementById('vhost-delete-db') != null) {
+        document.getElementById('vhost-delete-db').onclick = function() {
+            console.log("clicked box");
+            switch_disabled('vhost-dbname');
+        }
+    }
     document.getElementById('password_random').onclick = function() {
         switch_disabled('password');
     }
