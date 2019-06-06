@@ -75,13 +75,19 @@ if (!array_key_exists('auth', $_SESSION) || $_SESSION['auth']!=1) {
       include_once EVOADMIN_BASE . '../inc/webadmin-edit.php';
 
   } elseif (preg_match('#^/webadmin/delete/(.*)/?$#', $uri, $params)) {
-
+      //TODO: fix according to route naming convention
       include_once EVOADMIN_BASE . '../inc/webadmin-delete.php';
 
   } elseif (preg_match('#^/webadmin/suppr/(.*)/?$#', $uri, $params)) {
 
       include_once EVOADMIN_BASE . '../inc/webadmin-suppr.php';
 
+  } elseif (preg_match('#^/webadmin/(.*)/letsencrypt/?(check)?/?$#', $uri, $params)) {
+
+      include_once EVOADMIN_BASE . '../inc/webadmin-letsencrypt.php';
+
+  } else {
+      http_redirect('/webadmin');
   }
 } elseif (is_superadmin() && preg_match('#^/accounts/?#', $uri, $params)) {
 
