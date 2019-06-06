@@ -46,8 +46,7 @@ class LetsEncrypt
             $returned_http_url = curl_getinfo($curl_handle, CURLINFO_EFFECTIVE_URL);
 
             if ($returned_http_code === self::HTTP_OK && strpos($returned_http_url, self::HTTP_CHALLENGE_URL)) {
-                // retrieve the FQDN
-                $returned_http_url = str_replace(self::HTTP_CHALLENGE_URL, '.', $returned_http_url);
+                $returned_http_url = str_replace(self::HTTP_CHALLENGE_URL, '', $returned_http_url);
                 $returned_http_url = preg_replace('#^https?://#', '', $returned_http_url);
 
                 array_push($checked_domains, $returned_http_url);
@@ -69,6 +68,8 @@ class LetsEncrypt
         $valid_dns_domains = array();
 
         foreach ($domains as $domain) {
+            //FQDN syntax
+            $domain .= '.';
             $dns_record_ipv4 = dns_get_record($domain, DNS_A);
             $dns_record_ipv6 = dns_get_record($domain, DNS_AAAA);
 
