@@ -8,6 +8,7 @@ class LetsEncrypt
 {
     const HTTP_OK = 200;
     const HTTP_CHALLENGE_URL = '/.well-known/acme-challenge/';
+
     /**
      * perform a cURL call on the remote resource
      * the cURL call follows redirections and pushes the last valid URL to an array
@@ -45,6 +46,10 @@ class LetsEncrypt
             $returned_http_url = curl_getinfo($curl_handle, CURLINFO_EFFECTIVE_URL);
 
             if ($returned_http_code === self::HTTP_OK && strpos($returned_http_url, self::HTTP_CHALLENGE_URL)) {
+                // retrieve the FQDN
+                $returned_http_url = str_replace(self::HTTP_CHALLENGE_URL, '.', $returned_http_url);
+                $returned_http_url = preg_replace('#^https?://#', '', $returned_http_url);
+
                 array_push($checked_domains, $returned_http_url);
             }
             curl_multi_remove_handle($curl_multi, $curl_handle);
@@ -52,5 +57,28 @@ class LetsEncrypt
         curl_multi_close($curl_multi);
 
         return $checked_domains;
+    }
+
+    /**
+     * Query the corresponding IP for each domain
+     * @param  Array $domains list of HTTP checked domains
+     * @return Array $valid_dns_domains list of valid domains
+     */
+    public function checkDNSValidity($domains)
+    {
+        $valid_dns_domains = array();
+
+        foreach ($domains as $domain) {
+            $dns_record_ipv4 = dns_get_record($domain, DNS_A);
+            $dns_record_ipv6 = dns_get_record($domain, DNS_AAAA);
+
+            if ($dns_record_ipv4 || $dns_record_ipv6) {
+                // remove the last dot added for the FQDN syntax
+                $domain = rtrim($domain, '.');
+                array_push($valid_dns_domains, $domain);
+            }
+        }
+
+        return $valid_dns_domains;
     }
 }
