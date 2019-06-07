@@ -156,6 +156,11 @@ setphpversion LOGIN VERSION
 setquota LOGIN QUOTA_SOFT:QUOTA_HARD
 
     Change quotas for LOGIN
+
+manage-http-challenge-file [CREATE | DELETE]
+
+    Create or delete a dummy file for the Let's Encrypt HTTP challenge
+    The default directory is /var/lib/letsencrypt/.well-known/
 EOT
 }
 
@@ -845,10 +850,29 @@ arg_processing() {
         setquota)
             op_setquota "$@"
             ;;
+        manage-http-challenge-file)
+            op_managehttpchallengefile "$@"
+            ;;
         *)
             usage
             ;;
         esac
+    fi
+}
+
+op_managehttpchallengefile() {
+    if [ $# -eq 1 ]; then
+        file="/var/lib/letsencrypt/.well-known/123456789"
+        action=${1};
+
+        if [ "$action" = "create" ]; then
+            touch "$file"
+            chmod 755 "$file"
+        elif [ "$action" = "delete" ]; then
+            rm "$file"
+        else usage
+        fi
+    else usage
     fi
 }
 
