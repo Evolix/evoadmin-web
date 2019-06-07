@@ -104,4 +104,20 @@ class LetsEncrypt
 
         return $valid_dns_domains;
     }
+
+    /**
+     * check the presence of make-csr and evoacme binaries
+     * @return boolean
+     */
+    public function isEvoacmeInstalled()
+    {
+        $output_make_csr = shell_exec("which make-csr");
+        $output_evoacme = shell_exec("which evoacme");
+
+        if (empty($output_make_csr) || empty($output_evoacme)) {
+            return false;
+        }
+
+        return true;
+    }
 }
