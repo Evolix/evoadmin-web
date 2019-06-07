@@ -7,7 +7,25 @@ namespace lib;
 class LetsEncrypt
 {
     const HTTP_OK = 200;
-    const HTTP_CHALLENGE_URL = '/.well-known/acme-challenge/';
+    const HTTP_CHALLENGE_URL = '/.well-known/acme-challenge';
+
+    /**
+     * create the file used to test the HTTP challenge
+     */
+    private function createFileHttpChallenge()
+    {
+        $cmd = 'web-add.sh manage-http-challenge-file create';
+        sudoexec($cmd, $data_output, $exec_return);
+    }
+
+    /**
+     * delete the file used to test the HTTP challenge
+     */
+    private function deleteFileHttpChallenge()
+    {
+        $cmd = 'web-add.sh manage-http-challenge-file delete';
+        sudoexec($cmd, $data_output, $exec_return);
+    }
 
     /**
      * perform a cURL call on the remote resource
@@ -17,6 +35,8 @@ class LetsEncrypt
      */
     public function checkRemoteResourceAvailability($domains)
     {
+        $this->createFileHttpChallenge();
+
         $curl_multi = curl_multi_init();
         $curl_handles = array();
         $checked_domains = array();
@@ -54,6 +74,8 @@ class LetsEncrypt
             curl_multi_remove_handle($curl_multi, $curl_handle);
         }
         curl_multi_close($curl_multi);
+
+        $this->deleteFileHttpChallenge();
 
         return $checked_domains;
     }
