@@ -2,32 +2,18 @@
 
 <?php
 if (isset($_POST['submit'])) {
-    if (count($failed_domains_http) > 0) {
-        echo '<h3 class="form-error">Erreur HTTP</h3>';
+    if (!empty($error_message)) {
+        echo '<span class="form-error">' . $error_message . '</span>';
 
-        echo '<p>';
-        echo 'Le challenge HTTP a échoué pour le(s) domaine(s) ci-dessous.
-              Merci de vérifier que le dossier <code>/.well-known/acme-challenge/</code> est accessible.';
-        echo '</p>';
-
-        echo '<p>';
-        foreach ($failed_domains_http as $failed_domain) {
-            echo $failed_domain . "<br>";
-        }
-        echo '</p>';
-    } elseif (count($failed_domains_dns) > 0) {
-        echo '<h3 class="form-error">Erreur DNS</h3>';
-
-        echo '<p>';
-        echo 'La vérification DNS a échoué pour les domaines ci-dessous.
-              Merci de vérifier les enregistrements de type A et AAAA.';
-        echo '</p>';
-
-        foreach ($failed_domains_dns as $failed_domain) {
-            echo $failed_domain . "<br>";
+        if (count($failed_domains) > 0) {
+            echo '<p>';
+            foreach ($failed_domains as $failed_domain) {
+                echo $failed_domain . "<br>";
+            }
+            echo '</p>';
         }
     } else {
-        echo "all checks succeeded";
+        echo 'checks succeeded.';
     }
 } else {
     echo "<p>Les domaines suivants seront intégrés au certificat : </p>";
