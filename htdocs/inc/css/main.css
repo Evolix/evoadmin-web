@@ -30,6 +30,10 @@ h1#top {
     margin-bottom: 10px;
 }
 
+h3.form-error {
+    color: red;
+}
+
 div#disclaimer {
    margin-top: 30px;
 }
@@ -163,4 +167,3 @@ form#form-add legend {
 form#form-add p {
     text-align: left;
 }
-
