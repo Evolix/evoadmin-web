@@ -31,7 +31,7 @@ class LetsEncrypt
             curl_setopt($curl_handles[$key], CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($curl_handles[$key], CURLOPT_FOLLOWLOCATION, true);
             curl_setopt($curl_handles[$key], CURLOPT_MAXREDIRS, 3);
-            curl_setopt($curl_handles[$key], CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP, CURLPROTO_HTTPS);
+            curl_setopt($curl_handles[$key], CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
             curl_setopt($curl_handles[$key], CURLOPT_RETURNTRANSFER, true);
 
             curl_multi_add_handle($curl_multi, $curl_handles[$key]);
