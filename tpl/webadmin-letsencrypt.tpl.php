@@ -25,7 +25,7 @@ if (isset($_POST['submit'])) {
         echo '</p>';
         ?>
         <form name="form-confirm-delete-alias" id="form-confirm-delete-alias" action="" method="POST">
-            <p><input type="submit" name="submit" value="Poursuivre l'installation du certificat" style="margin-left:0px;"></p>
+            <p><input type="submit" name="submit" value="Installer le certificat" style="margin-left:0px;"></p>
         </form>
         <?php
     }
