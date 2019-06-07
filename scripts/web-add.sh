@@ -862,7 +862,7 @@ arg_processing() {
 
 op_managehttpchallengefile() {
     if [ $# -eq 1 ]; then
-        file="/var/lib/letsencrypt/.well-known/123456789"
+        file="/var/lib/letsencrypt/.well-known/acme-challenge"
         action=${1};
 
         if [ "$action" = "create" ]; then
