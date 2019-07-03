@@ -120,4 +120,68 @@ class LetsEncrypt
 
         return true;
     }
+
+    /**
+     * Retrieve the SSL certificate from the URL
+     * @param  string $url
+     * @return Array|false $cont list of parameters of the certificate, or false
+     */
+    public function getCertificate($url)
+    {
+        $stream = stream_context_create(array("ssl" => array("capture_peer_cert" => true)));
+        $read = fopen($url, "rb", false, $stream);
+        $cont = stream_context_get_params($read);
+
+        return $cont;
+    }
+
+    /**
+     * Parse the certificat arguments and extract data
+     * @param  Array $certificateParameters certificat arguments
+     * @return Array $infosCert contains only the issuer, domains and expiration date
+     */
+    public function parseCertificate($certificateParameters)
+    {
+        $infosCert = array();
+        $parsedParameters = openssl_x509_parse($certificateParameters["options"]["ssl"]["peer_certificate"]);
+        $issuer = $parsedParameters["issuer"]["O"];
+        $includedDomains = $parsedParameters["extensions"]["subjectAltName"];
+        $validUntil = $parsedParameters["validTo_time_t"];
+
+        array_push($infosCert, $issuer);
+        array_push($infosCert, $includedDomains);
+        array_push($infosCert, $validUntil);
+
+        return $infosCert;
+    }
+
+    /**
+     * Check wether the certificat is issued by Let's Encrypt or not
+     * @param  string  $issuer name of the certificat issuer
+     * @return boolean
+     */
+    public function isCertIssuedByLetsEncrypt($issuer)
+    {
+        return ($issuer === "Let's Encrypt") ? true : false;
+    }
+
+    /**
+     * Check wether the certificat is valid or not
+     * @param  string  $timestampCertValidUntil certificat expiration date in timestamp
+     * @return boolean
+     */
+    public function isCertValid($timestampCertValidUntil)
+    {
+        $currentDate = time();
+
+        return ($timestampCertValidUntil > $currentDate) ? true : false;
+    }
+
+    public function isDomainIncludedInCert($domainRequested, $san)
+    {
+        $san = preg_replace('/DNS:| DNS:/', '', $san);
+        $sanArray = explode(',', $san);
+
+        return (in_array($domainRequested, $sanArray)) ? true : false;
+    }
 }
