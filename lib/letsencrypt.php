@@ -123,13 +123,13 @@ class LetsEncrypt
 
     /**
      * Retrieve the SSL certificate from the URL
-     * @param  string $url
+     * @param  string $domain
      * @return Array|false $cont list of parameters of the certificate, or false
      */
-    public function getCertificate($url)
+    public function getCertificate($domain)
     {
         $stream = stream_context_create(array("ssl" => array("capture_peer_cert" => true)));
-        $read = fopen($url, "rb", false, $stream);
+        $read = fopen("https://" . $domain , "rb", false, $stream);
         $cont = stream_context_get_params($read);
 
         return $cont;
