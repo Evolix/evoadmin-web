@@ -139,6 +139,11 @@ span.form-error {
     margin-left: 4px;
 }
 
+span.form-warning {
+    color: #E84D0C;
+    margin-left: 4px;
+}
+
 span.form-mandatory {
     color: red;
 }
