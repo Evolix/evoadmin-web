@@ -34,20 +34,68 @@ include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
 if (isset($_POST['submit'])) {
     $letsencrypt = new letsencryt();
-    $error_message = '';
+    $errorMessage = '';
+    $warningMessage = '';
 
     while (true) {
         // check domains list
         if (empty($_SESSION['letsencrypt-domains'])) {
-            $error_message = "Erreur : la liste des domaines est vide.";
+            $errorMessage = "Erreur : la liste des domaines est vide.";
             break;
         }
 
         // check if evoacme is installed
         $binaries_installed = $letsencrypt->isEvoacmeInstalled();
         if (!$binaries_installed) {
-            $error_message = "Erreur : les binaires Evoacme ne sont pas installés.
+            $errorMessage = "Erreur : les binaires Evoacme ne sont pas installés.
                               Veuillez contacter un administrateur.";
+            break;
+        }
+
+        // Check existing SSL certificate
+        $domainsIncluded = array();
+        foreach ($_SESSION['letsencrypt-domains'] as $domain) {
+            $existingSSLCertificate = $letsencrypt->getCertificate($domain);
+            if (is_bool($existingSSLCertificate)) {
+                continue;
+            }
+            $parsedCertificate = $letsencrypt->parseCertificate($existingSSLCertificate);
+
+            // check if LE is the certificate issuer
+            $isIssuerValid = $letsencrypt->isCertIssuedByLetsEncrypt($parsedCertificate["issuer"]);
+            if (!$isIssuerValid) {
+                $errorMessage = "Erreur : le certificat existant n'est pas géré par Let's Encrypt.";
+                break 2; // break the foreach and the while
+            }
+
+            // check if the domain is already in the certificate
+            $isDomainIncluded = $letsencrypt->isDomainIncludedInCert($domain, $parsedCertificate["includedDomains"]);
+            if ($isDomainIncluded) {
+                array_push($domainsIncluded, $domain);
+                continue; // break only the current foreach iteration
+            }
+
+            // check wether the certificate is valid or expired
+            $isCertValid = $letsencrypt->isCertValid($parsedCertificate["validUntil"]);
+            if (!$îsCertValid) {
+                $warningMessage = "Attention : le certificat existant n'est plus valide.
+                                 Souhaitez-vous le renouveller ?";
+                break 2;
+            }
+        }
+
+        // contains all the domains included in the existing certificate
+        if (!empty($domainsIncluded)) {
+            $domainsNotIncluded = array_diff($_SESSION['letsencrypt-domains'], $domainsIncluded);
+
+            if (empty($domainsNotIncluded)) {
+                $errorMessage = "Erreur : le certificat existant couvre déjà tous les domaines.";
+                break;
+            }
+
+            $warningMessage = "Attention : le certificat existant couvre déjà certains domaines.
+                             Souhaitez-vous le renouveller ?";
+
             break;
         }
 
@@ -55,7 +103,7 @@ if (isset($_POST['submit'])) {
         $checked_domains = $letsencrypt->checkRemoteResourceAvailability($_SESSION['letsencrypt-domains']);
         $failed_domains = array_diff($_SESSION['letsencrypt-domains'], $checked_domains);
         if (!empty($failed_domains)) {
-            $error_message = "Erreur : Le challenge HTTP a échoué pour le(s) domaine(s) ci-dessous.
+            $errorMessage = "Erreur : Le challenge HTTP a échoué pour le(s) domaine(s) ci-dessous.
                               Merci de vérifier que le dossier <code>/.well-known/</code> est accessible.";
             break;
         }
@@ -64,7 +112,7 @@ if (isset($_POST['submit'])) {
         $valid_domains = $letsencrypt->checkDNSValidity($checked_domains);
         $failed_domains = array_diff($checked_domains, $valid_domains);
         if (!empty($failed_domains)) {
-            $error_message = "Erreur : La vérification DNS a échoué pour les domaines ci-dessous.
+            $errorMessage = "Erreur : La vérification DNS a échoué pour les domaines ci-dessous.
                               Merci de vérifier les enregistrements de type A et AAAA.";
             break;
         }
