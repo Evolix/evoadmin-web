@@ -26,7 +26,7 @@ if (!isset($_SESSION['lestencrypt-domains']) || empty($_SESSION['letsencrypt-dom
         array_push($domains, $alias);
     }
 
-    $_SESSION['letsencrypt-domains'] = $domains;
+    $_SESSION['letsencrypt-domains'] = array_filter($domains);
 }
 
 include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
