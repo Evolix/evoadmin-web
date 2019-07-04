@@ -7,11 +7,7 @@ use lib\LetsEncrypt as letsencryt;
 // store domain and aliases in session
 if (!isset($_SESSION['lestencrypt-domains']) || empty($_SESSION['letsencrypt-domains'])) {
     $domain = $params[1];
-    $cmd = 'web-add.sh list-vhost';
-
-    if (!is_superadmin()) {
-        $cmd = sprintf('%s %s', $cmd, $domain);
-    }
+    $cmd = 'web-add.sh list-vhost ' . $domain;
 
     sudoexec($cmd, $data_output, $exec_return);
 
