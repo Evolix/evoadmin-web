@@ -148,9 +148,9 @@ class LetsEncrypt
         $includedDomains = $parsedParameters["extensions"]["subjectAltName"];
         $validUntil = $parsedParameters["validTo_time_t"];
 
-        array_push($infosCert, $issuer);
-        array_push($infosCert, $includedDomains);
-        array_push($infosCert, $validUntil);
+        $infosCert["issuer"] = $issuer;
+        $infosCert["includedDomains"] = $includedDomains;
+        $infosCert["validUntil"] = $validUntil;
 
         return $infosCert;
     }
