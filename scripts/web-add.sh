@@ -853,6 +853,9 @@ arg_processing() {
         manage-http-challenge-file)
             op_managehttpchallengefile "$@"
             ;;
+        generate-csr)
+            op_makecsr "$@"
+            ;;
         *)
             usage
             ;;
@@ -860,16 +863,41 @@ arg_processing() {
     fi
 }
 
+op_makecsr() {
+    if [ $# -gt 1 ]; then
+        vhost="$1"
+        domains=""
+
+        # remove the first argument to keep only the domains
+        shift 1
+
+        for domain in "$@"; do
+            domains="${domains:+${domains} }${domain}"
+        done
+
+        # pipe the domains to make-csr because we don't have STDIN
+        echo "$domains" | make-csr "$vhost"
+    else usage
+    fi
+}
+
 op_managehttpchallengefile() {
     if [ $# -eq 1 ]; then
-        file="/var/lib/letsencrypt/.well-known/acme-challenge"
+        folder="/var/lib/letsencrypt/.well-known/acme-challenge"
+        file="testfile"
+
         action=${1};
 
         if [ "$action" = "create" ]; then
-            touch "$file"
-            chmod 755 "$file"
+            if [ ! -d "$folder" ]; then
+                mkdir "$folder"
+            fi
+            if [ ! -f "$folder/$file" ]; then
+                touch "$folder/$file"
+            fi
+            chmod -R 755 "$folder"
         elif [ "$action" = "delete" ]; then
-            rm "$file"
+            rm -r "$folder"
         else usage
         fi
     else usage

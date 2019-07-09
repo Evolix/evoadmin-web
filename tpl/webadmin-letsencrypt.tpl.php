@@ -2,8 +2,8 @@
 
 <?php
 if (isset($_POST['submit'])) {
-    if (!empty($error_message)) {
-        echo '<span class="form-error">' . $error_message . '</span>';
+    if (!empty($errorMessage)) {
+        echo '<span class="form-error">' . $errorMessage . '</span>';
 
         if (count($failed_domains) > 0) {
             echo '<p>';
@@ -12,8 +12,18 @@ if (isset($_POST['submit'])) {
             }
             echo '</p>';
         }
+    } elseif (!empty($warningMessage)) {
+        echo '<span class="form-warning">' . $warningMessage . '</span>'; ?>
+        <form name="form-confirm-renew-cert" id="form-confirm-renew-cert" action="" method="POST">
+            <p>
+                <input type="hidden" name="force_renew">
+                <input type="submit" name="submit" value="Confirmer le renouvellement" style="margin-left:0px;">
+            </p>
+        </form>
+        <?php
+
     } else {
-        echo 'checks succeeded.';
+        echo "all checks succeeded";
     }
 } else {
     echo "<p>Les domaines suivants seront intégrés au certificat : </p>";
@@ -24,7 +34,7 @@ if (isset($_POST['submit'])) {
         }
         echo '</p>';
         ?>
-        <form name="form-confirm-delete-alias" id="form-confirm-delete-alias" action="" method="POST">
+        <form name="form-confirm-install-cert" id="form-confirm-install-cert" action="" method="POST">
             <p><input type="submit" name="submit" value="Installer le certificat" style="margin-left:0px;"></p>
         </form>
         <?php

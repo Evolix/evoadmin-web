@@ -52,6 +52,7 @@ if (isset($_POST['submit'])) {
         $domainsIncluded = array();
         foreach ($_SESSION['letsencrypt-domains'] as $domain) {
             $existingSSLCertificate = $letsencrypt->getCertificate($domain);
+            // if no certificate is present (false returned) for this domain, go to the next domain
             if (is_bool($existingSSLCertificate)) {
                 continue;
             }
@@ -73,7 +74,7 @@ if (isset($_POST['submit'])) {
 
             // check wether the certificate is valid or expired
             $isCertValid = $letsencrypt->isCertValid($parsedCertificate["validUntil"]);
-            if (!$îsCertValid) {
+            if (!$îsCertValid && !isset($_POST['force_renew'])) {
                 $warningMessage = "Attention : le certificat existant n'est plus valide.
                                  Souhaitez-vous le renouveller ?";
                 break 2;
@@ -81,7 +82,7 @@ if (isset($_POST['submit'])) {
         }
 
         // contains all the domains included in the existing certificate
-        if (!empty($domainsIncluded)) {
+        if (!empty($domainsIncluded) && !isset($_POST['force_renew'])) {
             $domainsNotIncluded = array_diff($_SESSION['letsencrypt-domains'], $domainsIncluded);
 
             if (empty($domainsNotIncluded)) {
@@ -96,11 +97,11 @@ if (isset($_POST['submit'])) {
         }
 
         // check HTTP
-        $checked_domains = $letsencrypt->checkRemoteResourceAvailability($_SESSION['letsencrypt-domains']);
-        $failed_domains = array_diff($_SESSION['letsencrypt-domains'], $checked_domains);
-        if (!empty($failed_domains)) {
-            $errorMessage = "Erreur : Le challenge HTTP a échoué pour le(s) domaine(s) ci-dessous.
-                              Merci de vérifier que le dossier <code>/.well-known/</code> est accessible.";
+        $isRemoteResourceAvailable = $letsencrypt->checkRemoteResourceAvailability($_SESSION['letsencrypt-domains'][0]);
+
+        if (!$isRemoteResourceAvailable) {
+            $errorMessage = "Erreur : Le challenge HTTP a échoué.<br>
+                              Merci de vérifier que le dossier <code>/.well-known/evoacme-challenge/</code> est accessible.";
             break;
         }
 
@@ -115,6 +116,14 @@ if (isset($_POST['submit'])) {
 
         break;
     }
+
+    // make csr
+    $isCsrGenerated = $letsencrypt->makeCsr($params[1], $_SESSION['letsencrypt-domains']);
+
+    // evoacme TEST ou DRY RUN
+    // evoacme
+    // modifier configuration vhosts
+    // reload service web
 }
 
 include_once EVOADMIN_BASE . '../tpl/webadmin-letsencrypt.tpl.php';
