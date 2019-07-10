@@ -95,6 +95,7 @@ class LetsEncrypt
     public function checkDNSValidity($domains)
     {
         $valid_dns_domains = array();
+        $serverIP = exec("ip route get 1 | sed -n 's/^.*src \([0-9.]*\) .*$/\\1/p'");
 
         foreach ($domains as $domain) {
             //FQDN syntax
@@ -102,7 +103,7 @@ class LetsEncrypt
             $dns_record_ipv4 = dns_get_record($domain, DNS_A);
             $dns_record_ipv6 = dns_get_record($domain, DNS_AAAA);
 
-            if ($dns_record_ipv4 || $dns_record_ipv6) {
+            if ($dns_record_ipv4[0]['ip'] === $serverIP || $dns_record_ipv6[0]['ip'] === $serverIP) {
                 // remove the last dot added for the FQDN syntax
                 $domain = rtrim($domain, '.');
                 array_push($valid_dns_domains, $domain);
