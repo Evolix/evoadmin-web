@@ -21,9 +21,8 @@ if (isset($_POST['submit'])) {
             </p>
         </form>
         <?php
-
     } else {
-        echo "all checks succeeded";
+        echo "Votre certificat SSL a bien été installé !";
     }
 } else {
     echo "<p>Les domaines suivants seront intégrés au certificat : </p>";
