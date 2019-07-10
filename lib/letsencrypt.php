@@ -38,7 +38,44 @@ class LetsEncrypt
         $domains = implode(' ', $domains);
         $cmd = 'web-add.sh generate-csr ' . $vhost . ' ' . "$domains";
 
-        sudoexec($cmd ,$data_output, $exec_return);
+        sudoexec($cmd, $data_output, $exec_return);
+
+        if ($exec_return == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Generate a SSL certificate
+     * @param  string  $vhost
+     * @param  boolean $test  generate in TEST mode or not
+     * @return boolean
+     */
+    public function generateSSLCertificate($vhost, $test = true)
+    {
+        $cmd = 'web-add.sh generate-ssl-certificate ' . $vhost . ' ' . ($test ? "true" : "false");
+
+        sudoexec($cmd, $data_output, $exec_return);
+
+        if ($exec_return == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * add the 443 port to the vhost configuration
+     * @param string $vhost
+     * @return boolean
+     */
+    public function setSSLPortVhost($vhost)
+    {
+        $cmd = 'web-add.sh update-ssl-vhost-configuration ' . $vhost;
+
+        sudoexec($cmd, $data_output, $exec_return);
 
         if ($exec_return == 0) {
             return true;

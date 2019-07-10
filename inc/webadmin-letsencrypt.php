@@ -106,24 +106,53 @@ if (isset($_POST['submit'])) {
         }
 
         // check DNS
-        $valid_domains = $letsencrypt->checkDNSValidity($checked_domains);
-        $failed_domains = array_diff($checked_domains, $valid_domains);
+        $valid_domains = $letsencrypt->checkDNSValidity($_SESSION['letsencrypt-domains']);
+
+        $failed_domains = array_diff($_SESSION['letsencrypt-domains'], $valid_domains);
         if (!empty($failed_domains)) {
-            $errorMessage = "Erreur : La vérification DNS a échoué pour les domaines ci-dessous.
-                              Merci de vérifier les enregistrements de type A et AAAA.";
+            $errorMessage = "Erreur : La vérification DNS a échoué.<br>
+                              Merci de vérifier les enregistrements de type A et AAAA pour les domaine(s) suivant(s) :";
+            break;
+        }
+
+        // make csr
+        $isCsrGenerated = $letsencrypt->makeCsr($params[1], $_SESSION['letsencrypt-domains']);
+
+        if (!$isCsrGenerated) {
+            $errorMessage = "Erreur : La génération de demande de certificat a échoué.<br>
+                              Merci de contacter un administrateur pour continuer.";
+            break;
+        }
+
+        // evoacme TEST
+        $testGenerateCert = $letsencrypt->generateSSLCertificate($params[1]);
+
+        if (!$testGenerateCert) {
+            $errorMessage = "Erreur : La génération de certificat en mode TEST a échoué.<br>
+                              Merci de contacter un administrateur pour continuer.";
+            break;
+        }
+
+        // evoacme
+        // $generateCert = $letsencrypt->generateSSLCertificate($params[1], false);
+        $generateCert = $letsencrypt->generateSSLCertificate($params[1]);
+
+        if (!$generateCert) {
+            $errorMessage = "Erreur : La génération de certificat a échoué.<br>
+                              Merci de contacter un administrateur pour continuer.";
+            break;
+        }
+
+        $updatedVhostConfig = $letsencrypt->setSSLPortVhost($params[1]);
+
+        if (!$updatedVhostConfig) {
+            $errorMessage = "Erreur : La modification de la configuration de l'hôte virtuel a échoué.<br>
+                              Merci de contacter un administrateur pour continuer.";
             break;
         }
 
         break;
     }
-
-    // make csr
-    $isCsrGenerated = $letsencrypt->makeCsr($params[1], $_SESSION['letsencrypt-domains']);
-
-    // evoacme TEST ou DRY RUN
-    // evoacme
-    // modifier configuration vhosts
-    // reload service web
 }
 
 include_once EVOADMIN_BASE . '../tpl/webadmin-letsencrypt.tpl.php';
