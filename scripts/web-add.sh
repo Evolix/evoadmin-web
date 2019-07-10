@@ -161,6 +161,20 @@ manage-http-challenge-file [CREATE | DELETE]
 
     Create or delete a dummy file for the Let's Encrypt HTTP challenge
     The default directory is /var/lib/letsencrypt/.well-known/
+
+generate-csr LOGIN DOMAINS
+
+    Generate the request for the Let's Encrypt certificate
+
+generate-ssl-certificate LOGIN [TRUE | FALSE]
+
+    Generate the Let's Encrypt certificate
+    Run in TEST mode if TRUE
+
+update-ssl-vhost-configuration LOGIN
+
+    Add the 443 port to the vhost configuration and reload the service
+    
 EOT
 }
 
@@ -856,6 +870,12 @@ arg_processing() {
         generate-csr)
             op_makecsr "$@"
             ;;
+        generate-ssl-certificate)
+            op_generatesslcertificate "$@"
+            ;;
+        update-ssl-vhost-configuration)
+            op_updatesslvhost "$@"
+            ;;
         *)
             usage
             ;;
@@ -877,6 +897,38 @@ op_makecsr() {
 
         # pipe the domains to make-csr because we don't have STDIN
         echo "$domains" | make-csr "$vhost"
+    else usage
+    fi
+}
+
+op_generatesslcertificate() {
+    if [ $# -gt 1 ]; then
+        vhost="$1"
+        test_mode="$2"
+
+        if [ "$test_mode" = "false" ]; then
+            evoacme "$vhost"
+        else
+            TEST=1 evoacme "$vhost"
+        fi
+    else usage
+    fi
+}
+
+op_updatesslvhost() {
+    if [ $# -eq 1 ]; then
+        vhostfile="/etc/apache2/sites-enabled/$1.conf"
+
+        sed -i "s/:80>/:80 *:443>/" "$vhostfile"
+
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
+
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
     else usage
     fi
 }
