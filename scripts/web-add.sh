@@ -942,7 +942,7 @@ op_managehttpchallengefile() {
 
         if [ "$action" = "create" ]; then
             if [ ! -d "$folder" ]; then
-                mkdir "$folder"
+                mkdir -p "$folder"
             fi
             if [ ! -f "$folder/$file" ]; then
                 touch "$folder/$file"
