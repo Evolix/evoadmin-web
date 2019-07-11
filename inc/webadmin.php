@@ -79,7 +79,7 @@ if (!$conf['cluster']) {
         }
 
         // current vhost isn't standard and thus not manageable by evoadmin-web
-        if (!$data_split[9]) {
+        if (!$data_split[9] && (!in_array($data_split[0], $_SESSION['non_standard']))) {
           array_push($_SESSION['non_standard'], $data_split[0]);
         }
 
