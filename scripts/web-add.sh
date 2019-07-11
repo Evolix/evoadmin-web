@@ -935,17 +935,17 @@ op_updatesslvhost() {
 
 op_managehttpchallengefile() {
     if [ $# -eq 1 ]; then
-        folder="/var/lib/letsencrypt/.well-known/acme-challenge"
+        folder="/var/lib/letsencrypt/.well-known"
         file="testfile"
 
         action=${1};
 
         if [ "$action" = "create" ]; then
             if [ ! -d "$folder" ]; then
-                mkdir -p "$folder"
+                mkdir -p "$folder/acme-challenge"
             fi
-            if [ ! -f "$folder/$file" ]; then
-                touch "$folder/$file"
+            if [ ! -f "$folder/acme-challenge/$file" ]; then
+                touch "$folder/acme-challenge/$file"
             fi
             chmod -R 755 "$folder"
         elif [ "$action" = "delete" ]; then
