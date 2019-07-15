@@ -7,6 +7,9 @@
     # Repertoire principal
     DocumentRoot HOME_DIR/XXX/www/
 
+    # SSL
+    IncludeOptional /etc/apache2/ssl/XXX.conf
+    
     # Propriete du repertoire
     <Directory HOME_DIR/XXX/www/>
         #Options +Indexes +SymLinksIfOwnerMatch
