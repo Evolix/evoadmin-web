@@ -909,7 +909,7 @@ op_generatesslcertificate() {
         if [ "$test_mode" = "false" ]; then
             evoacme "$vhost"
         else
-            TEST=1 evoacme "$vhost"
+            DRY_RUN=1 evoacme "$vhost"
         fi
     else usage
     fi
@@ -917,7 +917,7 @@ op_generatesslcertificate() {
 
 op_updatesslvhost() {
     if [ $# -eq 1 ]; then
-        vhostfile="/etc/apache2/sites-enabled/$1.conf"
+        vhostfile="/etc/apache2/sites-available/$1.conf"
 
         sed -i "s/:80>/:80 *:443>/" "$vhostfile"
 

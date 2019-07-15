@@ -134,8 +134,7 @@ if (isset($_POST['submit'])) {
         }
 
         // evoacme
-        // $generateCert = $letsencrypt->generateSSLCertificate($params[1], false);
-        $generateCert = $letsencrypt->generateSSLCertificate($params[1]);
+        $generateCert = $letsencrypt->generateSSLCertificate($params[1], false);
 
         if (!$generateCert) {
             $errorMessage = "Erreur : La génération de certificat a échoué.<br>
