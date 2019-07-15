@@ -174,9 +174,9 @@ class LetsEncrypt
     public function getCertificate($domain)
     {
         $stream = stream_context_create(array("ssl" => array("capture_peer_cert" => true)));
-        $read = fopen("https://" . $domain, "rb", false, $stream);
+        $read = stream_socket_client("ssl://" . $domain . ":443", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $stream);
         $cont = stream_context_get_params($read);
-
+        
         return $cont;
     }
 
