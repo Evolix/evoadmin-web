@@ -142,14 +142,6 @@ if (isset($_POST['submit'])) {
             break;
         }
 
-        $updatedVhostConfig = $letsencrypt->setSSLPortVhost($params[1]);
-
-        if (!$updatedVhostConfig) {
-            $errorMessage = "Erreur : La modification de la configuration de l'hôte virtuel a échoué.<br>
-                              Merci de contacter un administrateur pour continuer.";
-            break;
-        }
-
         break;
     }
 }

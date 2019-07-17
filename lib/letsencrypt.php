@@ -67,24 +67,6 @@ class LetsEncrypt
     }
 
     /**
-     * add the 443 port to the vhost configuration
-     * @param string $vhost
-     * @return boolean
-     */
-    public function setSSLPortVhost($vhost)
-    {
-        $cmd = 'web-add.sh update-ssl-vhost-configuration ' . $vhost;
-
-        sudoexec($cmd, $data_output, $exec_return);
-
-        if ($exec_return == 0) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
      * perform a cURL call on the remote resource
      * the cURL call follows redirections
      * @param  Array  $domains list of domains
