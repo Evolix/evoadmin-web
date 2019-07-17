@@ -907,6 +907,9 @@ op_generatesslcertificate() {
         test_mode="$2"
 
         if [ "$test_mode" = "false" ]; then
+            if [ -L /etc/letsencrypt/$vhost/live ]; then
+                rm /etc/letsencrypt/$vhost/live
+            fi
             evoacme "$vhost"
         else
             DRY_RUN=1 evoacme "$vhost"
