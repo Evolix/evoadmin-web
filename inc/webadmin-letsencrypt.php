@@ -90,8 +90,18 @@ if (isset($_POST['submit'])) {
                 break;
             }
 
-            $warningMessage = "Attention : le certificat existant couvre déjà certains domaines.
-                             Souhaitez-vous le renouveller ?";
+            $warningMessage = "Attention : le certificat existant couvre déjà le(s) domaine(s) :<br>";
+
+            foreach ($domainsIncluded as $domainIncluded) {
+                $warningMessage .= $domainIncluded . "<br>";
+            }
+
+            $warningMessage .= "<br><strong>En confirmant le renouvellement, vous allez ajouter :</strong><br>";
+
+            foreach ($domainsNotIncluded as $domainNotIncluded) {
+                $warningMessage .= $domainNotIncluded . "<br>";
+            }
+
 
             break;
         }
