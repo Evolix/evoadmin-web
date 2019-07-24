@@ -765,6 +765,11 @@ op_del() {
         sed -i.bak "/-config=$login/d" /etc/cron.d/awstats
         nginx -t
     fi
+
+    if [ -d /etc/letsencrypt/"$login" ]; then
+        rm -r /etc/letsencrypt/"$login"
+    fi
+
     set +x
 
     if [ -n "$dbname" ]; then
