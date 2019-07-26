@@ -28,84 +28,12 @@ if (!isset($_SESSION['lestencrypt-domains']) || empty($_SESSION['letsencrypt-dom
 include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
 include_once EVOADMIN_BASE . '../tpl/menu.tpl.php';
 
+$letsencrypt = new letsencryt();
+$errorMessage = '';
+$warningMessage = '';
+
 if (isset($_POST['submit'])) {
-    $letsencrypt = new letsencryt();
-    $errorMessage = '';
-    $warningMessage = '';
-
     while (true) {
-        // check domains list
-        if (empty($_SESSION['letsencrypt-domains'])) {
-            $errorMessage = "Erreur : la liste des domaines est vide.";
-            break;
-        }
-
-        // check if evoacme is installed
-        $binaries_installed = $letsencrypt->isEvoacmeInstalled();
-        if (!$binaries_installed) {
-            $errorMessage = "Erreur : les binaires Evoacme ne sont pas installés.
-                              Veuillez contacter un administrateur.";
-            break;
-        }
-
-        // Check existing SSL certificate
-        $domainsIncluded = array();
-        foreach ($_SESSION['letsencrypt-domains'] as $domain) {
-            $existingSSLCertificate = $letsencrypt->getCertificate($domain);
-            // if no certificate is present (false returned) for this domain, go to the next domain
-            if (is_bool($existingSSLCertificate)) {
-                continue;
-            }
-            $parsedCertificate = $letsencrypt->parseCertificate($existingSSLCertificate);
-
-            // check if LE is the certificate issuer
-            $isIssuerValid = $letsencrypt->isCertIssuedByLetsEncrypt($parsedCertificate["issuer"]);
-            if (!$isIssuerValid) {
-                $errorMessage = "Erreur : le certificat existant n'est pas géré par Let's Encrypt.";
-                break 2; // break the foreach and the while
-            }
-
-            // check if the domain is already in the certificate
-            $isDomainIncluded = $letsencrypt->isDomainIncludedInCert($domain, $parsedCertificate["includedDomains"]);
-            if ($isDomainIncluded) {
-                array_push($domainsIncluded, $domain);
-                continue; // break only the current foreach iteration
-            }
-
-            // check wether the certificate is valid or expired
-            $isCertValid = $letsencrypt->isCertValid($parsedCertificate["validUntil"]);
-            if (!$îsCertValid && !isset($_POST['force_renew'])) {
-                $warningMessage = "Attention : le certificat existant n'est plus valide.
-                                 Souhaitez-vous le renouveller ?";
-                break 2;
-            }
-        }
-
-        // contains all the domains included in the existing certificate
-        if (!empty($domainsIncluded) && !isset($_POST['force_renew'])) {
-            $domainsNotIncluded = array_diff($_SESSION['letsencrypt-domains'], $domainsIncluded);
-
-            if (empty($domainsNotIncluded)) {
-                $errorMessage = "Erreur : le certificat existant couvre déjà tous les domaines.";
-                break;
-            }
-
-            $warningMessage = "Attention : le certificat existant couvre déjà le(s) domaine(s) :<br>";
-
-            foreach ($domainsIncluded as $domainIncluded) {
-                $warningMessage .= $domainIncluded . "<br>";
-            }
-
-            $warningMessage .= "<br><strong>En confirmant le renouvellement, vous allez ajouter :</strong><br>";
-
-            foreach ($domainsNotIncluded as $domainNotIncluded) {
-                $warningMessage .= $domainNotIncluded . "<br>";
-            }
-
-
-            break;
-        }
-
         // check HTTP
         $isRemoteResourceAvailable = $letsencrypt->checkRemoteResourceAvailability($_SESSION['letsencrypt-domains'][0]);
 
@@ -153,6 +81,84 @@ if (isset($_POST['submit'])) {
         }
 
         break;
+    }
+} else {
+    $validUntil = '';
+
+    while(true) {
+        // check domains list
+        if (empty($_SESSION['letsencrypt-domains'])) {
+            $errorMessage = "Erreur : la liste des domaines est vide.";
+            break;
+        }
+
+        // check if evoacme is installed
+        $binaries_installed = $letsencrypt->isEvoacmeInstalled();
+        if (!$binaries_installed) {
+            $errorMessage = "Erreur : les binaires Evoacme ne sont pas installés.
+                              Veuillez contacter un administrateur.";
+            break;
+        }
+
+        // Check existing SSL certificate
+        $domainsIncluded = array();
+        foreach ($_SESSION['letsencrypt-domains'] as $domain) {
+            $existingSSLCertificate = $letsencrypt->getCertificate($domain);
+            // if no certificate is present (false returned) for this domain, go to the next domain
+            if (is_bool($existingSSLCertificate)) {
+                continue;
+            }
+            $parsedCertificate = $letsencrypt->parseCertificate($existingSSLCertificate);
+
+            // check if LE is the certificate issuer
+            $isIssuerValid = $letsencrypt->isCertIssuedByLetsEncrypt($parsedCertificate["issuer"]);
+            if (!$isIssuerValid) {
+                $errorMessage = "Erreur : le certificat existant n'est pas géré par Let's Encrypt.";
+                break 2; // break the foreach and the while
+            }
+
+            // check wether the certificate is valid or expired
+
+            $isCertValid = $letsencrypt->isCertValid($parsedCertificate["validUntil"]);
+            if (!$isCertValid && !isset($_POST['force_renew'])) {
+                $warningMessage = "Attention : le certificat existant n'est plus valide.
+                                 Souhaitez-vous le renouveller ?";
+                break 2;
+            } else {
+                $validUntil = date("d/m/Y", $parsedCertificate["validUntil"]);
+            }
+
+            // check if the domain is already in the certificate
+            $isDomainIncluded = $letsencrypt->isDomainIncludedInCert($domain, $parsedCertificate["includedDomains"]);
+            if ($isDomainIncluded) {
+                array_push($domainsIncluded, $domain);
+                continue; // break only the current foreach iteration
+            }
+        }
+
+        // contains all the domains included in the existing certificate
+        if (!empty($domainsIncluded) && !isset($_POST['force_renew'])) {
+            $domainsNotIncluded = array_diff($_SESSION['letsencrypt-domains'], $domainsIncluded);
+
+            if (empty($domainsNotIncluded)) {
+                $errorMessage = "Le certificat existant couvre déjà tous les domaines jusqu'au " . $validUntil . ".";
+                break;
+            }
+
+            $warningMessage = "Attention : le certificat existant couvre déjà le(s) domaine(s) jusqu'au " . $validUntil . " :<br>";
+
+            foreach ($domainsIncluded as $domainIncluded) {
+                $warningMessage .= $domainIncluded . "<br>";
+            }
+
+            $warningMessage .= "<br><strong>En confirmant le renouvellement, vous allez ajouter :</strong><br>";
+
+            foreach ($domainsNotIncluded as $domainNotIncluded) {
+                $warningMessage .= $domainNotIncluded . "<br>";
+            }
+
+            break;
+        }
     }
 }
 
