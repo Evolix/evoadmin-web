@@ -134,6 +134,16 @@ if (isset($_POST['submit'])) {
         // Check existing SSL certificate
         $domainsIncluded = array();
         foreach ($_SESSION['letsencrypt-domains'] as $domain) {
+
+            $isDomainReal = $letsencrypt->isDomainReal($domain);
+
+            if ($isDomainReal === false) {
+                $errorMessage = "Erreur : le domaine " . $domain . " n'existe pas. Veuillez vérifier les enregistrements DNS.";
+
+                array_push($messages, ["type" => "error", "content" => $errorMessage]);
+                break 2;
+            }
+
             $existingSSLCertificate = $letsencrypt->getCertificate($domain);
             // if no certificate is present (false returned) for this domain, go to the next domain
             if (is_bool($existingSSLCertificate)) {

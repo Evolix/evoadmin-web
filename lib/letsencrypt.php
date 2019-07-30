@@ -28,6 +28,20 @@ class LetsEncrypt
     }
 
     /**
+     * verify if the domain exists
+     * @param  string  $domain
+     * @return boolean
+     */
+    public function isDomainReal($domain)
+    {
+        if (checkdnsrr($domain, 'A') || checkdnsrr($domain, 'AAAA')) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * generate a CSR
      * @param  string $vhost
      * @param  Array $domains
