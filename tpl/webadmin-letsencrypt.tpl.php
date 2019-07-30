@@ -33,7 +33,7 @@ if (!empty($messages)) {
         }
     }
 } else {
-    if (isset($_POST["submit"])) {
+    if (!isset($_POST["submit"])) {
         echo "<p>Les domaines suivants seront intégrés au certificat : </p>";
         if (count($_SESSION['letsencrypt-domains']) > 0) {
             echo '<p>';
@@ -47,7 +47,5 @@ if (!empty($messages)) {
             </form>
             <?php
         }
-    } else {
-        echo "Votre certificat SSL a bien été installé !";
     }
 }

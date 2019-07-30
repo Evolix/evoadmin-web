@@ -191,9 +191,9 @@ if (isset($_POST['submit'])) {
 
             if (empty($domainsNotIncluded)) {
 
-                $errorMessage = "Le certificat existant couvre déjà tous les domaines jusqu'au " . $validUntil . ".";
+                $noticeMessage = "Le certificat existant couvre déjà tous les domaines jusqu'au " . $validUntil . ".";
 
-                array_push($messages, ["type" => "notice", "content" => $errorMessage]);
+                array_push($messages, ["type" => "notice", "content" => $noticeMessage]);
 
                 break;
             }
@@ -212,9 +212,16 @@ if (isset($_POST['submit'])) {
             }
 
             array_push($messages, ["type" => "warning", "content" => $warningMessage]);
+            break;
         }
+
+        $noticeMessage = "Votre certificat SSL a bien été installé !";
+        array_push($messages, ["type" => "notice", "content" => $noticeMessage]);
+        
         break;
     }
+
+
 }
 
 include_once EVOADMIN_BASE . '../tpl/webadmin-letsencrypt.tpl.php';
