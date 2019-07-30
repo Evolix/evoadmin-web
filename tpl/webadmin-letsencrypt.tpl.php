@@ -47,5 +47,7 @@ if (!empty($messages)) {
             </form>
             <?php
         }
+    } else {
+        echo "Votre certificat SSL a bien été installé !";
     }
 }

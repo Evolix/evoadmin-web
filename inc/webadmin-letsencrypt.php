@@ -215,9 +215,6 @@ if (isset($_POST['submit'])) {
             break;
         }
 
-        $noticeMessage = "Votre certificat SSL a bien été installé !";
-        array_push($messages, ["type" => "notice", "content" => $noticeMessage]);
-        
         break;
     }
 
