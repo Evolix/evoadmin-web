@@ -144,6 +144,11 @@ span.form-warning {
     margin-left: 4px;
 }
 
+span.form-notice {
+    color: #009B85;
+    margin-left: 4px;
+}
+
 span.form-mandatory {
     color: red;
 }

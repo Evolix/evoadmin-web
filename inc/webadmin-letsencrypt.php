@@ -32,14 +32,21 @@ $letsencrypt = new letsencryt();
 $errorMessage = '';
 $warningMessage = '';
 
+// it's an array if we want to display multiple messages in the future
+$messages = array();
+
 if (isset($_POST['submit'])) {
     while (true) {
         // check HTTP
         $isRemoteResourceAvailable = $letsencrypt->checkRemoteResourceAvailability($_SESSION['letsencrypt-domains'][0]);
 
         if (!$isRemoteResourceAvailable) {
+
             $errorMessage = "Erreur : Le challenge HTTP a échoué.<br>
                               Merci de vérifier que le dossier <code>/.well-known/evoacme-challenge/</code> est accessible.";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+            
             break;
         }
 
@@ -48,8 +55,12 @@ if (isset($_POST['submit'])) {
 
         $failed_domains = array_diff($_SESSION['letsencrypt-domains'], $valid_domains);
         if (!empty($failed_domains)) {
+
             $errorMessage = "Erreur : La vérification DNS a échoué.<br>
                               Merci de vérifier les enregistrements de type A et AAAA pour les domaine(s) suivant(s) :";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
             break;
         }
 
@@ -57,8 +68,12 @@ if (isset($_POST['submit'])) {
         $isCsrGenerated = $letsencrypt->makeCsr($params[1], $_SESSION['letsencrypt-domains']);
 
         if (!$isCsrGenerated) {
+
             $errorMessage = "Erreur : La génération de demande de certificat a échoué.<br>
                               Merci de contacter un administrateur pour continuer.";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
             break;
         }
 
@@ -66,8 +81,12 @@ if (isset($_POST['submit'])) {
         $testGenerateCert = $letsencrypt->generateSSLCertificate($params[1]);
 
         if (!$testGenerateCert) {
+
             $errorMessage = "Erreur : La génération de certificat en mode TEST a échoué.<br>
                               Merci de contacter un administrateur pour continuer.";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
             break;
         }
 
@@ -75,8 +94,12 @@ if (isset($_POST['submit'])) {
         $generateCert = $letsencrypt->generateSSLCertificate($params[1], false);
 
         if (!$generateCert) {
+
             $errorMessage = "Erreur : La génération de certificat a échoué.<br>
                               Merci de contacter un administrateur pour continuer.";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
             break;
         }
 
@@ -88,15 +111,23 @@ if (isset($_POST['submit'])) {
     while(true) {
         // check domains list
         if (empty($_SESSION['letsencrypt-domains'])) {
+
             $errorMessage = "Erreur : la liste des domaines est vide.";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
             break;
         }
 
         // check if evoacme is installed
         $binaries_installed = $letsencrypt->isEvoacmeInstalled();
         if (!$binaries_installed) {
+
             $errorMessage = "Erreur : les binaires Evoacme ne sont pas installés.
                               Veuillez contacter un administrateur.";
+
+            array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
             break;
         }
 
@@ -113,7 +144,11 @@ if (isset($_POST['submit'])) {
             // check if LE is the certificate issuer
             $isIssuerValid = $letsencrypt->isCertIssuedByLetsEncrypt($parsedCertificate["issuer"]);
             if (!$isIssuerValid) {
+
                 $errorMessage = "Erreur : le certificat existant n'est pas géré par Let's Encrypt.";
+
+                array_push($messages, ["type" => "error", "content" => $errorMessage]);
+
                 break 2; // break the foreach and the while
             }
 
@@ -121,8 +156,12 @@ if (isset($_POST['submit'])) {
 
             $isCertValid = $letsencrypt->isCertValid($parsedCertificate["validUntil"]);
             if (!$isCertValid && !isset($_POST['force_renew'])) {
+
                 $warningMessage = "Attention : le certificat existant n'est plus valide.
                                  Souhaitez-vous le renouveller ?";
+
+                array_push($messages, ["type" => "warning", "content" => $warningMessage]);
+
                 break 2;
             } else {
                 $validUntil = date("d/m/Y", $parsedCertificate["validUntil"]);
@@ -141,9 +180,14 @@ if (isset($_POST['submit'])) {
             $domainsNotIncluded = array_diff($_SESSION['letsencrypt-domains'], $domainsIncluded);
 
             if (empty($domainsNotIncluded)) {
+
                 $errorMessage = "Le certificat existant couvre déjà tous les domaines jusqu'au " . $validUntil . ".";
+
+                array_push($messages, ["type" => "notice", "content" => $errorMessage]);
+
                 break;
             }
+
 
             $warningMessage = "Attention : le certificat existant couvre déjà le(s) domaine(s) jusqu'au " . $validUntil . " :<br>";
 
@@ -156,6 +200,8 @@ if (isset($_POST['submit'])) {
             foreach ($domainsNotIncluded as $domainNotIncluded) {
                 $warningMessage .= $domainNotIncluded . "<br>";
             }
+
+            array_push($messages, ["type" => "warning", "content" => $warningMessage]);
         }
         break;
     }
