@@ -156,9 +156,8 @@ if (isset($_POST['submit'])) {
             foreach ($domainsNotIncluded as $domainNotIncluded) {
                 $warningMessage .= $domainNotIncluded . "<br>";
             }
-
-            break;
         }
+        break;
     }
 }
 
