@@ -138,7 +138,7 @@ if (isset($_POST['submit'])) {
             $isDomainReal = $letsencrypt->isDomainReal($domain);
 
             if ($isDomainReal === false) {
-                $errorMessage = "Erreur : le domaine " . $domain . " n'existe pas. Veuillez vérifier les enregistrements DNS.";
+                $errorMessage = "Erreur : le domaine <strong>" . $domain . "</strong> n'existe pas. Veuillez vérifier les enregistrements DNS.";
 
                 array_push($messages, ["type" => "error", "content" => $errorMessage]);
                 break 2;
@@ -155,7 +155,7 @@ if (isset($_POST['submit'])) {
             $isIssuerValid = $letsencrypt->isCertIssuedByLetsEncrypt($parsedCertificate["issuer"]);
             if (!$isIssuerValid) {
 
-                $errorMessage = "Erreur : le certificat existant n'est pas géré par Let's Encrypt.";
+                $errorMessage = "Erreur : le certificat existant pour <strong>" . $domain . "</strong> n'est pas géré par Let's Encrypt.";
 
                 array_push($messages, ["type" => "error", "content" => $errorMessage]);
 
@@ -167,7 +167,7 @@ if (isset($_POST['submit'])) {
             $isCertValid = $letsencrypt->isCertValid($parsedCertificate["validUntil"]);
             if (!$isCertValid && !isset($_POST['force_renew'])) {
 
-                $warningMessage = "Attention : le certificat existant n'est plus valide.
+                $warningMessage = "Attention : le certificat existant pour <strong>" . $domain . "</strong> n'est plus valide.
                                  Souhaitez-vous le renouveller ?";
 
                 array_push($messages, ["type" => "warning", "content" => $warningMessage]);
