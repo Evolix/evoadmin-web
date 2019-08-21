@@ -8,8 +8,10 @@
     DocumentRoot HOME_DIR/XXX/www/
 
     # SSL
-    IncludeOptional /etc/apache2/ssl/XXX.conf
-    
+    # Apache < 2.4.30 (Jessie, Stretch) va générer une erreur si le fichier
+    # désigné sans regex n'existe pas. On contourne ça avec [f] à place de f
+    IncludeOptional /etc/apache2/ssl/XXX.con[f]
+
     # Propriete du repertoire
     <Directory HOME_DIR/XXX/www/>
         #Options +Indexes +SymLinksIfOwnerMatch
@@ -67,4 +69,3 @@
     #php_value default_charset ISO-8859-15
     php_admin_value sendmail_path "/usr/sbin/sendmail -t -i -f www-XXX"
     php_admin_value open_basedir "/usr/share/php:HOME_DIR/XXX:/tmp"
-

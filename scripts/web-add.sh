@@ -438,6 +438,9 @@ EOT
 
     random=$RANDOM
     if [ "$WEB_SERVER" == "apache" ]; then
+        # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
+        mkdir -p /etc/apache2/ssl
+
         vhostfile="/etc/apache2/sites-available/${in_login}.conf"
         sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
 
