@@ -159,6 +159,8 @@ if (isset($_POST['submit'])) {
 
             break;
         }
+
+        break;
     }
 }
 
