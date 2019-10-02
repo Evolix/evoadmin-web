@@ -1075,7 +1075,7 @@ op_checkoccurencename() {
             fi
         done
 
-        echo "$servernames" "$aliases" | grep -wE "\s$name"
+        echo "$servernames" "$aliases" | grep -E "\b$name"
     else
         usage
     fi
