@@ -717,7 +717,13 @@ op_del() {
 
     set -x
     if [ "$WEB_SERVER" == "apache" ]; then
+        if ps -u www-"$login" >/dev/null ; then
+            killall -s SIGKILL -u www-"$login"
+        fi
         userdel www-"$login"
+    fi
+    if ps -u "$login" >/dev/null ; then
+        killall -s SIGKILL -u "$login"
     fi
     userdel "$login"
     for php_version in "${PHP_VERSIONS[@]}"; do
