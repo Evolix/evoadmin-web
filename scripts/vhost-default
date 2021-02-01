@@ -7,9 +7,9 @@
                 Options FollowSymLinks
                 AllowOverride None
 
-                Deny from all
-
-                #Allow from XXX.XXX.XXX.XXX
+                Require all denied
+                #Comment the previous directive when enabling the next
+                #Require ip XXX.XXX.XXX.XXX
         </Directory>
 
         <Directory /var/www/>
@@ -41,11 +41,11 @@
         #<Directory /usr/share/horde3>
         #       Options FollowSymLinks
         #       AllowOverride Limit
-        #       Allow from all
+        #       Require all granted
         #</Directory>
 
         <Files ~ "\.(inc|bak)$">
-                deny from all
+                Require all denied
         </Files>
 
 </VirtualHost>

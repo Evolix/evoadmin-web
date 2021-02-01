@@ -29,14 +29,9 @@
         AuthName "Restricted"
         AuthUserFile HOME_DIR/XXX/.htpasswd
         AuthType Basic
-        require valid-user
-
-        Order Deny,Allow
-        Deny from all
+        Require valid-user
 
         #Include /etc/apache2/ipaddr_whitelist.conf
-
-        Satisfy any
     </Directory>
 
     # user - group (thanks to sesse@debian.org)
