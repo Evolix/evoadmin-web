@@ -466,7 +466,7 @@ EOT
             sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
         fi
 
-        a2ensite "$in_login" >/dev/null
+        a2ensite "${in_login}.conf" >/dev/null
 
         step_ok "Configuration d'Apache"
 
@@ -741,7 +741,7 @@ op_del() {
     fi
 
     if [ "$WEB_SERVER" == "apache" ]; then
-        a2dissite "$login"
+        a2dissite "${login}.conf"
         rm /etc/apache2/sites-available/"$login.conf"
         rm /etc/awstats/awstats."$login.conf"
         sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
@@ -1351,7 +1351,7 @@ op_checkvhosts() {
     do
 		vhost_name=$(basename "$ln_path")
 		fix_conf="mv $ln_path $VHOST_PATH/$vhost_name"
-		fix_ln="a2ensite $vhost_name"
+		fix_ln="a2ensite ${vhost_name}.conf"
 
 		if [[ -z "$apply" ]]; then
 			echo "Suggested fixes for $vhost_name:"
