@@ -187,7 +187,7 @@ EOT
 }
 
 gen_random_passwd() {
-    apg -c /dev/urandom -n1 -E oOlL10\&\\\/\"\'
+    apg -c /dev/urandom -MNCL -n1 -m18  -E oOlL10
 }
 
 validate_login() {
