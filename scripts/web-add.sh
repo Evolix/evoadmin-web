@@ -427,10 +427,11 @@ listen = ${phpfpm_socket_path}
 listen.owner = ${in_login}
 listen.group = ${in_login}
 
-pm.status_path = /evolinux_fpm_status-$(apg -Mncl -n1 -m32)
 pm = ondemand
+pm.status_path = /evolinux_fpm_status-$(apg -Mncl -n1 -m32)
 pm.max_children = 10
 pm.process_idle_timeout = 10s
+
 php_admin_value[error_log] = /home/${in_login}/log/php.log
 EOT
         step_ok "Création du pool FPM ${php_version}"
