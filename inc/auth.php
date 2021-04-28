@@ -20,6 +20,7 @@ if ((empty($_GET['form']) || $_GET['form']!=1) && !empty($_POST)) {
   if (hash("sha256",$password) == $conf['logins'][$username]) {
     $_SESSION['auth']=1;
     $_SESSION['user']=$username;
+    $_SESSION['user_id'] = posix_getpwnam($username) ? posix_getpwnam($username)['uid'] : 65534;
     $_SESSION['error']='';
   } else {
     $_SESSION['auth']=0;
