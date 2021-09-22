@@ -725,9 +725,9 @@ op_del() {
 
     set -x
     if [ "$WEB_SERVER" == "apache" ]; then
-        userdel www-"$login"
+        userdel -f www-"$login"
     fi
-    userdel "$login"
+    userdel -f "$login"
     for php_version in "${PHP_VERSIONS[@]}"; do
         lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
         lxc-attach -n php"${php_version}" -- userdel -f "$login"
