@@ -416,6 +416,8 @@ create_www_account() {
             pool_path="/etc/php/7.3/fpm/pool.d/"
         elif [ "$php_version" = "74" ]; then
             pool_path="/etc/php/7.4/fpm/pool.d/"
+        elif [ "$php_version" = "80" ]; then
+            pool_path="/etc/php/8.0/fpm/pool.d/"
         else
             pool_path="/etc/php5/fpm/pool.d/"
         fi
@@ -586,6 +588,9 @@ EOT
             elif [ "$php_version" = "74" ]; then
                 initscript_path="/etc/init.d/php7.4-fpm"
                 binary="php-fpm7.4"
+            elif [ "$php_version" = "80" ]; then
+                initscript_path="/etc/init.d/php8.0-fpm"
+                binary="php-fpm8.0"
             else
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
