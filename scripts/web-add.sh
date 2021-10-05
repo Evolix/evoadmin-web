@@ -764,6 +764,9 @@ op_del() {
             elif [ "$php_version" = "74" ]; then
                 phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
                 initscript_path="/etc/init.d/php7.4-fpm"
+            elif [ "$php_version" = "80" ]; then
+                phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
+                initscript_path="/etc/init.d/php8.0-fpm"
             else
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
