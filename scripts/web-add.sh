@@ -730,11 +730,15 @@ op_del() {
 
     set -x
     if [ "$WEB_SERVER" == "apache" ]; then
-        userdel -f www-"$login"
+        if id www-"$login" &> /dev/null; then
+            userdel -f www-"$login"
+        fi
     fi
     userdel -f "$login"
     for php_version in "${PHP_VERSIONS[@]}"; do
-        lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+        if lxc-attach -n php"${php_version}" -- id www-"$login" &> /dev/null; then
+            lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+        fi
         lxc-attach -n php"${php_version}" -- userdel -f "$login"
     done
     sed -i.bak "/^$login:/d" /etc/aliases
