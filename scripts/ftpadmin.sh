@@ -59,30 +59,32 @@ log_msg() {
 
 get_user_login_by_UID() {
     uid=$1
-    grep "$uid" /etc/passwd | awk -F : "{if (\$3==$uid) print \$1}"
+    grep "$uid" /etc/passwd | awk -F : '{if ($3==$uid) print $1}'
 }
 
 list_accounts_by_UID() {
-  uid=$1
+    uid=$1
+  
+    # Remove # and empty lines
+    ftp_users=$(grep -v -E '^[[:blank:]]*(#.*)*$' "$VPASSWD_PATH")
 
-  while IFS=$'\n' read -r line;
-  do
-     line_uid="$(echo "$line" | cut -d":" -f3)"
-
-     if [[ ! "$uid" ]] ||  [[ "$line_uid" == "$uid" ]]; then
-       username="$(get_user_login_by_UID "$line_uid")"
-       account="$(echo "$line" | cut -d":" -f1)"
-       path="$(echo "$line" | cut -d":" -f6)"
-       size="$(du -s "$path" | cut -f 1)"
-       #modif="$(cat $path/.lastmodified)"
-       # Passage en minuscule ?
-       #account="$(echo $account | tr '[A-Z]' '[a-z]')"
-       #path="$(echo $path | tr '[A-Z]' '[a-z]')"
-
-       echo "$username:$account:$path:$size${modif:+:$modif}"
-       
-     fi
-  done < "$VPASSWD_PATH"
+    for line in $ftp_users; do
+        line_uid="$(echo "$line" | cut -d":" -f3)"
+    
+        if [[ ! "$uid" ]] || [[ "$line_uid" == "$uid" ]]; then
+            username=$(get_user_login_by_UID "$line_uid")
+            account=$(echo "$line" | cut -d":" -f1)
+            path=$(echo "$line" | cut -d":" -f6)
+            size="inconnue"
+            # Check output of daily "du" cron job
+            # (set by ansible-roles/packweb-apache/tasks/main.yml)
+            if [ -r "$path/.size" ]; then
+                size=$(cat "$path/.size")
+            fi
+            #modif="$(cat $path/.lastmodified)"
+            echo "$username:$account:$path:$size${modif:+:$modif}"
+        fi
+    done
 }
 
 add_account() {
