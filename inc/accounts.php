@@ -53,7 +53,7 @@ function web_add($form, $admin_mail) {
         }
     }
 
-    if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+    if (array_key_exists('php_versions', $conf) && is_array($conf['php_versions'])) {
         $exec_cmd .= sprintf(' -r %s', $conf['php_versions'][$form->getField('php_version')->getValue()]);
     }
 
@@ -347,7 +347,7 @@ if ($conf['bindadmin']) {
     $form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
 }
 
-if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+if (array_key_exists('php_versions', $conf) && is_array($conf['php_versions'])) {
     $form->addField('php_version', new SelectFormField("Version de PHP", TRUE, $conf['php_versions']));
 }
 
