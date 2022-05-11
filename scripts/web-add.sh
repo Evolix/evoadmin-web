@@ -735,8 +735,10 @@ op_del() {
 
     set -x
     # Crontab dump needs to be done **before** user deletion
-    crontab -l -u "$login" &> /home/$login/crontab-$(date '+%Y%m%d-%H%M%S').bak
-    crontab -r -u "$login"
+    if crontab -l -u "$login"; then
+        crontab -l -u "$login" &> /home/$login/crontab-$(date '+%Y%m%d-%H%M%S').bak
+        crontab -r -u "$login"
+    fi
 
     if [ "$WEB_SERVER" == "apache" ]; then
         if id www-"$login" &> /dev/null; then
