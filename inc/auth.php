@@ -1,44 +1,44 @@
 <?php
-
 /**
- * Authentification page 
+ * Authentification controler 
  *
- * Copyright (c) 2009 Evolix - Tous droits reserves
+ * Copyright (c) 2009-2022 Evolix - Tous droits reserves
  *
- * vim: expandtab softtabstop=4 tabstop=4 shiftwidth=4 showtabline=2 
- *
- * @author Gregory Colpart <reg@evolix.fr>
- * @author Thomas Martin <tmartin@evolix.fr>
- * @author Sebastien Palma <spalma@evolix.fr>
+ * @author  Evolix <info@evolix.fr>
+ * @author  Gregory Colpart <reg@evolix.fr>
+ * @author  Thomas Martin <tmartin@evolix.fr>
+ * @author  Sebastien Palma <spalma@evolix.fr>
+ * @author  and others.
  * @version 1.0
  */
 
-if ((empty($_GET['form']) || $_GET['form']!=1) && !empty($_POST)) {
-  $username=$_POST['login'];
-  $password=$_POST['passw'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST)) {
+    $input_username = $_POST['login'];
+    $input_password = $_POST['passw'];
 
-  if (hash("sha256",$password) == $conf['logins'][$username]) {
-    $_SESSION['auth']=1;
-    $_SESSION['user']=$username;
-    $_SESSION['user_id'] = posix_getpwnam($username) ? posix_getpwnam($username)['uid'] : 65534;
-    $_SESSION['error']='';
-  } else {
-    $_SESSION['auth']=0;
-    $_SESSION['user']='';
-    $_SESSION['error']=1;
-  }
-  http_redirect('/'); 
+    if (isset($conf['logins'][$input_username]) && password_verify($input_password, $conf['logins'][$input_username]) ) {
+        $_SESSION['auth'] = true;
+        $_SESSION['user'] = $input_username;
+        $_SESSION['user_id'] = posix_getpwnam($input_username) ? posix_getpwnam($input_username)['uid'] : 65534;
+        unset($_SESSION['error']);
+
+    } else {
+        $_SESSION['auth'] = false;
+        $_SESSION['user'] = '';
+        $_SESSION['error'] = true;
+    }
+
+    http_redirect('/'); 
 
 } else {
 
-if(!empty($_SESSION['error'])) {
-  $error=$_SESSION['error'];
-}
-  
-  include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
-  include_once EVOADMIN_BASE . '../tpl/auth.tpl.php';
-  include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
+    if (!empty($_SESSION['error'])) {
+        $error = $_SESSION['error'];
+        unset($_SESSION['error']);
+    }
+    
+    include_once EVOADMIN_BASE . '../tpl/header.tpl.php';
+    include_once EVOADMIN_BASE . '../tpl/auth.tpl.php';
+    include_once EVOADMIN_BASE . '../tpl/footer.tpl.php';
 
 } 
-
-?>
