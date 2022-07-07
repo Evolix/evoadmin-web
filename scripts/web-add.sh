@@ -14,6 +14,7 @@
 
 set -e
 
+VERSION="22.07"
 HOME="/root"
 CONTACT_MAIL="jdoe@example.org"
 WWWBOUNCE_MAIL="jdoe@example.org"
@@ -58,6 +59,7 @@ config_file="/etc/evolinux/web-add.conf"
 usage() {
     cat <<EOT >&2
 
+Evoadmin web tooling - Version $VERSION
 Usage: $0 COMMAND [ARG]
 
 add [ [OPTIONS] LOGIN WWWDOMAIN ]
@@ -170,6 +172,10 @@ generate-ssl-certificate LOGIN [false]
 
     Generate the Let's Encrypt certificate
     Run in TEST mode unless "false" is used
+
+version 
+
+    Obtain the script version
 
 EOT
 }
@@ -914,6 +920,9 @@ arg_processing() {
         generate-ssl-certificate)
             op_generatesslcertificate "$@"
             ;;
+        version)
+            op_version "$@"
+            ;;
         *)
             usage
             ;;
@@ -1400,6 +1409,11 @@ op_checkvhosts() {
 			$fix_ln
 		fi
 	done
+}
+
+# Return web-add.sh version
+op_version(){
+    echo "$VERSION"
 }
 
 # Point d'entrée
