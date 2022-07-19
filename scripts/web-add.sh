@@ -944,7 +944,7 @@ op_generatesslcertificate() {
         vhost="$1"
         test_mode="$2"
 
-        if [ "$test_mode" = "false" ]; then
+        if [ "$test_mode" = "FALSE" ]; then
             if [ -L /etc/letsencrypt/$vhost/live ]; then
                 rm /etc/letsencrypt/$vhost/live
             fi
