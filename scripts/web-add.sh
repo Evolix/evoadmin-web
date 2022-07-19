@@ -166,10 +166,10 @@ generate-csr LOGIN DOMAINS
 
     Generate the request for the Let's Encrypt certificate
 
-generate-ssl-certificate LOGIN [FALSE]
+generate-ssl-certificate LOGIN [false]
 
     Generate the Let's Encrypt certificate
-    Run in TEST mode unless FALSE
+    Run in TEST mode unless "false" is used
 
 EOT
 }
@@ -944,7 +944,7 @@ op_generatesslcertificate() {
         vhost="$1"
         test_mode="$2"
 
-        if [ "$test_mode" = "FALSE" ]; then
+        if [ "$test_mode" = "false" ]; then
             if [ -L /etc/letsencrypt/$vhost/live ]; then
                 rm /etc/letsencrypt/$vhost/live
             fi
