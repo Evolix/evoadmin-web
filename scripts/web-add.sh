@@ -166,10 +166,10 @@ generate-csr LOGIN DOMAINS
 
     Generate the request for the Let's Encrypt certificate
 
-generate-ssl-certificate LOGIN [TRUE | FALSE]
+generate-ssl-certificate LOGIN [FALSE]
 
     Generate the Let's Encrypt certificate
-    Run in TEST mode if TRUE
+    Run in TEST mode unless FALSE
 
 EOT
 }
