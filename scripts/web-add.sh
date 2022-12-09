@@ -236,6 +236,15 @@ validate_wwwdomain() {
         in_error "Le nom de domaine est obligatoire"
         return 1
     fi
+    case "$wwwdomain" in
+        *'/'*)
+            in_error "Le caractère / n'est pas autorisé. Avez-vous confondu nom de domaine (example.com) et URL (https://example.com) ?"
+            return 1;;
+        *':'*)
+            in_error "Le caractère : n'est pas autorisé. Avez-vous confondu nom de domaine (example.com) et URL (https://example.com) ?"
+            return 1;;
+    esac
+
     return 0
 }
 
