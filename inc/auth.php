@@ -20,6 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST)) {
         $_SESSION['auth'] = true;
         $_SESSION['user'] = $input_username;
         $_SESSION['user_id'] = posix_getpwnam($input_username) ? posix_getpwnam($input_username)['uid'] : 65534;
+        $_SESSION['cli_version'] = run_webadd_cmd('version')[0];
         unset($_SESSION['error']);
 
     } elseif (isset($conf['logins'][$input_username]) && strlen($conf['logins'][$input_username]) == 64 && hash("sha256",$input_password) === $conf['logins'][$input_username]) {
@@ -27,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST)) {
         $_SESSION['auth'] = true;
         $_SESSION['user'] = $input_username;
         $_SESSION['user_id'] = posix_getpwnam($input_username) ? posix_getpwnam($input_username)['uid'] : 65534;
+        $_SESSION['cli_version'] = run_webadd_cmd('version')[0];
         unset($_SESSION['error']);
 
     } else {
