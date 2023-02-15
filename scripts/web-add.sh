@@ -829,7 +829,7 @@ op_del() {
 
     if [ -n "$dbname" ]; then
         set -x
-        echo "DROP DATABASE \`$dbname\`; delete from mysql.user where user='$login'; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
+        echo "DROP DATABASE \`$dbname\`; DROP USER \`$login\`@localhost; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
         set +x
     fi
 }
