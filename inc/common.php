@@ -1,5 +1,4 @@
 <?php
-
 /**
  * file included in every PHP file
  *
@@ -96,6 +95,25 @@ function is_multiphp() {
     global $conf;
     return array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1;
 }
+
+/**
+ *  Webadd
+ *
+ * @return boolean - True when it's a multi PHP system
+ */
+function run_webadd_cmd($command) {
+    global $conf;
+
+    $cmd = 'web-add.sh '. $command;
+
+    $data_output = null;
+    $exec_return = null;
+    sudoexec($cmd, $data_output, $exec_return);
+
+
+    return $data_output;
+}
+
 
 /**
  * Includes

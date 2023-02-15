@@ -30,7 +30,7 @@ header('Content-Type: text/html; charset=utf-8');
 /**
  * Requires
  */
-require_once EVOADMIN_BASE . 'common.php';
+require_once EVOADMIN_BASE . '../inc/common.php';
 
 
 $uri = $_SERVER['REQUEST_URI'];
