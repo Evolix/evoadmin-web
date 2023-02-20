@@ -14,7 +14,7 @@
 
 set -e
 
-VERSION="22.07"
+VERSION="23.02"
 HOME="/root"
 CONTACT_MAIL="jdoe@example.org"
 WWWBOUNCE_MAIL="jdoe@example.org"
