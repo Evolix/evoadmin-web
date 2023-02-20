@@ -16,6 +16,8 @@ The **patch** part changes is incremented if multiple releases happen the same m
 
 ### Changed
 
+* Readme.md : Translated to english. New contribution guidelines and misc information
+
 ### Fixed
 
 * web-add.sh : Deleting mysql user with DROP USER to stay compatible with MariaDB 10.5+ - #78
