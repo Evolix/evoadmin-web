@@ -748,6 +748,7 @@ op_del() {
         fi
     fi
 
+
     set -x
     # Crontab dump needs to be done **before** user deletion
     if crontab -l -u "$login"; then
@@ -755,40 +756,13 @@ op_del() {
         crontab -r -u "$login"
     fi
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if id www-"$login" &> /dev/null; then
-            userdel -f www-"$login"
-        fi
-    fi
-    userdel -f "$login"
-    for php_version in "${PHP_VERSIONS[@]}"; do
-        if lxc-attach -n php"${php_version}" -- id www-"$login" &> /dev/null; then
-            lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
-        fi
-        lxc-attach -n php"${php_version}" -- userdel -f "$login"
-    done
-    sed -i.bak "/^$login:/d" /etc/aliases
-    if [ "$WEB_SERVER" == "apache" ]; then
-        sed -i.bak "/^www-$login:/d" /etc/aliases
-    fi
-
-    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
-        sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
-        /etc/init.d/ssh reload
-    fi
-
-    if [ -d "$HOME_DIR/$login" ]; then
-        mv -i $HOME_DIR/"$login" $HOME_DIR/"$login"."$(date '+%Y%m%d-%H%M%S')".bak
-    else
-        echo "warning : $HOME_DIR/$login does not exist"
-    fi
-
+    # Deactivate web vhost (apache or nginx)
     if [ "$WEB_SERVER" == "apache" ]; then
         a2dissite "${login}.conf"
         rm /etc/apache2/sites-available/"$login.conf"
-        rm /etc/awstats/awstats."$login.conf"
-        sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+
         apache2ctl configtest
+
         for php_version in "${PHP_VERSIONS[@]}"; do
             if [ "$php_version" = "70" ]; then
                 phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
@@ -812,13 +786,45 @@ op_del() {
             rm /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
         done
-    elif [ "$WEB_SERVER" == "nginx" ]; then
 
+    elif [ "$WEB_SERVER" == "nginx" ]; then
         rm /etc/nginx/sites-{available,enabled}/"$login"
-        rm /etc/awstats/awstats."$login.conf"
         rm /etc/munin/plugins/phpfpm_"${in_login}"*
-        sed -i.bak "/-config=$login/d" /etc/cron.d/awstats
         nginx -t
+    fi
+
+    rm /etc/awstats/awstats."$login.conf"
+    sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+
+    if [ "$WEB_SERVER" == "apache" ]; then
+        if id www-"$login" &> /dev/null; then
+            userdel -f www-"$login"
+        fi
+
+        for php_version in "${PHP_VERSIONS[@]}"; do
+            if lxc-attach -n php"${php_version}" -- id www-"$login" &> /dev/null; then
+                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+            fi
+            lxc-attach -n php"${php_version}" -- userdel -f "$login"
+        done
+    fi
+
+    userdel -f "$login"
+
+    sed -i.bak "/^$login:/d" /etc/aliases
+    if [ "$WEB_SERVER" == "apache" ]; then
+        sed -i.bak "/^www-$login:/d" /etc/aliases
+    fi
+
+    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+        sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
+        /etc/init.d/ssh reload
+    fi
+
+    if [ -d "$HOME_DIR/$login" ]; then
+        mv -i $HOME_DIR/"$login" $HOME_DIR/"$login"."$(date '+%Y%m%d-%H%M%S')".bak
+    else
+        echo "warning : $HOME_DIR/$login does not exist"
     fi
 
     if [ -d /etc/letsencrypt/"$login" ]; then
