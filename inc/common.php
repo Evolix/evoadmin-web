@@ -48,6 +48,12 @@ function is_superadmin() {
     }
 }
 
+/**
+ * execute a command with sudo
+ * @param string $cmd The command that will be executed.
+ * @param ?array $output see $output parameter of exec().
+ * @param ?int $return_var see $result_code parameter of exec().
+ */
 function sudoexec($cmd, &$output, &$return_var) {
     global $conf;
 
