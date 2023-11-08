@@ -457,8 +457,8 @@ pm.max_children = 10
 pm.process_idle_timeout = 10s
 
 php_admin_value[error_log] = /home/${in_login}/log/php.log
-php_admin_value sendmail_path "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
-php_admin_value open_basedir "/usr/share/php:/home/${in_login}:/tmp"
+php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
+php_admin_value[open_basedir] = "/usr/share/php:/home/${in_login}:/tmp"
 EOT
         step_ok "Création du pool FPM ${php_version}"
     done
