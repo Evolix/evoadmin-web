@@ -23,6 +23,7 @@ LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
+HOST="$(hostname -s)"
 
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
@@ -456,6 +457,8 @@ pm.max_children = 10
 pm.process_idle_timeout = 10s
 
 php_admin_value[error_log] = /home/${in_login}/log/php.log
+php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
+php_admin_value[open_basedir] = "/usr/share/php:/home/${in_login}:/tmp"
 EOT
         step_ok "Création du pool FPM ${php_version}"
     done
