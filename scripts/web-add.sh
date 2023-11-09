@@ -23,7 +23,7 @@ LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
-HOST="$(hostname -s)"
+HOST="$(hostname -f)"
 
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
