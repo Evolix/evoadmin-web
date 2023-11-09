@@ -766,8 +766,8 @@ op_del() {
 
     # Deactivate web vhost (apache or nginx)
     if [ "$WEB_SERVER" == "apache" ]; then
-        a2dissite "${login}.conf"
-        rm /etc/apache2/sites-available/"$login.conf"
+        a2dissite "${login}.conf" || true
+        rm -f /etc/apache2/sites-available/"$login.conf"
 
         apache2ctl configtest
 
@@ -794,33 +794,33 @@ op_del() {
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
             fi
-            rm /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+            rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
         done
 
     elif [ "$WEB_SERVER" == "nginx" ]; then
-        rm /etc/nginx/sites-{available,enabled}/"$login"
-        rm /etc/munin/plugins/phpfpm_"${in_login}"*
+        rm -f /etc/nginx/sites-{available,enabled}/"$login"
+        rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
         nginx -t
     fi
 
-    rm /etc/awstats/awstats."$login.conf"
+    rm -f /etc/awstats/awstats."$login.conf"
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 
     if [ "$WEB_SERVER" == "apache" ]; then
         if id www-"$login" &> /dev/null; then
-            userdel -f www-"$login"
+            userdel -f www-"$login" || true
         fi
 
         for php_version in "${PHP_VERSIONS[@]}"; do
             if lxc-attach -n php"${php_version}" -- id www-"$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+                lxc-attach -n php"${php_version}" -- userdel -f www-"$login" || true
             fi
-            lxc-attach -n php"${php_version}" -- userdel -f "$login"
+            lxc-attach -n php"${php_version}" -- userdel -f "$login" || true
         done
     fi
 
-    userdel -f "$login"
+    userdel -f "$login" || true
 
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
