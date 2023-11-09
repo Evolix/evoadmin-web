@@ -111,7 +111,7 @@
                 }
 
                 printf('<a href="/webadmin/%s/itk/">ITK</a> - ', $vhost_info['owner']);
-                }
+
                 printf('<a href="/webadmin/%s/letsencrypt/">Let\'s Encrypt</a> - ', $vhost_info['owner']);
                 printf('<a href="/webadmin/delete/%s">Supprimer</a>', $vhost_info['owner']);
               } else {
