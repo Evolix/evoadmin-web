@@ -108,9 +108,8 @@
                 printf('<a href="/webadmin/%s/domain/">Servername</a> - ', $vhost_info['owner']);
                 if(is_multiphp()) {
                     printf('<a href="/webadmin/%s/php/">PHP</a> - ', $vhost_info['owner']);
-                }
-
-                printf('<a href="/webadmin/%s/itk/">ITK</a> - ', $vhost_info['owner']);
+                } else {
+                    printf('<a href="/webadmin/%s/itk/">ITK</a> - ', $vhost_info['owner']);
                 }
                 printf('<a href="/webadmin/%s/letsencrypt/">Let\'s Encrypt</a> - ', $vhost_info['owner']);
                 printf('<a href="/webadmin/delete/%s">Supprimer</a>', $vhost_info['owner']);
