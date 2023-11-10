@@ -766,7 +766,9 @@ op_del() {
 
     # Deactivate web vhost (apache or nginx)
     if [ "$WEB_SERVER" == "apache" ]; then
-        a2dissite "${login}.conf" || true
+        if a2query -s test12 >/dev/null 2&>1; then
+            a2dissite "${login}.conf"
+        fi
         rm -f /etc/apache2/sites-available/"$login.conf"
 
         apache2ctl configtest
@@ -809,18 +811,22 @@ op_del() {
 
     if [ "$WEB_SERVER" == "apache" ]; then
         if id www-"$login" &> /dev/null; then
-            userdel -f www-"$login" || true
+            userdel -f www-"$login"
         fi
 
         for php_version in "${PHP_VERSIONS[@]}"; do
-            if lxc-attach -n php"${php_version}" -- id www-"$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f www-"$login" || true
+            if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
+                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
             fi
-            lxc-attach -n php"${php_version}" -- userdel -f "$login" || true
+            if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
+                lxc-attach -n php"${php_version}" -- userdel -f "$login"
+            fi
         done
     fi
 
-    userdel -f "$login" || true
+    if getent passwd "$login" &> /dev/null; then
+        userdel -f "$login"
+    fi
 
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
