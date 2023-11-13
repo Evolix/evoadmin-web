@@ -263,6 +263,8 @@ class FormField {
     protected $read_only = null;
     protected $disabled = null;
     private $storage = NULL;
+    protected $mandatory = null;
+    protected $hidden = null;
 
     protected function __construct($label) {
         $this->storage = & $_SESSION;
@@ -638,7 +640,7 @@ class EmailInputFormField extends TextInputFormField {
             return FALSE;
         }
 
-        if(!empty($this->value) && !eregi('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$',$this->value)){
+        if(!empty($this->value) && !preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/i', $this->value)){
             if($set_error) $this->error = 'Adresse email invalide';
             return FALSE;
         }
@@ -794,7 +796,7 @@ class MultipleCheckBoxInputFormField extends FormField {
     protected $mandatory = NULL;
     protected $list = array();
 
-    public function __construct($label, $mandatory=TRUE, $list) {
+    public function __construct($label, $list, $mandatory=TRUE) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
         $this->list = $list;
@@ -877,7 +879,7 @@ class SelectFormField extends FormField {
     protected $mandatory = NULL;
     protected $list = array();
 
-    public function __construct($label, $mandatory=TRUE, $list) {
+    public function __construct($label, $list, $mandatory=TRUE) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
         $this->list = $list;
@@ -933,7 +935,7 @@ class RadioFormField extends FormField {
     protected $mandatory = NULL;
     protected $list = array();
 
-    public function __construct($label, $mandatory=TRUE, $list, $default = null) {
+    public function __construct($label, $list, $mandatory=TRUE, $default = null) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
         $this->list = $list;
@@ -995,7 +997,7 @@ class ButtonInputFormField extends FormField {
     protected $event = NULL;
     protected $action = NULL;
 
-    public function __construct($label,$mandatory=FALSE, $event, $action) {
+    public function __construct($label, $event, $action, $mandatory=FALSE) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
         $this->event = $event;

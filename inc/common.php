@@ -81,6 +81,7 @@ function is_mcluster_mode() {
 function load_config_cluster($cluster) {
     global $conf;
     $configfile = '../conf/config.'.$cluster.'.php';
+    $clusterconf = array(); // Fix static analysis. It's fully defined by config file.
     test_exist($configfile);
     require_once($configfile);
     $conf = array_merge($conf, $clusterconf);

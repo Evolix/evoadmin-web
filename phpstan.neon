@@ -1,0 +1,13 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 0
+    paths:
+        - htdocs
+        - lib
+        - evolibs
+        - inc
+        - tpl
+        - conf
+        - bin

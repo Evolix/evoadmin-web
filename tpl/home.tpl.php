@@ -31,5 +31,3 @@ else {
     echo '<p>Bienvenue, utilisez le menu ci-dessus pour administrer votre compte.</p>';
 }
 ?>
-
-

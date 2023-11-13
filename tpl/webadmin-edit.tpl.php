@@ -39,7 +39,7 @@
             for ( $i=0; $i < count($alias_list); ++$i ) {
                 print '<tr>';
                 printf('<td>%s</td>',
-                    $alias_list[$i]['alias'], $alias_list[$i]['alias']);
+                    $alias_list[$i]['alias']);
                 if (is_superadmin())
                     printf('<td><a href="/webadmin/%s/alias/delete/%s/">Supprimer</a></td>',
                             $domain, $alias_list[$i]['alias']);

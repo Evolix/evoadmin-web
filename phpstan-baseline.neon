@@ -1,0 +1,6 @@
+parameters:
+	ignoreErrors:
+		-
+			message: "#^Undefined variable\\: \\$error$#"
+			count: 3
+			path: lib/bdd.php

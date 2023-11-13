@@ -74,8 +74,8 @@ function web_add($form, $admin_mail) {
         foreach ( $domain_alias as $domain ) {
             $exec_cmd = 'web-add.sh add-alias '.escapeshellarg($form->getField('username')->getValue()).' ';
             $domain = trim($domain);
-            $exec_cmd .= $domain.' '. $server_list;
-            sudoexec($exec_cmd, $exec_output, $exec_return);
+            $exec_cmd .= $domain;
+            sudoexec($exec_cmd, $exec_output2, $exec_return2);
         }
         $exec_return |= $exec_return2; // $exec_return == 0 if $exec_return == 0 && $exec_return2 == 0
         array_push($exec_output, $exec_output2);
@@ -254,19 +254,19 @@ $form->addField('username', new AlphaNumericalTextInputFormField("Nom d'utilisat
 $form->addField('domain', new DomainInputFormField("Nom de domaine", TRUE));
 $form->addField('domain_alias', new DomainListInputFormField("Alias (séparés par une virgule, sans espaces)", FALSE));
 $form->addField('password_random',
-                new CheckboxInputFormField("Mot de passe aléatoire ?", FALSE));
+                new CheckBoxInputFormField("Mot de passe aléatoire ?", FALSE));
 $form->getField('password_random')->setValue(TRUE);
 $form->addField('password', new PasswordInputFormField('Mot de passe', FALSE));
 $form->getField('password')->setDisabled();
 $form->addField('mysql_db',
-                new CheckboxInputFormField("Créer une base de données MySQL ?",
+                new CheckBoxInputFormField("Créer une base de données MySQL ?",
                                            FALSE));
 $form->getField('mysql_db')->setValue(TRUE);
 $form->addField('mysql_dbname',
                 new AlphaNumericalTextInputFormField("Nom de la base MySQL", FALSE, array(20,16)));
 
 $form->addField('mysql_password_random',
-                new CheckboxInputFormField("Mot de passe MySQL aléatoire ?",
+                new CheckBoxInputFormField("Mot de passe MySQL aléatoire ?",
                                            FALSE));
 $form->getField('mysql_password_random')->setValue(TRUE);
 
@@ -344,7 +344,7 @@ if ($conf['cluster']) {
 
 if ($conf['bindadmin']) {
     /* Quai13 specific: allow to switch between Gmail MX/Quai13 MX */
-    $form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
+    $form->addField('use_gmail_mxs', new CheckBoxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
 }
 
 if (array_key_exists('php_versions', $conf) && is_array($conf['php_versions'])) {

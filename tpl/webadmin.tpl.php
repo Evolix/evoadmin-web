@@ -62,7 +62,7 @@
             printf('<td>%s</td>', $vhost_info['owner']);
           }
           printf('<td>%s</td>',
-                  $vhost_info['server_name'], $vhost_info['server_name']);
+                  $vhost_info['server_name']);
 
           if ($conf['cluster']) {
               if (empty($vhost_info['bdd']))
