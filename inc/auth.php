@@ -12,7 +12,7 @@
  * @version 1.0
  */
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST)) {
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST)) {
     $input_username = $_POST['login'];
     $input_password = $_POST['passw'];
 
