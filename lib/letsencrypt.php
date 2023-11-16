@@ -10,7 +10,8 @@ class LetsEncrypt
     const HTTP_CHALLENGE_URL = '/.well-known/acme-challenge/testfile';
 
     /**
-     * create the file used to test the HTTP challenge
+     * Create the file used to test the HTTP challenge
+     * @return void
      */
     private function createFileHttpChallenge()
     {
@@ -19,7 +20,8 @@ class LetsEncrypt
     }
 
     /**
-     * delete the file used to test the HTTP challenge
+     * Delete the file used to test the HTTP challenge
+     * @return void
      */
     private function deleteFileHttpChallenge()
     {
@@ -28,9 +30,9 @@ class LetsEncrypt
     }
 
     /**
-     * generate a CSR
+     * Generate a CSR
      * @param  string $vhost
-     * @param  array $domains
+     * @param  string[] $domains
      * @return boolean
      */
     public function makeCsr($vhost, $domains)
@@ -108,7 +110,7 @@ class LetsEncrypt
 
     /**
      * Query the corresponding IP for each domain
-     * @param  array $domains list of HTTP checked domains
+     * @param  string[] $domains list of HTTP checked domains
      * @return array $valid_dns_domains list of valid domains
      */
     public function checkDNSValidity($domains)
@@ -133,7 +135,7 @@ class LetsEncrypt
     }
 
     /**
-     * check the presence of make-csr and evoacme binaries
+     * Check the presence of make-csr and evoacme binaries
      * @return boolean
      */
     public function isEvoacmeInstalled()
@@ -207,7 +209,7 @@ class LetsEncrypt
     /**
      * Check if the requested domain is included in the certificate
      * @param string $domainRequested
-     * @param array|string $san
+     * @param string[]|string $san
      * @return bool
      */
     public function isDomainIncludedInCert($domainRequested, $san)

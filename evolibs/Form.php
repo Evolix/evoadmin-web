@@ -257,11 +257,17 @@ class FormPage {
 class FormField {
     protected $value = null;
     protected $error = null;
+    /** @var string|null $label */
     protected $label = null;
+    /** @var string|null $name */
     protected $name = null;
+    /** @var string|null $css_class */
     protected $css_class = null;
+    /** @var bool|null $read_only */
     protected $read_only = null;
+    /** @var bool|null $disabled True if the field is supposed to be disabled */
     protected $disabled = null;
+    /** @var array|null $storage */
     private $storage = NULL;
 
     protected function __construct($label) {
