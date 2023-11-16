@@ -12,7 +12,11 @@ The **patch** part changes is incremented if multiple releases happen the same m
 
 ### Added
 
+* Prevent op_del to fail and able to remove web account when part of it is already removed
+
 ### Changed
+
+* Add sendmail_path and open_basedir in LXC PHP pool configs
 
 ### Fixed
 
