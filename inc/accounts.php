@@ -39,31 +39,31 @@ function web_add($form, $admin_mail) {
 
     if(!$form->getField('password_random')->getValue()) {
         $exec_cmd .= sprintf(' -p %s',
-                             $form->getField('password')->getValue());
+                             escapeshellarg($form->getField('password')->getValue()));
     }
 
     /* Ajout des options spécifiques à MySQL si nécessaire */
     if($form->getField('mysql_db')->getValue()) {
         $exec_cmd .= sprintf(' -m %s',
-                             $form->getField('mysql_dbname')->getValue());
+                             escapeshellarg($form->getField('mysql_dbname')->getValue()));
 
         if(!$form->getField('mysql_password_random')->getValue()) {
             $exec_cmd .= sprintf(' -P %s',
-                                $form->getField('mysql_password')->getValue());
+                                escapeshellarg($form->getField('mysql_password')->getValue()));
         }
     }
 
-    if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+    if (array_key_exists('php_versions', $conf) && is_array($conf['php_versions'])) {
         $exec_cmd .= sprintf(' -r %s', $conf['php_versions'][$form->getField('php_version')->getValue()]);
     }
 
     if ($conf['quota']) {
-        $exec_cmd .= sprintf(' -q %s:%s', $form->getField('quota_soft')->getValue(), $form->getField('quota_hard')->getValue());
+        $exec_cmd .= sprintf(' -q %s:%s', escapeshellarg($form->getField('quota_soft')->getValue()), escapeshellarg($form->getField('quota_hard')->getValue()));
     }
 
     $exec_cmd .= sprintf(' -l %s %s %s 2>&1', $admin_mail,
-        $form->getField('username')->getValue(), 
-        $form->getField('domain')->getValue());
+        escapeshellarg($form->getField('username')->getValue()),
+        escapeshellarg($form->getField('domain')->getValue()));
 
     //domain_add($form, $_SERVER['SERVER_ADDR'], true);
     sudoexec($exec_cmd, $exec_output, $exec_return);
@@ -72,7 +72,7 @@ function web_add($form, $admin_mail) {
     if ( $form->getField('domain_alias')->getValue() ) {
         $domain_alias = preg_split('/,/', $form->getField('domain_alias')->getValue());
         foreach ( $domain_alias as $domain ) {
-            $exec_cmd = 'web-add.sh add-alias '.$form->getField('username')->getValue().' ';
+            $exec_cmd = 'web-add.sh add-alias '.escapeshellarg($form->getField('username')->getValue()).' ';
             $domain = trim($domain);
             $exec_cmd .= $domain.' '. $server_list;
             sudoexec($exec_cmd, $exec_output, $exec_return);
@@ -97,17 +97,17 @@ function web_add_cluster($form, $admin_mail) {
 
     if(!$form->getField('password_random')->getValue()) {
         $exec_cmd .= sprintf(' -p %s',
-                             $form->getField('password')->getValue());
+                             escapeshellarg($form->getField('password')->getValue()));
     }
 
     /* Ajout des options spécifiques à MySQL si nécessaire */
     if($form->getField('mysql_db')->getValue()) {
         $exec_cmd .= sprintf(' -m %s',
-                             $form->getField('mysql_dbname')->getValue());
+                             escapeshellarg($form->getField('mysql_dbname')->getValue()));
 
         if(!$form->getField('mysql_password_random')->getValue()) {
             $exec_cmd .= sprintf(' -P %s',
-                                $form->getField('mysql_password')->getValue());
+                                escapeshellarg($form->getField('mysql_password')->getValue()));
         }
 
         $account['bdd'] = $form->getField('mysql_dbname')->getValue();
@@ -173,13 +173,13 @@ function web_add_cluster($form, $admin_mail) {
             break;
     }
 
-    $exec_cmd .= sprintf(' -l %s %s %s %s %s %s 2>&1', 
-        $admin_mail,
-        $form->getField('username')->getValue(), 
-        $form->getField('domain')->getValue(),
-        $master,
-        $slave,
-        ($realtime ? 'realtime': 'deferred'));
+    $exec_cmd .= sprintf(' -l %s %s %s %s %s %s 2>&1',
+        escapeshellarg($admin_mail),
+        escapeshellarg($form->getField('username')->getValue()),
+        escapeshellarg($form->getField('domain')->getValue()),
+        escapeshellarg($master),
+        escapeshellarg($slave),
+        escapeshellarg( ($realtime ? 'realtime': 'deferred')) );
 
     //if ($conf['bindadmin'])
     domain_add($form->getField('domain')->getValue(), gethostbyname($master), true, $form->getField('use_gmail_mxs')->getValue());
@@ -189,7 +189,7 @@ function web_add_cluster($form, $admin_mail) {
     if ( $form->getField('domain_alias')->getValue() ) {
         $domain_alias = preg_split('/,/', $form->getField('domain_alias')->getValue());
         foreach ( $domain_alias as $alias ) {
-            $exec_cmd = 'web-add-cluster.sh add-alias '.$form->getField('username')->getValue().' ';
+            $exec_cmd = 'web-add-cluster.sh add-alias '.escapeshellarg($form->getField('username')->getValue()).' ';
             $alias = trim($alias);
             $exec_cmd .= $alias.' '.$master.' '.$slave;
             sudoexec($exec_cmd, $exec_output2, $exec_return2);
@@ -347,7 +347,7 @@ if ($conf['bindadmin']) {
     $form->addField('use_gmail_mxs', new CheckboxInputFormField("Utilisation des serveurs Gmail en MX&nbsp;?", FALSE));
 }
 
-if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
+if (array_key_exists('php_versions', $conf) && is_array($conf['php_versions'])) {
     $form->addField('php_version', new SelectFormField("Version de PHP", TRUE, $conf['php_versions']));
 }
 

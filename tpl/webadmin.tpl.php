@@ -22,9 +22,9 @@
       <thead>
       <tr>
         <?php if(is_superadmin()) {
-            print '<th>Propriétaire</th>';
+            print '<th>Virtual Host</th>';
         } ?>
-        <th>Domaine</th>
+        <th>Servername</th>
         <?php if(is_superadmin()) {
             print '<th>Alias</th>';
         }
@@ -61,7 +61,7 @@
           if(is_superadmin()) {
             printf('<td>%s</td>', $vhost_info['owner']);
           }
-          printf('<td><a href="http://%s">http://%s</a></td>',
+          printf('<td>%s</td>',
                   $vhost_info['server_name'], $vhost_info['server_name']);
 
           if ($conf['cluster']) {
@@ -87,7 +87,7 @@
                   printf('<td>%s</td>', $vhost_info['slave']);
 	  }
 
-          printf('<td align="left">%s</td>', preg_replace('/,/','<br />',$vhost_info['server_alias']));
+          printf('<td>%s</td>', preg_replace('/,/','<br />',$vhost_info['server_alias']));
 
           if ($conf['quota']) {
             printf('<td>%s</td>', $vhost_info['size']);
@@ -95,6 +95,7 @@
             printf('<td>%s</td>', $vhost_info['quota_hard']);
             printf('<td>%s</td>', $vhost_info['occupation']);
           }
+
           if (array_key_exists('php_versions', $conf) && count($conf['php_versions']) > 1) {
             printf('<td>%s</td>', preg_replace("/^(\d)(\d)$/", '\1.\2', $vhost_info['php_version']));
           }
@@ -102,10 +103,19 @@
 
           if (is_superadmin()) {
               printf('<td>');
-              printf('<a href="/webadmin/edit/%s">Alias</a> - ', $vhost_info['owner']);
-              printf('<a href="/webadmin/servername/%s">Servername</a> - ', $vhost_info['owner']);
-              printf('<a href="/webadmin/itk/%s">ITK</a> - ', $vhost_info['owner']);
-              printf('<a href="/webadmin/php/%s">PHP</a>', $vhost_info['owner']);
+              if (!in_array($vhost_info['owner'], $_SESSION['non_standard'])) {
+                printf('<a href="/webadmin/%s/alias/">Alias</a> - ', $vhost_info['owner']);
+                printf('<a href="/webadmin/%s/domain/">Servername</a> - ', $vhost_info['owner']);
+                if(is_multiphp()) {
+                    printf('<a href="/webadmin/%s/php/">PHP</a> - ', $vhost_info['owner']);
+                } else {
+                    printf('<a href="/webadmin/%s/itk/">ITK</a> - ', $vhost_info['owner']);
+                }
+                printf('<a href="/webadmin/%s/letsencrypt/">Let\'s Encrypt</a> - ', $vhost_info['owner']);
+                printf('<a href="/webadmin/delete/%s">Supprimer</a>', $vhost_info['owner']);
+              } else {
+                print '<span class="form-mandatory-ok">VirtualHost non standard</span>';
+              }
               printf('</td>');
 
           }

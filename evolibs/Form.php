@@ -461,13 +461,13 @@ class AlphaNumericalTextInputFormField extends FormField {
 
 class DomainInputFormField extends FormField {
     protected $mandatory = NULL;
-    protected $textsize = NULL;
+    //protected $textsize = NULL;
 
     public function __construct($label, $mandatory=TRUE, $hidden=FALSE) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
         $this->hidden = $hidden;
-        $this->textsize = $textsize;
+        //$this->textsize = $textsize;
     }
 
     public function verify($set_error) {
@@ -491,7 +491,7 @@ class DomainInputFormField extends FormField {
         else
           $input .= '<input type="text" id="'.$this->name.'"';
         $input .= ' name="'.$this->name.'" value="'.htmlspecialchars($this->value,ENT_QUOTES).'"';
-        $input .= ' maxlength="'.$this->textsize[1].'" size="'.$this->textsize[0].'" ';
+        //$input .= ' maxlength="'.$this->textsize[1].'" size="'.$this->textsize[0].'" ';
         if($this->read_only) { $input .= 'readonly="readonly="'; }
         if($this->disabled) { $input .= 'disabled="disabled="'; }
         $input .= '/>';
@@ -516,12 +516,12 @@ class DomainInputFormField extends FormField {
 
 class DomainListInputFormField extends FormField {
     protected $mandatory = NULL;
-    protected $textsize = NULL;
+    //protected $textsize = NULL;
 
     public function __construct($label, $mandatory=TRUE) {
         parent::__construct($label);
         $this->mandatory = $mandatory;
-        $this->textsize = $textsize;
+        //$this->textsize = $textsize;
     }
 
     public function verify($set_error) {
@@ -547,7 +547,7 @@ class DomainListInputFormField extends FormField {
         $input = '';
         $input .= '<input type="text" id="'.$this->name.'"';
         $input .= ' name="'.$this->name.'" value="'.htmlspecialchars($this->value,ENT_QUOTES).'"';
-        $input .= ' maxlength="'.$this->textsize[1].'" size="'.$this->textsize[0].'" ';
+        //$input .= ' maxlength="'.$this->textsize[1].'" size="'.$this->textsize[0].'" ';
         if($this->read_only) { $input .= 'readonly="readonly="'; }
         if($this->disabled) { $input .= 'disabled="disabled="'; }
         $input .= '/>';
@@ -717,6 +717,11 @@ class PasswordInputFormField extends FormField {
 
         if(preg_match('#.*[0-9]+.*#',$this->value)==0){
             if($set_error) $this->error = 'Votre mot de passe doit contenir au moins un chiffre';
+            return FALSE;
+        }
+
+        if(!preg_match('#.*[/]+.*#',$this->value)==0){
+            if($set_error) $this->error = 'Votre mot de passe doit contenir le caractère \'/\'';
             return FALSE;
         }
 

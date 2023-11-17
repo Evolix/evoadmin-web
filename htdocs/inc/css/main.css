@@ -30,6 +30,10 @@ h1#top {
     margin-bottom: 10px;
 }
 
+h3.form-error {
+    color: red;
+}
+
 div#disclaimer {
    margin-top: 30px;
 }
@@ -135,6 +139,11 @@ span.form-error {
     margin-left: 4px;
 }
 
+span.form-warning {
+    color: #E84D0C;
+    margin-left: 4px;
+}
+
 span.form-mandatory {
     color: red;
 }
@@ -163,4 +172,3 @@ form#form-add legend {
 form#form-add p {
     text-align: left;
 }
-

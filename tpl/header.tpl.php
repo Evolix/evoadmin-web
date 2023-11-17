@@ -21,7 +21,7 @@
 
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>EvoAdmin - Powered by Evolix</title>
+<title>Evoadmin-web - Powered by Evolix</title>
 <link rel="stylesheet" href="/inc/css/main.css" type="text/css" media="screen, projection" />
 <script type="text/javascript" src="/inc/js/lib/prototype-1.6.0.3.js"></script>
 <script type="text/javascript" src="/inc/js/ftpadmin.js"></script>
@@ -31,10 +31,10 @@
 <body>
 
 <div id="main">
-    <h1 id="top">EvoAdmin
+    <h1 id="top">Evoadmin-web
         <?php
             if(!empty($_SESSION['user'])) {
-                print ' - '.$_SESSION['user'];
+                print ' v'.$_SESSION['cli_version'].' - '.$_SESSION['user'];
 
                 if(is_superadmin()) {
                     print ' (Administrateur)';

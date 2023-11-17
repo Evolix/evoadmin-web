@@ -388,7 +388,7 @@ op_del() {
 
         set -x
         deluser www-data $login
-        userdel $login
+        userdel -f $login
         groupdel $login
         sed -i.bak "/^$login:/d" /etc/aliases
 

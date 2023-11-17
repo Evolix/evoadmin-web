@@ -14,6 +14,7 @@
 
 set -e
 
+VERSION="23.02"
 HOME="/root"
 CONTACT_MAIL="jdoe@example.org"
 WWWBOUNCE_MAIL="jdoe@example.org"
@@ -22,6 +23,7 @@ LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
+HOST="$(hostname -f)"
 
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
@@ -58,6 +60,7 @@ config_file="/etc/evolinux/web-add.conf"
 usage() {
     cat <<EOT >&2
 
+Evoadmin web tooling - Version $VERSION
 Usage: $0 COMMAND [ARG]
 
 add [ [OPTIONS] LOGIN WWWDOMAIN ]
@@ -100,11 +103,17 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
 
    Example : web-add.sh add -m testdb -r 56 testlogin testdomain.com
 
-del LOGIN [DBNAME]
+del [ [OPTIONS] LOGIN [DBNAME] ]
 
    Delete account and all files related (Apache, Awstats, etc)
    Archive home directory.
    Remove MySQL database only if DBNAME is specified.
+
+   -y
+      Don't ask for confirmation
+
+   Example : web-add.sh del -y testlogin testdatabase
+
 
 list-vhost LOGIN
 
@@ -122,30 +131,26 @@ del-alias VHOST ALIAS
 
     Del a ServerAlias from an Apache vhost
 
-list-servername LOGIN
-
-    List ServerName(s) for user LOGIN
-
 update-servername VHOST SERVERNAME OLD_SERVERNAME
 
     Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
-    Also apply to rules
+    Also apply to rewrite rules
 
 check-occurence NAME
 
     List all occurences of NAME in vhosts
 
-list-user-itk DOMAIN LOGIN
+list-user-itk LOGIN
 
-    List the assigned ITK user for the DOMAIN specified
+    List the assigned ITK user for the LOGIN specified
 
-enable-user-itk DOMAIN LOGIN
+enable-user-itk LOGIN
 
-    Enable the assigned ITK user for the DOMAIN specified
+    Enable the assigned ITK user for the LOGIN specified
 
-disable-user-itk DOMAIN LOGIN
+disable-user-itk LOGIN
 
-    Disable the assigned ITK user for the DOMAIN specified
+    Disable the assigned ITK user for the LOGIN specified
 
 setphpversion LOGIN VERSION
 
@@ -154,6 +159,25 @@ setphpversion LOGIN VERSION
 setquota LOGIN QUOTA_SOFT:QUOTA_HARD
 
     Change quotas for LOGIN
+
+manage-http-challenge-file [CREATE | DELETE]
+
+    Create or delete a dummy file for the Let's Encrypt HTTP challenge
+    The default directory is /var/lib/letsencrypt/.well-known/
+
+generate-csr LOGIN DOMAINS
+
+    Generate the request for the Let's Encrypt certificate
+
+generate-ssl-certificate LOGIN [false]
+
+    Generate the Let's Encrypt certificate
+    Run in TEST mode unless "false" is used
+
+version 
+
+    Obtain the script version
+
 EOT
 }
 
@@ -170,7 +194,7 @@ EOT
 }
 
 gen_random_passwd() {
-    apg -c /dev/urandom -n1 -E oOlL10\&\\\/\"\'
+    apg -c /dev/urandom -MNCL -n1 -m18  -E oOlL10
 }
 
 validate_login() {
@@ -213,6 +237,15 @@ validate_wwwdomain() {
         in_error "Le nom de domaine est obligatoire"
         return 1
     fi
+    case "$wwwdomain" in
+        *'/'*)
+            in_error "Le caractère / n'est pas autorisé. Avez-vous confondu nom de domaine (example.com) et URL (https://example.com) ?"
+            return 1;;
+        *':'*)
+            in_error "Le caractère : n'est pas autorisé. Avez-vous confondu nom de domaine (example.com) et URL (https://example.com) ?"
+            return 1;;
+    esac
+
     return 0
 }
 
@@ -397,22 +430,35 @@ create_www_account() {
             pool_path="/etc/php/7.0/fpm/pool.d/"
         elif [ "$php_version" = "73" ]; then
             pool_path="/etc/php/7.3/fpm/pool.d/"
+        elif [ "$php_version" = "74" ]; then
+            pool_path="/etc/php/7.4/fpm/pool.d/"
+        elif [ "$php_version" = "80" ]; then
+            pool_path="/etc/php/8.0/fpm/pool.d/"
+        elif [ "$php_version" = "81" ]; then
+            pool_path="/etc/php/8.1/fpm/pool.d/"
+        elif [ "$php_version" = "82" ]; then
+            pool_path="/etc/php/8.2/fpm/pool.d/"
         else
             pool_path="/etc/php5/fpm/pool.d/"
         fi
         phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
         cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
 [${in_login}]
-user = ${in_login}
+user = www-${in_login}
 group = ${in_login}
 
 listen = ${phpfpm_socket_path}
 listen.owner = ${in_login}
 listen.group = ${in_login}
+
 pm = ondemand
+pm.status_path = /evolinux_fpm_status-$(apg -Mncl -n1 -m32)
 pm.max_children = 10
 pm.process_idle_timeout = 10s
+
 php_admin_value[error_log] = /home/${in_login}/log/php.log
+php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
+php_admin_value[open_basedir] = "/usr/share/php:/home/${in_login}:/tmp"
 EOT
         step_ok "Création du pool FPM ${php_version}"
     done
@@ -421,6 +467,9 @@ EOT
 
     random=$RANDOM
     if [ "$WEB_SERVER" == "apache" ]; then
+        # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
+        mkdir -p /etc/apache2/ssl
+
         vhostfile="/etc/apache2/sites-available/${in_login}.conf"
         sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
 
@@ -446,7 +495,7 @@ EOT
             sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
         fi
 
-        a2ensite "$in_login" >/dev/null
+        a2ensite "${in_login}.conf" >/dev/null
 
         step_ok "Configuration d'Apache"
 
@@ -558,6 +607,18 @@ EOT
             elif [ "$php_version" = "73" ]; then
                 initscript_path="/etc/init.d/php7.3-fpm"
                 binary="php-fpm7.3"
+            elif [ "$php_version" = "74" ]; then
+                initscript_path="/etc/init.d/php7.4-fpm"
+                binary="php-fpm7.4"
+            elif [ "$php_version" = "80" ]; then
+                initscript_path="/etc/init.d/php8.0-fpm"
+                binary="php-fpm8.0"
+            elif [ "$php_version" = "81" ]; then
+                initscript_path="/etc/init.d/php8.1-fpm"
+                binary="php-fpm8.1"
+            elif [ "$php_version" = "82" ]; then
+                initscript_path="/etc/init.d/php8.2-fpm"
+                binary="php-fpm8.2"
             else
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
@@ -612,28 +673,161 @@ EOT
 }
 
 op_del() {
-    if [ $# -lt 1 ]; then
-        usage
-        exit 1
+
+    #
+    # Mode interactif
+    #
+
+    if [ $# -eq 0 ]; then
+        echo
+        echo "Suppression d'un compte WEB"
+        echo
+
+        until [ "$login" ]; do
+            echo -n "Entrez le login du compte à supprimer : "
+            read -r tmp
+            login="$tmp"
+        done
+
+        echo -n "Voulez-vous aussi supprimer un compte/base MySQL ? [y|N]"
+        read -r confirm
+
+        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
+            echo -n "Entrez le nom de la base de donnees ($login par defaut) : "
+            read -r tmp
+
+            if [ -z "$tmp" ]; then
+                dbname=$login
+            else
+                dbname="$tmp"
+            fi
+        fi
+
+    #
+    # Mode non interactif
+    #
+
     else
-        login=$1
-        if [ $# -eq 2 ]; then
-            dbname=$2
+        while getopts hy opt; do
+            case "$opt" in
+            y)
+                force_confirm=1
+                ;;
+            h)
+                usage
+                exit 1
+                ;;
+            ?)
+                usage
+                exit 1
+                ;;
+            esac
+        done
+
+        shift $((OPTIND - 1))
+        if [ $# -gt 0 ] && [ $# -le 2 ]; then
+            login=$1
+            if [ $# -eq 2 ]; then
+                dbname=$2
+            fi
+        else
+            usage
+            exit 1
         fi
     fi
 
-    echo "Deleting account $login. Continue ?"
-    read -r
+    echo
+    echo "----------------------------------------------"
+    echo "Nom du compte : $login"
+    if [ "$dbname" ]; then
+        echo "Base de données MySQL : $dbname"
+    fi
+    echo "----------------------------------------------"
+    echo
+
+    if [ -z "$force_confirm" ]; then
+        echo -n "Confirmer la suppression ? [y/N] : "
+        read -r tmp
+        echo
+        if [ "$tmp" != "y" ] && [ "$tmp" != "Y" ]; then
+            echo "Annulation..."
+            echo
+            exit 1
+        fi
+    fi
+
 
     set -x
-    if [ "$WEB_SERVER" == "apache" ]; then
-        userdel www-"$login"
+    # Crontab dump needs to be done **before** user deletion
+    if crontab -l -u "$login"; then
+        crontab -l -u "$login" &> /home/$login/crontab-$(date '+%Y%m%d-%H%M%S').bak
+        crontab -r -u "$login"
     fi
-    userdel "$login"
-    for php_version in "${PHP_VERSIONS[@]}"; do
-        lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
-        lxc-attach -n php"${php_version}" -- userdel -f "$login"
-    done
+
+    # Deactivate web vhost (apache or nginx)
+    if [ "$WEB_SERVER" == "apache" ]; then
+        if a2query -s test12 >/dev/null 2&>1; then
+            a2dissite "${login}.conf"
+        fi
+        rm -f /etc/apache2/sites-available/"$login.conf"
+
+        apache2ctl configtest
+
+        for php_version in "${PHP_VERSIONS[@]}"; do
+            if [ "$php_version" = "70" ]; then
+                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
+                initscript_path="/etc/init.d/php7.0-fpm"
+            elif [ "$php_version" = "73" ]; then
+                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
+                initscript_path="/etc/init.d/php7.3-fpm"
+            elif [ "$php_version" = "74" ]; then
+                phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
+                initscript_path="/etc/init.d/php7.4-fpm"
+            elif [ "$php_version" = "80" ]; then
+                phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
+                initscript_path="/etc/init.d/php8.0-fpm"
+            elif [ "$php_version" = "81" ]; then
+                phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
+                initscript_path="/etc/init.d/php8.1-fpm"
+            elif [ "$php_version" = "82" ]; then
+                phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
+                initscript_path="/etc/init.d/php8.2-fpm"
+            else
+                phpfpm_dir="/etc/php5/fpm/pool.d/"
+                initscript_path="/etc/init.d/php5-fpm"
+            fi
+            rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        done
+
+    elif [ "$WEB_SERVER" == "nginx" ]; then
+        rm -f /etc/nginx/sites-{available,enabled}/"$login"
+        rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
+        nginx -t
+    fi
+
+    rm -f /etc/awstats/awstats."$login.conf"
+    sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+
+    if [ "$WEB_SERVER" == "apache" ]; then
+        if id www-"$login" &> /dev/null; then
+            userdel -f www-"$login"
+        fi
+
+        for php_version in "${PHP_VERSIONS[@]}"; do
+            if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
+                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+            fi
+            if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
+                lxc-attach -n php"${php_version}" -- userdel -f "$login"
+            fi
+        done
+    fi
+
+    if getent passwd "$login" &> /dev/null; then
+        userdel -f "$login"
+    fi
+
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
         sed -i.bak "/^www-$login:/d" /etc/aliases
@@ -650,42 +844,15 @@ op_del() {
         echo "warning : $HOME_DIR/$login does not exist"
     fi
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        a2dissite "$login"
-        rm /etc/apache2/sites-available/"$login.conf"
-        rm /etc/awstats/awstats."$login.conf"
-        sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
-        apache2ctl configtest
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.0-fpm"
-            elif [ "$php_version" = "73" ]; then
-                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.3-fpm"
-            else
-                phpfpm_dir="/etc/php5/fpm/pool.d/"
-                initscript_path="/etc/init.d/php5-fpm"
-            fi
-            rm /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-        done
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-
-        rm /etc/nginx/sites-{available,enabled}/"$login"
-        rm /etc/awstats/awstats."$login.conf"
-        rm /etc/munin/plugins/phpfpm_"${in_login}"*
-        sed -i.bak "/-config=$login/d" /etc/cron.d/awstats
-        nginx -t
+    if [ -d /etc/letsencrypt/"$login" ]; then
+        rm -r /etc/letsencrypt/"$login"
     fi
+
     set +x
 
     if [ -n "$dbname" ]; then
-        echo "Deleting mysql DATABASE $dbname and mysql user $login. Continue ?"
-        read -r
-
         set -x
-        echo "DROP DATABASE $dbname; delete from mysql.user where user='$login' ; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
+        echo "DROP DATABASE \`$dbname\`; DROP USER \`$login\`@localhost; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
         set +x
     fi
 }
@@ -755,9 +922,6 @@ arg_processing() {
         del-alias)
             op_aliasdel "$@"
             ;;
-        list-servername)
-            op_listservername "$@"
-            ;;
         update-servername)
             op_servernameupdate "$@"
             ;;
@@ -779,10 +943,80 @@ arg_processing() {
         setquota)
             op_setquota "$@"
             ;;
+        manage-http-challenge-file)
+            op_managehttpchallengefile "$@"
+            ;;
+        generate-csr)
+            op_makecsr "$@"
+            ;;
+        generate-ssl-certificate)
+            op_generatesslcertificate "$@"
+            ;;
+        version)
+            op_version "$@"
+            ;;
         *)
             usage
             ;;
         esac
+    fi
+}
+
+op_makecsr() {
+    if [ $# -gt 1 ]; then
+        vhost="$1"
+        domains=""
+
+        # remove the first argument to keep only the domains
+        shift 1
+
+        for domain in "$@"; do
+            domains="${domains:+${domains} }${domain}"
+        done
+
+        # pipe the domains to make-csr because we don't have STDIN
+        echo "$domains" | make-csr "$vhost"
+    else usage
+    fi
+}
+
+op_generatesslcertificate() {
+    if [ $# -gt 1 ]; then
+        vhost="$1"
+        test_mode="$2"
+
+        if [ "$test_mode" = "false" ]; then
+            if [ -L /etc/letsencrypt/$vhost/live ]; then
+                rm /etc/letsencrypt/$vhost/live
+            fi
+            evoacme "$vhost"
+        else
+            DRY_RUN=1 evoacme "$vhost"
+        fi
+    else usage
+    fi
+}
+
+op_managehttpchallengefile() {
+    if [ $# -eq 1 ]; then
+        folder="/var/lib/letsencrypt/.well-known"
+        file="testfile"
+
+        action=${1};
+
+        if [ "$action" = "create" ]; then
+            if [ ! -d "$folder" ]; then
+                mkdir -p "$folder/acme-challenge"
+            fi
+            if [ ! -f "$folder/acme-challenge/$file" ]; then
+                touch "$folder/acme-challenge/$file"
+            fi
+            chmod -R 755 "$folder"
+        elif [ "$action" = "delete" ]; then
+            rm -r "$folder"
+        else usage
+        fi
+    else usage
     fi
 }
 
@@ -792,7 +1026,6 @@ op_listvhost() {
     else
         configlist="$VHOST_PATH/*";
     fi
-
 
     for configfile in $configlist; do
         if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
@@ -811,9 +1044,17 @@ op_listvhost() {
             else
                 is_enabled=0
             fi
+
+            count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            if [ "$count_virtualhosts" -eq 1 ]; then
+                is_standard=1
+            else
+                is_standard=0
+            fi
+
             if [ "$servername" ] && [ "$userid" ]; then
                 configid=$(basename "$configfile")
-                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled"
+                echo "$userid:$configid:$servername:$serveraliases:$size:$quota_soft:$quota_hard:$phpversion:$is_enabled:$is_standard"
             fi
         fi
     done
@@ -823,12 +1064,23 @@ op_aliasadd() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
+        vhost_file="${VHOST_PATH}/${vhost}"
 
-        [ -f $VHOST_PATH/"$vhost" ] && sed -i "/ServerName .*/a \\\tServerAlias $alias" "$VHOST_PATH"/"$vhost" --follow-symlinks
+        if [ -f "${vhost_file}" ]; then
+            sed -i "/ServerName .*/a \\\tServerAlias $alias" "${vhost_file}" --follow-symlinks
+        else
+            echo "VHost file \`${vhost_file}' not found'" >&2
+            return 1
+        fi
 
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
+        configtest_out=$(apache2ctl configtest)
+        configtest_rc=$?
 
+        if [ "$configtest_rc" = "0" ]; then
+            /etc/init.d/apache2 force-reload >/dev/null
+        else
+            echo $configtest_out >&2
+        fi
     else usage
     fi
 }
@@ -859,25 +1111,6 @@ op_aliasdel() {
     fi
 }
 
-op_listservername() {
-    if [ $# -eq 1 ]; then
-        vhost_file="$VHOST_PATH/${1}.conf";
-
-        if [ -f "${vhost_file}" ]; then
-            servernames=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$vhost_file" | uniq)
-
-            for servername in $servernames; do
-                echo "$servername";
-            done
-        else
-            echo "VHost file \`${vhost_file}' not found'" >&2
-            return 1
-        fi
-    else
-        usage
-    fi
-}
-
 op_servernameupdate() {
     if [ $# -eq 3 ]; then
       vhost="${1}.conf"
@@ -885,7 +1118,6 @@ op_servernameupdate() {
       old_servername=$3
       vhost_file="${VHOST_PATH}/${vhost}"
 
-      # Remplacement de toutes les directives ServerName, on assume qu'il s'agit du même pour chaque vhost du fichier
       if [ -f "${vhost_file}" ]; then
           sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
           sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
@@ -915,36 +1147,34 @@ op_checkoccurencename() {
             if [ -r "$configfile" ]; then
                 alias=$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)
                 aliases="$aliases $alias"
-        
+
                 servername=$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | uniq)
                 servernames="$servernames $servername"
             fi
         done
 
-        echo "$servernames" "$aliases" | grep -w "$name"
+        echo "$servernames" "$aliases" | grep -E "(^|\s)$name(\s|$)"
     else
         usage
     fi
 }
 
 op_listuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH/${2}.conf"
-  
-        sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $2}' | uniq
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH/${1}.conf"
+
+        awk '/AssignUserID/ {print $2}' "$configfile" | uniq
     else
         usage
     fi
 }
 
 op_enableuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH/${2}.conf"
-        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" "$configfile" | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH/${1}.conf"
+        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
 
-        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
+        sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
 
         configtest_out=$(apache2ctl configtest)
         configtest_rc=$?
@@ -960,12 +1190,11 @@ op_enableuseritk() {
 }
 
 op_disableuseritk() {
-    if [ $# -eq 2 ]; then
-        domain=${1}
-        configfile="$VHOST_PATH"/"${2}".conf
-        group=$(sed -n "/$domain/,/<\/VirtualHost>/p" $configfile | awk '/AssignUserID/ {print $3}' | uniq)
+    if [ $# -eq 1 ]; then
+        configfile="$VHOST_PATH"/"${1}".conf
+        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
 
-        sed -i "/$domain/,/<\/VirtualHost>/ s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+        sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
 
         configtest_out=$(apache2ctl configtest)
         configtest_rc=$?
@@ -1200,7 +1429,7 @@ op_checkvhosts() {
     do
 		vhost_name=$(basename "$ln_path")
 		fix_conf="mv $ln_path $VHOST_PATH/$vhost_name"
-		fix_ln="a2ensite $vhost_name"
+		fix_ln="a2ensite ${vhost_name}.conf"
 
 		if [[ -z "$apply" ]]; then
 			echo "Suggested fixes for $vhost_name:"
@@ -1212,6 +1441,11 @@ op_checkvhosts() {
 			$fix_ln
 		fi
 	done
+}
+
+# Return web-add.sh version
+op_version(){
+    echo "$VERSION"
 }
 
 # Point d'entrée

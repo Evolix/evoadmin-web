@@ -13,16 +13,16 @@
 
 ?>
 
-<h2>ServerNames</h2>
+<h2>Servername</h2>
 
 <?php
 
-    if(count($servername_list) > 0) { ?>
+    if(!empty($servername)) { ?>
 
     <table id="tab-list">
         <thead>
         <tr>
-           <th>ServerName</th>
+           <th>Servername</th>
            <?php if (is_superadmin()) {
                print '<th>Action</th>';
            } ?>
@@ -30,20 +30,19 @@
         </thead>
         <tbody>
         <?php
-            for ( $i=0; $i < count($servername_list); ++$i ) {
-                print '<tr>';
-                printf('<td>%s</td>',
-                    $servername_list[$i]);
-                if (is_superadmin())
-                    printf('<td><a href="/webadmin/servername/%s?edit=%s">Modifier</a></td>',
-                            $domain, $servername_list[$i]);
-                print '</tr>';
-        } ?>
+          print '<tr>';
+          printf('<td>%s</td>',
+              $servername);
+          if (is_superadmin())
+              printf('<td><a href="/webadmin/%s/domain/edit/%s/">Modifier</a></td>',
+                      $domain, $servername);
+          print '</tr>';
+        ?>
         </tbody>
     </table>
 <?php
    } else {
-       print "<p>Aucun ServerName existant pour le domaine $domain !</p>";
+       print "<p>Aucun Servername existant pour le domaine $domain !</p>";
    }
 
 
