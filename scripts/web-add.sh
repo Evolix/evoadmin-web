@@ -23,6 +23,7 @@ LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
 TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
+HOST="$(hostname -f)"
 
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
@@ -456,6 +457,8 @@ pm.max_children = 10
 pm.process_idle_timeout = 10s
 
 php_admin_value[error_log] = /home/${in_login}/log/php.log
+php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
+php_admin_value[open_basedir] = "/usr/share/php:/home/${in_login}:/tmp"
 EOT
         step_ok "Création du pool FPM ${php_version}"
     done
@@ -763,8 +766,10 @@ op_del() {
 
     # Deactivate web vhost (apache or nginx)
     if [ "$WEB_SERVER" == "apache" ]; then
-        a2dissite "${login}.conf"
-        rm /etc/apache2/sites-available/"$login.conf"
+        if a2query -s test12 >/dev/null 2&>1; then
+            a2dissite "${login}.conf"
+        fi
+        rm -f /etc/apache2/sites-available/"$login.conf"
 
         apache2ctl configtest
 
@@ -791,17 +796,17 @@ op_del() {
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
             fi
-            rm /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+            rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
         done
 
     elif [ "$WEB_SERVER" == "nginx" ]; then
-        rm /etc/nginx/sites-{available,enabled}/"$login"
-        rm /etc/munin/plugins/phpfpm_"${in_login}"*
+        rm -f /etc/nginx/sites-{available,enabled}/"$login"
+        rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
         nginx -t
     fi
 
-    rm /etc/awstats/awstats."$login.conf"
+    rm -f /etc/awstats/awstats."$login.conf"
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 
     if [ "$WEB_SERVER" == "apache" ]; then
@@ -810,14 +815,18 @@ op_del() {
         fi
 
         for php_version in "${PHP_VERSIONS[@]}"; do
-            if lxc-attach -n php"${php_version}" -- id www-"$login" &> /dev/null; then
+            if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
                 lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
             fi
-            lxc-attach -n php"${php_version}" -- userdel -f "$login"
+            if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
+                lxc-attach -n php"${php_version}" -- userdel -f "$login"
+            fi
         done
     fi
 
-    userdel -f "$login"
+    if getent passwd "$login" &> /dev/null; then
+        userdel -f "$login"
+    fi
 
     sed -i.bak "/^$login:/d" /etc/aliases
     if [ "$WEB_SERVER" == "apache" ]; then
