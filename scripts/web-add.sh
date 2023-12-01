@@ -766,7 +766,7 @@ op_del() {
 
     # Deactivate web vhost (apache or nginx)
     if [ "$WEB_SERVER" == "apache" ]; then
-        if a2query -s test12 >/dev/null 2&>1; then
+        if a2query -s "${login}" >/dev/null 2&>1; then
             a2dissite "${login}.conf"
         fi
         rm -f /etc/apache2/sites-available/"$login.conf"
