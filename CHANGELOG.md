@@ -12,6 +12,20 @@ The **patch** part changes is incremented if multiple releases happen the same m
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Security
+
+
+
+## [24.04]
+
+### Added
+
 * Prevent op_del to fail and able to remove web account when part of it is already removed
 
 ### Changed
