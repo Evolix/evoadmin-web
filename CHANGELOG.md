@@ -21,6 +21,7 @@ The **patch** part changes is incremented if multiple releases happen the same m
 ### Fixed
 
 * letsencrypt: Add required check when retrieving certificate. (Avoid TypeError.)
+* web-add.sh: Fix ssh group membership (#94)
 
 ### Removed
 
