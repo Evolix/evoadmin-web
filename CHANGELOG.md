@@ -12,6 +12,20 @@ The **patch** part changes is incremented if multiple releases happen the same m
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+### Security
+
+
+
+## [24.04]
+
+### Added
+
 * Prevent op_del to fail and able to remove web account when part of it is already removed
 
 ### Changed
@@ -21,6 +35,7 @@ The **patch** part changes is incremented if multiple releases happen the same m
 ### Fixed
 
 * letsencrypt: Add required check when retrieving certificate. (Avoid TypeError.)
+* web-add.sh: Fix ssh group membership (#94)
 
 ### Removed
 

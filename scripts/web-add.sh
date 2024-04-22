@@ -14,7 +14,7 @@
 
 set -e
 
-VERSION="23.02"
+VERSION="24.04"
 HOME="/root"
 CONTACT_MAIL="jdoe@example.org"
 WWWBOUNCE_MAIL="jdoe@example.org"
@@ -363,14 +363,12 @@ create_www_account() {
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
     done
 
-    if grep -qE '^AllowGroups' /etc/ssh/sshd_config; then
-        if ! grep -qE "^AllowGroups(\\s+\\S+)*(\\s+$SSH_GROUP)" /etc/ssh/sshd_config; then
-            sed -i "s/^AllowGroups .*/& $SSH_GROUP/" /etc/ssh/sshd_config
-            groupadd --force $SSH_GROUP
-        fi
-        usermod -a -G $SSH_GROUP "$in_login"
-    elif grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
+    else
+        if getent group "$SSH_GROUP" 1>/dev/null 2>&1; then
+            usermod --append --groups "$SSH_GROUP" "$in_login"
+	fi
     fi
     /etc/init.d/ssh reload
 
