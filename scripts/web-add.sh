@@ -174,6 +174,10 @@ generate-ssl-certificate LOGIN [false]
     Generate the Let's Encrypt certificate
     Run in TEST mode unless "false" is used
 
+list-php-versions
+
+    List availables PHP versions (in multi-php mode)
+
 version 
 
     Obtain the script version
@@ -950,6 +954,9 @@ arg_processing() {
         generate-ssl-certificate)
             op_generatesslcertificate "$@"
             ;;
+        list-php-versions)
+            op_list_php_versions "$@"
+            ;;
         version)
             op_version "$@"
             ;;
@@ -1439,6 +1446,10 @@ op_checkvhosts() {
 			$fix_ln
 		fi
 	done
+}
+
+op_list_php_versions(){
+    echo "${PHP_VERSIONS[*]}"
 }
 
 # Return web-add.sh version
