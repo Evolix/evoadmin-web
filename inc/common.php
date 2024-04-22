@@ -16,6 +16,12 @@
 /**
  * Functions
  */
+
+ /**
+  * Check if a file exists and is readable and `die()` if it doesnt.
+  * @param string $file
+  * @return void
+  */
 function test_exist($file) {
     if(!file_exists($file)) {
         die("Erreur, vous devez mettre en place le fichier $file !\n");
@@ -25,11 +31,20 @@ function test_exist($file) {
     }   
 }
 
+/**
+ * Redirect the page to $path on the same HOST
+ * @param string $path
+ * @return never
+ */
 function http_redirect($path) {
     header('Location: '.$_SERVER['REQUEST_SCHEME'].'://'.$_SERVER['HTTP_HOST'].$path);
     exit(0);
 }
 
+/**
+ * @param string $filename
+ * @return string
+ */
 function findexts ($filename)
 {
     $filename = strtolower($filename) ;
@@ -39,15 +54,26 @@ function findexts ($filename)
     return $exts;
 } 
 
+/**
+ * Check if the user is a superadmin
+ * @return bool
+ */
 function is_superadmin() {
     global $conf;
     if(!empty($_SESSION['user']) && in_array($_SESSION['user'], $conf['superadmin'])) {
-        return 1;
+        return true;
     } else {
-        return 0;
+        return false;
     }
 }
 
+/**
+ * Execute a command with sudo
+ * @param string $cmd The command that will be executed.
+ * @param array $output output of the command.
+ * @param int $return_var return status of the command.
+ * @return void
+ */
 function sudoexec($cmd, &$output, &$return_var) {
     global $conf;
 
@@ -60,7 +86,8 @@ function sudoexec($cmd, &$output, &$return_var) {
 }
 
 /**
- * Return TRUE is Evoadmin is installed in cluster mode.
+ * Check if Evoadmin is installed in cluster mode
+ * @return boolean
  */
 function is_cluster_mode() {
     global $conf;
@@ -68,7 +95,8 @@ function is_cluster_mode() {
 }
 
 /**
- * Return TRUE is Evoadmin is installed in multi-cluster mode.
+ * Check if Evoadmin is installed in multi-cluster mode.
+ * @return boolean
  */
 function is_mcluster_mode() {
     global $conf;
@@ -77,6 +105,8 @@ function is_mcluster_mode() {
 
 /**
  * Load config file for the specified cluster.
+ * @param string $cluster
+ * @return void
  */
 function load_config_cluster($cluster) {
     global $conf;
@@ -87,8 +117,7 @@ function load_config_cluster($cluster) {
 }
 
 /**
- * Return wether or not this evoadmin install is a multi PHP install
- *
+ * Check if evoadmin install is a multi PHP install
  * @return boolean - True when it's a multi PHP system
  */
 function is_multiphp() {
@@ -97,9 +126,9 @@ function is_multiphp() {
 }
 
 /**
- *  Webadd
- *
- * @return boolean - True when it's a multi PHP system
+ * Webadd
+ * @param string $command webadd command to run
+ * @return array output from the command
  */
 function run_webadd_cmd($command) {
     global $conf;
@@ -127,6 +156,11 @@ if (!(ini_set('include_path', ini_get('include_path')))) {
     require_once 'PEAR.php';
     require_once 'Log.php';
 
+    /**
+     * (simply there to silence a warning)
+     * @var array $oriconf
+     * @var array $localconf
+     */
     // config files
     // (here because need Log PEAR lib)
     test_exist('../conf/connect.php');

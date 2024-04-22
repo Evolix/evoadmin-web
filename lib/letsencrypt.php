@@ -10,7 +10,8 @@ class LetsEncrypt
     const HTTP_CHALLENGE_URL = '/.well-known/acme-challenge/testfile';
 
     /**
-     * create the file used to test the HTTP challenge
+     * Create the file used to test the HTTP challenge
+     * @return void
      */
     private function createFileHttpChallenge()
     {
@@ -19,7 +20,8 @@ class LetsEncrypt
     }
 
     /**
-     * delete the file used to test the HTTP challenge
+     * Delete the file used to test the HTTP challenge
+     * @return void
      */
     private function deleteFileHttpChallenge()
     {
@@ -28,9 +30,9 @@ class LetsEncrypt
     }
 
     /**
-     * generate a CSR
+     * Generate a CSR
      * @param  string $vhost
-     * @param  Array $domains
+     * @param  string[] $domains
      * @return boolean
      */
     public function makeCsr($vhost, $domains)
@@ -69,7 +71,7 @@ class LetsEncrypt
     /**
      * perform a cURL call on the remote resource
      * the cURL call follows redirections
-     * @param  Array  $domains list of domains
+     * @param  array  $domains list of domains
      * @return boolean
      */
     public function checkRemoteResourceAvailability($domain)
@@ -108,8 +110,8 @@ class LetsEncrypt
 
     /**
      * Query the corresponding IP for each domain
-     * @param  Array $domains list of HTTP checked domains
-     * @return Array $valid_dns_domains list of valid domains
+     * @param  string[] $domains list of HTTP checked domains
+     * @return array $valid_dns_domains list of valid domains
      */
     public function checkDNSValidity($domains)
     {
@@ -133,7 +135,7 @@ class LetsEncrypt
     }
 
     /**
-     * check the presence of make-csr and evoacme binaries
+     * Check the presence of make-csr and evoacme binaries
      * @return boolean
      */
     public function isEvoacmeInstalled()
@@ -151,7 +153,7 @@ class LetsEncrypt
     /**
      * Retrieve the SSL certificate from the URL
      * @param  string $domain
-     * @return Array|false $cont list of parameters of the certificate, or false
+     * @return array|false $cont list of parameters of the certificate, or false
      */
     public function getCertificate($domain)
     {
@@ -167,8 +169,8 @@ class LetsEncrypt
 
     /**
      * Parse the certificat arguments and extract data
-     * @param  Array $certificateParameters certificat arguments
-     * @return Array $infosCert contains only the issuer, domains and expiration date
+     * @param  array $certificateParameters certificat arguments
+     * @return array $infosCert contains only the issuer, domains and expiration date
      */
     public function parseCertificate($certificateParameters)
     {
@@ -207,6 +209,12 @@ class LetsEncrypt
         return ($timestampCertValidUntil > $currentDate) ? true : false;
     }
 
+    /**
+     * Check if the requested domain is included in the certificate
+     * @param string $domainRequested
+     * @param string[]|string $san
+     * @return bool
+     */
     public function isDomainIncludedInCert($domainRequested, $san)
     {
         $san = preg_replace('/DNS:| DNS:/', '', $san);
