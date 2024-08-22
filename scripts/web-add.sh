@@ -367,12 +367,10 @@ create_www_account() {
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
     done
 
-    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+    if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
-    else
-        if getent group "$SSH_GROUP" 1>/dev/null 2>&1; then
-            usermod --append --groups "$SSH_GROUP" "$in_login"
-	fi
+    elif getent group "${SSH_GROUP}" 1>/dev/null 2>&1; then
+        usermod --append --groups "${SSH_GROUP}" "$in_login"
     fi
     /etc/init.d/ssh reload
 
@@ -798,9 +796,10 @@ op_del() {
         sed -i.bak "/^www-$login:/d" /etc/aliases
     fi
 
-    if grep -qE '^AllowUsers' /etc/ssh/sshd_config; then
+    if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
-        /etc/init.d/ssh reload
+    elif getent group "${SSH_GROUP}" 1>/dev/null 2>&1; then
+        usermod --append --groups "${SSH_GROUP}" "$in_login"
     fi
 
     if [ -d "$HOME_DIR/$login" ]; then
