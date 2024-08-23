@@ -436,6 +436,8 @@ create_www_account() {
             pool_path="/etc/php/8.2/fpm/pool.d/"
         elif [ "$php_version" = "83" ]; then
             pool_path="/etc/php/8.3/fpm/pool.d/"
+        elif [ "$php_version" = "84" ]; then
+            pool_path="/etc/php/8.4/fpm/pool.d/"
         else
             pool_path="/etc/php5/fpm/pool.d/"
         fi
@@ -620,6 +622,9 @@ EOT
             elif [ "$php_version" = "83" ]; then
                 initscript_path="/etc/init.d/php8.3-fpm"
                 binary="php-fpm8.3"
+            elif [ "$php_version" = "84" ]; then
+                initscript_path="/etc/init.d/php8.4-fpm"
+                binary="php-fpm8.4"
             else
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
@@ -796,6 +801,9 @@ op_del() {
             elif [ "$php_version" = "83" ]; then
                 phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
                 initscript_path="/etc/init.d/php8.3-fpm"
+            elif [ "$php_version" = "84" ]; then
+                phpfpm_dir="/etc/php/8.4/fpm/pool.d/"
+                initscript_path="/etc/init.d/php8.4-fpm"
             else
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
