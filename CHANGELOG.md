@@ -12,7 +12,12 @@ The **patch** part changes is incremented if multiple releases happen the same m
 
 ### Added
 
+* web-add.sh: Add new command list-php-versions
+* Support for PHP 8.3 and PHP 8.4
+
 ### Changed
+
+* Add some PHPDoc comments for ease of programming
 
 ### Fixed
 
