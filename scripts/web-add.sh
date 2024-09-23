@@ -428,24 +428,11 @@ create_www_account() {
 
     # Create FPM pool on all containers.
     for php_version in "${PHP_VERSIONS[@]}"; do
-        if [ "$php_version" = "70" ]; then
-            pool_path="/etc/php/7.0/fpm/pool.d/"
-        elif [ "$php_version" = "73" ]; then
-            pool_path="/etc/php/7.3/fpm/pool.d/"
-        elif [ "$php_version" = "74" ]; then
-            pool_path="/etc/php/7.4/fpm/pool.d/"
-        elif [ "$php_version" = "80" ]; then
-            pool_path="/etc/php/8.0/fpm/pool.d/"
-        elif [ "$php_version" = "81" ]; then
-            pool_path="/etc/php/8.1/fpm/pool.d/"
-        elif [ "$php_version" = "82" ]; then
-            pool_path="/etc/php/8.2/fpm/pool.d/"
-        elif [ "$php_version" = "83" ]; then
-            pool_path="/etc/php/8.3/fpm/pool.d/"
-        elif [ "$php_version" = "84" ]; then
-            pool_path="/etc/php/8.4/fpm/pool.d/"
-        else
+        if [ "${php_version:0:1}" = "5" ]; then
             pool_path="/etc/php5/fpm/pool.d/"
+        else
+            php_dot=${php_version:0:1}.${php_version:1:1}
+            pool_path="/etc/php/${php_dot}/fpm/pool.d/"
         fi
         phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
         cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
@@ -607,33 +594,13 @@ EOT
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
         for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                initscript_path="/etc/init.d/php7.0-fpm"
-                binary="php-fpm7.0"
-            elif [ "$php_version" = "73" ]; then
-                initscript_path="/etc/init.d/php7.3-fpm"
-                binary="php-fpm7.3"
-            elif [ "$php_version" = "74" ]; then
-                initscript_path="/etc/init.d/php7.4-fpm"
-                binary="php-fpm7.4"
-            elif [ "$php_version" = "80" ]; then
-                initscript_path="/etc/init.d/php8.0-fpm"
-                binary="php-fpm8.0"
-            elif [ "$php_version" = "81" ]; then
-                initscript_path="/etc/init.d/php8.1-fpm"
-                binary="php-fpm8.1"
-            elif [ "$php_version" = "82" ]; then
-                initscript_path="/etc/init.d/php8.2-fpm"
-                binary="php-fpm8.2"
-            elif [ "$php_version" = "83" ]; then
-                initscript_path="/etc/init.d/php8.3-fpm"
-                binary="php-fpm8.3"
-            elif [ "$php_version" = "84" ]; then
-                initscript_path="/etc/init.d/php8.4-fpm"
-                binary="php-fpm8.4"
-            else
+            if [ "${php_version:0:1}" = "5" ]; then
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
+            else
+                php_dot=${php_version:0:1}.${php_version:1:1}
+                initscript_path="/etc/init.d/php${php_dot}-fpm"
+                binary="php-fpm${php_dot}"
             fi
             lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
@@ -786,33 +753,13 @@ op_del() {
         apache2ctl configtest
 
         for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.0-fpm"
-            elif [ "$php_version" = "73" ]; then
-                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.3-fpm"
-            elif [ "$php_version" = "74" ]; then
-                phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.4-fpm"
-            elif [ "$php_version" = "80" ]; then
-                phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.0-fpm"
-            elif [ "$php_version" = "81" ]; then
-                phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.1-fpm"
-            elif [ "$php_version" = "82" ]; then
-                phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.2-fpm"
-            elif [ "$php_version" = "83" ]; then
-                phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.3-fpm"
-            elif [ "$php_version" = "84" ]; then
-                phpfpm_dir="/etc/php/8.4/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.4-fpm"
-            else
+            if [ "${php_version:0:1}" = "5" ]; then
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
+            else
+                php_dot=${php_version:0:1}.${php_version:1:1}
+                phpfpm_dir="/etc/php/${php_dot}/fpm/pool.d/"
+                initscript_path="/etc/init.d/php${php_dot}-fpm"
             fi
             rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
