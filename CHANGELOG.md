@@ -18,6 +18,7 @@ The **patch** part changes is incremented if multiple releases happen the same m
 ### Changed
 
 * Add some PHPDoc comments for ease of programming
+* Better PHP version number handling (6786114c68 )
 
 ### Fixed
 
