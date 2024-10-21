@@ -797,10 +797,9 @@ op_del() {
     fi
 
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
-        sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
-    elif getent group "${SSH_GROUP}" 1>/dev/null 2>&1; then
-        usermod --append --groups "${SSH_GROUP}" "$in_login"
+        sed -i '/^AllowUsers/s/ '"${login}"'\( \|$\)/\1/' /etc/ssh/sshd_config
     fi
+    /etc/init.d/ssh reload
 
     if [ -d "$HOME_DIR/$login" ]; then
         mv -i $HOME_DIR/"$login" $HOME_DIR/"$login"."$(date '+%Y%m%d-%H%M%S')".bak
