@@ -25,15 +25,9 @@ TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
 HOST="$(hostname -f)"
 
-WEB_SERVER="apache"
-if [ "$WEB_SERVER" == "apache" ]; then
-    VHOST_PATH="/etc/apache2/sites-available"
-    TPL_VHOST="$SCRIPTS_PATH/vhost"
-    TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
-else
-    echo "$WEB_SERVER is not apache exiting..."
-    exit 1
-fi
+VHOST_PATH="/etc/apache2/sites-available"
+TPL_VHOST="$SCRIPTS_PATH/vhost"
+TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
 
 # FPM
 FPM_PATH="/etc/php/7.0/fpm/pool.d"
@@ -325,19 +319,17 @@ create_www_account() {
 	&& chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        # Create www user and force UID if specified
-        /usr/sbin/adduser \
-        	--gecos "WWW $in_login" \
-        	--disabled-password \
-        	www-"$in_login" \
-            --shell /bin/false \
-            ${in_wwwuid:+'--uid' "$in_wwwuid"} \
-            --ingroup "$in_login" \
-            --force-badname \
-            --home "$HOME_DIR_USER"/www \
-            --no-create-home > /dev/null
-    fi
+    # Create www user and force UID if specified
+    /usr/sbin/adduser \
+        --gecos "WWW $in_login" \
+        --disabled-password \
+        www-"$in_login" \
+        --shell /bin/false \
+        ${in_wwwuid:+'--uid' "$in_wwwuid"} \
+        --ingroup "$in_login" \
+        --force-badname \
+        --home "$HOME_DIR_USER"/www \
+        --no-create-home > /dev/null
 
     # Get uid/gid for newly created accounts
     uid=$(id -u "$in_login")
@@ -363,10 +355,8 @@ create_www_account() {
 
     ############################################################################
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        echo "www-$login: $login" >> /etc/aliases
-        echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
-    fi
+    echo "www-$login: $login" >> /etc/aliases
+    echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
     newaliases
 
     step_ok "Alias mail"
@@ -387,9 +377,7 @@ create_www_account() {
     touch "$HOME_DIR_USER"/log/php.log
     chgrp "$in_login" "$HOME_DIR_USER"/log/access.log
     chgrp "$in_login" "$HOME_DIR_USER"/log/error.log
-    if [ "$WEB_SERVER" == "apache" ]; then
-        chown www-"$in_login":"$in_login" "$HOME_DIR_USER"/log/php.log
-    fi
+    chown www-"$in_login":"$in_login" "$HOME_DIR_USER"/log/php.log
     chmod 640 "$HOME_DIR_USER"/log/access.log
     chmod 640 "$HOME_DIR_USER"/log/error.log
     chmod 640 "$HOME_DIR_USER"/log/php.log
@@ -450,16 +438,15 @@ EOT
     ############################################################################
 
     random=$RANDOM
-    if [ "$WEB_SERVER" == "apache" ]; then
-        # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
-        mkdir -p /etc/apache2/ssl
+    # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
+    mkdir -p /etc/apache2/ssl
 
-        vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-        sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
+    vhostfile="/etc/apache2/sites-available/${in_login}.conf"
+    sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
 
-        if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
-            phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
-            cat <<EOT >>"$vhostfile"
+    if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
+        phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
+        cat <<EOT >>"$vhostfile"
     <Proxy "unix:${phpfpm_socket_path}|fcgi://localhost/" timeout=300>
     </Proxy>
     <FilesMatch "\\.php$">
@@ -467,11 +454,6 @@ EOT
     </FilesMatch>
 </VirtualHost>
 EOT
-        else
-            cat <<EOT >>"$vhostfile"
-</VirtualHost>
-EOT
-        fi
 
         # On active aussi example.com si domaine commence par "www." comme www.example
         if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
@@ -561,42 +543,40 @@ EOT
 
     ############################################################################
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                initscript_path="/etc/init.d/php7.0-fpm"
-                binary="php-fpm7.0"
-            elif [ "$php_version" = "73" ]; then
-                initscript_path="/etc/init.d/php7.3-fpm"
-                binary="php-fpm7.3"
-            elif [ "$php_version" = "74" ]; then
-                initscript_path="/etc/init.d/php7.4-fpm"
-                binary="php-fpm7.4"
-            elif [ "$php_version" = "80" ]; then
-                initscript_path="/etc/init.d/php8.0-fpm"
-                binary="php-fpm8.0"
-            elif [ "$php_version" = "81" ]; then
-                initscript_path="/etc/init.d/php8.1-fpm"
-                binary="php-fpm8.1"
-            elif [ "$php_version" = "82" ]; then
-                initscript_path="/etc/init.d/php8.2-fpm"
-                binary="php-fpm8.2"
-            elif [ "$php_version" = "83" ]; then
-                initscript_path="/etc/init.d/php8.3-fpm"
-                binary="php-fpm8.3"
-            else
-                initscript_path="/etc/init.d/php5-fpm"
-                binary="php5-fpm"
-            fi
-            lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-            step_ok "Rechargement de php-fpm dans php${php_version}"
-        done
+    apache2ctl configtest 2>/dev/null
+    /etc/init.d/apache2 force-reload >/dev/null
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if [ "$php_version" = "70" ]; then
+            initscript_path="/etc/init.d/php7.0-fpm"
+            binary="php-fpm7.0"
+        elif [ "$php_version" = "73" ]; then
+            initscript_path="/etc/init.d/php7.3-fpm"
+            binary="php-fpm7.3"
+        elif [ "$php_version" = "74" ]; then
+            initscript_path="/etc/init.d/php7.4-fpm"
+            binary="php-fpm7.4"
+        elif [ "$php_version" = "80" ]; then
+            initscript_path="/etc/init.d/php8.0-fpm"
+            binary="php-fpm8.0"
+        elif [ "$php_version" = "81" ]; then
+            initscript_path="/etc/init.d/php8.1-fpm"
+            binary="php-fpm8.1"
+        elif [ "$php_version" = "82" ]; then
+            initscript_path="/etc/init.d/php8.2-fpm"
+            binary="php-fpm8.2"
+        elif [ "$php_version" = "83" ]; then
+            initscript_path="/etc/init.d/php8.3-fpm"
+            binary="php-fpm8.3"
+        else
+            initscript_path="/etc/init.d/php5-fpm"
+            binary="php5-fpm"
+        fi
+        lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
+        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        step_ok "Rechargement de php-fpm dans php${php_version}"
+    done
 
         step_ok "Rechargement d'Apache"
-    fi
 
     ############################################################################
 
@@ -697,72 +677,65 @@ op_del() {
     fi
 
     # Deactivate web vhost
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if a2query -s "${login}" >/dev/null 2&>1; then
-            a2dissite "${login}.conf"
-        fi
-        rm -f /etc/apache2/sites-available/"$login.conf"
-
-        apache2ctl configtest
-
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.0-fpm"
-            elif [ "$php_version" = "73" ]; then
-                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.3-fpm"
-            elif [ "$php_version" = "74" ]; then
-                phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.4-fpm"
-            elif [ "$php_version" = "80" ]; then
-                phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.0-fpm"
-            elif [ "$php_version" = "81" ]; then
-                phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.1-fpm"
-            elif [ "$php_version" = "82" ]; then
-                phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.2-fpm"
-            elif [ "$php_version" = "83" ]; then
-                phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.3-fpm"
-            else
-                phpfpm_dir="/etc/php5/fpm/pool.d/"
-                initscript_path="/etc/init.d/php5-fpm"
-            fi
-            rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-        done
-
+    if a2query -s "${login}" >/dev/null 2&>1; then
+        a2dissite "${login}.conf"
     fi
+    rm -f /etc/apache2/sites-available/"$login.conf"
+
+    apache2ctl configtest
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if [ "$php_version" = "70" ]; then
+            phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
+            initscript_path="/etc/init.d/php7.0-fpm"
+        elif [ "$php_version" = "73" ]; then
+            phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
+            initscript_path="/etc/init.d/php7.3-fpm"
+        elif [ "$php_version" = "74" ]; then
+            phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
+            initscript_path="/etc/init.d/php7.4-fpm"
+        elif [ "$php_version" = "80" ]; then
+            phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.0-fpm"
+        elif [ "$php_version" = "81" ]; then
+            phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.1-fpm"
+        elif [ "$php_version" = "82" ]; then
+            phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.2-fpm"
+        elif [ "$php_version" = "83" ]; then
+            phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.3-fpm"
+        else
+            phpfpm_dir="/etc/php5/fpm/pool.d/"
+            initscript_path="/etc/init.d/php5-fpm"
+        fi
+        rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+    done
 
     rm -f /etc/awstats/awstats."$login.conf"
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if id www-"$login" &> /dev/null; then
-            userdel -f www-"$login"
-        fi
-
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
-            fi
-            if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f "$login"
-            fi
-        done
+    if id www-"$login" &> /dev/null; then
+        userdel -f www-"$login"
     fi
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
+            lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+        fi
+        if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
+            lxc-attach -n php"${php_version}" -- userdel -f "$login"
+        fi
+    done
 
     if getent passwd "$login" &> /dev/null; then
         userdel -f "$login"
     fi
 
     sed -i.bak "/^$login:/d" /etc/aliases
-    if [ "$WEB_SERVER" == "apache" ]; then
-        sed -i.bak "/^www-$login:/d" /etc/aliases
-    fi
+    sed -i.bak "/^www-$login:/d" /etc/aliases
 
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i '/^AllowUsers/s/ '"${login}"'\( \|$\)/\1/' /etc/ssh/sshd_config
