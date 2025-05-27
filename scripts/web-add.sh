@@ -547,6 +547,7 @@ EOT
 
     ############################################################################
 
+    # TODO configtest sans conséquence ?
     apache2ctl configtest 2>/dev/null
     /etc/init.d/apache2 force-reload >/dev/null
     for php_version in "${PHP_VERSIONS[@]}"; do
@@ -686,6 +687,7 @@ op_del() {
     fi
     rm -f /etc/apache2/sites-available/"$login.conf"
 
+    # TODO configtest sans conséquence ?
     apache2ctl configtest
 
     for php_version in "${PHP_VERSIONS[@]}"; do
