@@ -454,17 +454,21 @@ EOT
     </FilesMatch>
 </VirtualHost>
 EOT
-
-        # On active aussi example.com si domaine commence par "www." comme www.example
-        if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
-            subweb="${in_wwwdomain#www.}"
-            sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
-        fi
-
-        a2ensite "${in_login}.conf" >/dev/null
-
-        step_ok "Configuration d'Apache"
+    else
+        cat <<EOT >>"$vhostfile"
+</VirtualHost>
+EOT
     fi
+
+    # On active aussi example.com si domaine commence par "www." comme www.example
+    if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
+        subweb="${in_wwwdomain#www.}"
+        sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
+    fi
+
+    a2ensite "${in_login}.conf" >/dev/null
+
+    step_ok "Configuration d'Apache"
 
     sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
         < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
