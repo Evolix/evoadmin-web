@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Gestion des comptes web et des hôtes virtuels pour Apache et Nginx
+# Gestion des comptes web et des hôtes virtuels pour Apache
 #
 # Copyright (c) 2009-2017 Evolix - Tous droits reserves
 #
@@ -25,19 +25,13 @@ TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
 HOST="$(hostname -f)"
 
-# Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
 if [ "$WEB_SERVER" == "apache" ]; then
     VHOST_PATH="/etc/apache2/sites-available"
     TPL_VHOST="$SCRIPTS_PATH/vhost"
     TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
-
-elif [ "$WEB_SERVER" == "nginx" ]; then
-    VHOST_PATH="/etc/nginx/sites-available"
-    TPL_VHOST="$SCRIPTS_PATH/vhost-nginx.tpl"
-    TPL_MAIL="$SCRIPTS_PATH/web-mail-nginx.tpl"
 else
-    echo "$WEB_SERVER is not apache nor nginx, exiting..."
+    echo "$WEB_SERVER is not apache exiting..."
     exit 1
 fi
 
@@ -343,11 +337,6 @@ create_www_account() {
             --force-badname \
             --home "$HOME_DIR_USER"/www \
             --no-create-home > /dev/null
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        # Adding user www-data to group $in_login.
-        # And primary group www-data for $in_login.
-        adduser www-data "$in_login"
-        usermod -g www-data "$in_login"
     fi
 
     # Get uid/gid for newly created accounts
@@ -377,8 +366,6 @@ create_www_account() {
     if [ "$WEB_SERVER" == "apache" ]; then
         echo "www-$login: $login" >> /etc/aliases
         echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
     fi
     newaliases
 
@@ -403,7 +390,6 @@ create_www_account() {
     if [ "$WEB_SERVER" == "apache" ]; then
         chown www-"$in_login":"$in_login" "$HOME_DIR_USER"/log/php.log
     fi
-    # There is no php.log for nginx ATM, it will go in error.log.
     chmod 640 "$HOME_DIR_USER"/log/access.log
     chmod 640 "$HOME_DIR_USER"/log/error.log
     chmod 640 "$HOME_DIR_USER"/log/php.log
@@ -496,26 +482,6 @@ EOT
         a2ensite "${in_login}.conf" >/dev/null
 
         step_ok "Configuration d'Apache"
-
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        sed -e \
-        "s/DOMAIN/${in_wwwdomain}/g; s/LOGIN/${in_login}/g;" \
-        < "$TPL_VHOST" \
-        > ${VHOST_PATH}/"$in_login"
-        ln -s /etc/nginx/sites-available/"$in_login" \
-            /etc/nginx/sites-enabled/"$in_login"
-
-        /etc/init.d/nginx restart
-
-        step_ok "Configuration de Nginx + restart"
-
-        ############################################################################
-
-        sed -e "s/SED_LOGIN/${in_login}/g;" \
-        < $TPL_FPM > ${FPM_PATH}/"${in_login}".conf
-        step_ok "Creation du pool PHP-FPM"
-
-        ############################################################################
     fi
 
     sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
@@ -632,41 +598,6 @@ EOT
         step_ok "Rechargement d'Apache"
     fi
 
-############################################################################
-
-    if [ "$WEB_SERVER" == "nginx" ]; then
-        fpm_status=$(echo -n "$in_login" | md5sum | cut -d' ' -f1)
-        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_"${in_login}"_
-
-[phpfpm_${in_login}_*]
-env.url http://munin:%d/fpm_status_$fpm_status
-env.ports 80
-env.phpbin php-fpm
-env.phppool $in_login
-EOT
-        for name in average connections memory processes status; do
-        ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
-            /etc/munin/plugins/phpfpm_"${in_login}"_${name}
-        done
-        cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
-
-# $in_login FPM Status page. Secret part is md5 of pool name.
-location ~ ^/fpm_status_${fpm_status}$ {
-    include fastcgi_params;
-    fastcgi_pass unix:/var/run/php-fpm-${in_login}.sock;
-    fastcgi_param SCRIPT_FILENAME \$fastcgi_script_name;
-    allow 127.0.0.1;
-    deny all;
-}
-EOT
-        sed -i "s#SED_STATUS#/fpm_status_${fpm_status}#" \
-            ${FPM_PATH}/"${in_login}".conf
-        /etc/init.d/nginx reload
-        /etc/init.d/${FPM_SERVICE_NAME} reload
-        /etc/init.d/munin-node restart
-
-        step_ok "Configuration plugin php-fpm pour munin"
-    fi
     ############################################################################
 
     DATE=$(date +"%Y-%m-%d")
@@ -765,7 +696,7 @@ op_del() {
         crontab -r -u "$login"
     fi
 
-    # Deactivate web vhost (apache or nginx)
+    # Deactivate web vhost
     if [ "$WEB_SERVER" == "apache" ]; then
         if a2query -s "${login}" >/dev/null 2&>1; then
             a2dissite "${login}.conf"
@@ -804,10 +735,6 @@ op_del() {
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
         done
 
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        rm -f /etc/nginx/sites-{available,enabled}/"$login"
-        rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
-        nginx -t
     fi
 
     rm -f /etc/awstats/awstats."$login.conf"
