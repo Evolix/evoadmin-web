@@ -273,7 +273,7 @@ create_www_account() {
 
     # Create user and force UID / GID if specified
     /usr/sbin/adduser \
-        --ingroup www-data
+        --ingroup www-data \
         --gecos "User $in_login" \
         --disabled-password \
         "$in_login" \
