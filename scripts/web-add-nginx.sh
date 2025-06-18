@@ -676,7 +676,6 @@ op_del() {
     if [ -d /etc/letsencrypt/"$login" ]; then
         rm -r /etc/letsencrypt/"$login"
     fi
-i
 }
 
 op_setphpversion() {
