@@ -1329,7 +1329,7 @@ op_checkvhosts() {
             apply=1
             ;;
         ?)
-            usare
+            usage
             exit 1
             ;;
         esac
