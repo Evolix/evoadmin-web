@@ -15,9 +15,9 @@ NOM DU SERVEUR : %SERVER_NAME%
 USER : LOGIN
 PASSWORD : PASSE1
 
-*****************************************
-* Details sur l'environnement NginX/PHP
-*****************************************
+*******************************************
+* Details sur l'environnement NginX/PHP-FPM
+*******************************************
 
 URL du site :
 http://SERVERNAME
@@ -32,18 +32,6 @@ comportement par defaut).
 
 Lorsqu'on a besoin d'autoriser *l'ecriture* pour certains fichiers/repertoires,
 il suffit d'ajouter le droit 'g+w'.
-
-***********************************
-* MySQL
-***********************************
-
-SERVEUR : 127.0.0.1
-PORT DU SERVEUR : 3306
-USER : LOGIN
-PASSWORD : PASSE2
-NOM BASE : DBNAME
-URL interface d'admin :
-%PMA_URL%
 
 ***********************************
 * Rappels divers
