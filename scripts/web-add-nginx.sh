@@ -21,7 +21,7 @@ WWWBOUNCE_MAIL="jdoe@example.org"
 SCRIPTS_PATH="/usr/share/scripts/evoadmin"
 LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.local.sh"
 PRE_LOCAL_SCRIPT="$SCRIPTS_PATH/web-add.pre-local.sh"
-TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
+#TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
 HOST="$(hostname -f)"
 
@@ -241,7 +241,8 @@ step_ok() {
 create_www_account() {
 
     # Vérifications
-    for filetocheck in $TPL_VHOST $TPL_AWSTATS $TPL_MAIL; do
+#    for filetocheck in $TPL_VHOST $TPL_AWSTATS $TPL_MAIL; do
+    for filetocheck in $TPL_VHOST $TPL_MAIL; do
         if [ ! -f $filetocheck ]; then
             in_error "Fichier inexistant : $filetocheck"
             exit 1
@@ -328,10 +329,11 @@ create_www_account() {
     chmod 750 "$HOME_DIR_USER"/
 
     # Répertoires par défaut
-    mkdir -p "$HOME_DIR_USER"/{log,www,awstats}
+# TODO s/www/www,awstats/ ?
+    mkdir -p "$HOME_DIR_USER"/{log,www}
     chown "$in_login":"$in_login" "$HOME_DIR_USER"/www
-    chgrp "$in_login" "$HOME_DIR_USER"/{log,awstats}
-    chmod 750 "$HOME_DIR_USER"/{log,www,awstats}
+    chgrp "$in_login" "$HOME_DIR_USER"/{log}
+    chmod 750 "$HOME_DIR_USER"/{log,www}
 
     # Ajout des logs par defaut
     touch "$HOME_DIR_USER"/log/access.log
@@ -423,20 +425,20 @@ EOT
     ############################################################################
 
 # TODO virer awstat (?)
-    sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
-        < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
-    chmod 644 /etc/awstats/awstats."$in_login".conf
-
-       VAR=$(grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1)
-    if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
-        VAR=1
-    else
-        VAR=$((VAR +1))
-    fi
-
-    echo "$VAR * * * * root umask 033; [ -x /usr/lib/cgi-bin/awstats.pl -a -f /etc/awstats/awstats.$in_login.conf -a -r $HOME_DIR_USER/log/access.log ] && /usr/lib/cgi-bin/awstats.pl -config=$in_login -update >/dev/null" >> /etc/cron.d/awstats
-
-    step_ok "Activation d'Awstats"
+#    sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
+#        < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
+#    chmod 644 /etc/awstats/awstats."$in_login".conf
+#
+#       VAR=$(grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1)
+#    if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
+#        VAR=1
+#    else
+#        VAR=$((VAR +1))
+#    fi
+#
+#    echo "$VAR * * * * root umask 033; [ -x /usr/lib/cgi-bin/awstats.pl -a -f /etc/awstats/awstats.$in_login.conf -a -r $HOME_DIR_USER/log/access.log ] && /usr/lib/cgi-bin/awstats.pl -config=$in_login -update >/dev/null" >> /etc/cron.d/awstats
+#
+#    step_ok "Activation d'Awstats"
 
     ############################################################################
 
@@ -651,8 +653,8 @@ op_del() {
         lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
     done
 
-    rm -f /etc/awstats/awstats."$login.conf"
-    sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+#    rm -f /etc/awstats/awstats."$login.conf"
+#    sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 
     if getent passwd "$login" &> /dev/null; then
         userdel -f "$login"
