@@ -402,16 +402,17 @@ EOT
     # TODO nginx + config php fpm
     # TODO monophp support
     # TODO update nginx template
-    sed -e \
-        "s/DOMAIN/${in_wwwdomain}/g; s/LOGIN/${in_login}/g;" \
-        < "$TPL_VHOST" \
-        > ${VHOST_PATH}/"$in_login"
-    ln -s /etc/nginx/sites-available/"$in_login" \
-        /etc/nginx/sites-enabled/"$in_login"
+    sed \
+        -e "s/DOMAIN/${in_wwwdomain}/g" \
+        -e "s/LOGIN/${in_login}/;" \
+        -e "s/PHPVERSION/${in_phpversion}/" \
+        "$TPL_VHOST" > ${VHOST_PATH}/"$in_login"
+    ln -s /etc/nginx/sites-available/"$in_login" /etc/nginx/sites-enabled/"$in_login"
 
-    /etc/init.d/nginx restart
+    nginx -qt
+    systemctl reload nginx
 
-    step_ok "Configuration de Nginx + restart"
+    step_ok "Rechargement de Nginx"
 
     ############################################################################
 
