@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Gestion des comptes web et des hôtes virtuels pour Apache et Nginx
+# Gestion des comptes web et des hôtes virtuels pour Nginx
 #
 # Copyright (c) 2009-2017 Evolix - Tous droits reserves
 #
@@ -37,9 +37,6 @@ TPL_FPM="$SCRIPTS_PATH/fpm.conf.tpl"
 
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
-#TODO virer mysql
-MYSQL_CREATE_DB_OPTS=""
-MYSQL_OPTS=""
 PHP_VERSIONS=()
 
 # Utiliser ce fichier pour redefinir la valeur des variables ci-dessus
@@ -60,12 +57,6 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
 
    -p PASSWD
       FTP and SFTP password (default : random)
-
-   -m DBNAME
-      Name of MySQL database (default : same as account)
-
-   -P DBPASSWD
-      MySQL password (default : random)
 
    -l MAIL
       Send summary email to MAIL
@@ -91,23 +82,22 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
    -q
       Filesystem quota in GiB, in the form <quota soft>:<quota hard>
 
-   Example : web-add.sh add -m testdb -r 56 testlogin testdomain.com
+   Example : web-add-nginx.sh add -r 56 testlogin testdomain.com
 
-del [ [OPTIONS] LOGIN [DBNAME] ]
+del [ [OPTIONS] LOGIN ]
 
-   Delete account and all files related (Apache, Awstats, etc)
+   Delete account and all files related (Nginx, Awstats, etc)
    Archive home directory.
-   Remove MySQL database only if DBNAME is specified.
 
    -y
       Don't ask for confirmation
 
-   Example : web-add.sh del -y testlogin testdatabase
+   Example : web-add-nginx.sh del -y testlogin
 
 
 list-vhost LOGIN
 
-   List Apache vhost for user LOGIN
+   List Nginx vhost for user LOGIN
 
 check-vhosts -f
 
@@ -115,32 +105,20 @@ check-vhosts -f
 
 add-alias VHOST ALIAS
 
-    Add a ServerAlias to an Apache vhost
+    Add a ServerAlias to an Nginx vhost
 
 del-alias VHOST ALIAS
 
-    Del a ServerAlias from an Apache vhost
+    Del a ServerAlias from an Nginx vhost
 
 update-servername VHOST SERVERNAME OLD_SERVERNAME
 
-    Replace the OLD_SERVERNAME with the SERVERNAME for an Apache vhost
+    Replace the OLD_SERVERNAME with the SERVERNAME for an Nginx vhost
     Also apply to rewrite rules
 
 check-occurence NAME
 
     List all occurences of NAME in vhosts
-
-list-user-itk LOGIN
-
-    List the assigned ITK user for the LOGIN specified
-
-enable-user-itk LOGIN
-
-    Enable the assigned ITK user for the LOGIN specified
-
-disable-user-itk LOGIN
-
-    Disable the assigned ITK user for the LOGIN specified
 
 setphpversion LOGIN VERSION
 
@@ -209,14 +187,6 @@ validate_passwd() {
 
     if [ "$length" -lt 6 ] && [ "$length" -gt 0 ]; then
         in_error "Le mot de passe doit avoir au moins 6 caracteres"
-        return 1
-    fi
-}
-
-validate_dbname() {
-    dbname=$1
-    if mysql $MYSQL_OPTS -ss -e "show databases" | grep "^$dbname$" >/dev/null; then
-        in_error "Base de données déjà existante"
         return 1
     fi
 }
@@ -429,61 +399,27 @@ EOT
 
     ############################################################################
 
-    random=$RANDOM
     # TODO nginx + config php fpm
-    if [ "$WEB_SERVER" == "apache" ]; then
-        # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
-        mkdir -p /etc/apache2/ssl
-
-        vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-        sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
-
-        if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
-            phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
-            cat <<EOT >>"$vhostfile"
-    <Proxy "unix:${phpfpm_socket_path}|fcgi://localhost/" timeout=300>
-    </Proxy>
-    <FilesMatch "\\.php$">
-        SetHandler proxy:unix:${phpfpm_socket_path}|fcgi://localhost/
-    </FilesMatch>
-</VirtualHost>
-EOT
-        else
-            cat <<EOT >>"$vhostfile"
-</VirtualHost>
-EOT
-        fi
-
-        # On active aussi example.com si domaine commence par "www." comme www.example
-        if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
-            subweb="${in_wwwdomain#www.}"
-            sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
-        fi
-
-        a2ensite "${in_login}.conf" >/dev/null
-
-        step_ok "Configuration d'Apache"
-
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        sed -e \
+    # TODO monophp support
+    # TODO update nginx template
+    sed -e \
         "s/DOMAIN/${in_wwwdomain}/g; s/LOGIN/${in_login}/g;" \
         < "$TPL_VHOST" \
         > ${VHOST_PATH}/"$in_login"
-        ln -s /etc/nginx/sites-available/"$in_login" \
-            /etc/nginx/sites-enabled/"$in_login"
+    ln -s /etc/nginx/sites-available/"$in_login" \
+        /etc/nginx/sites-enabled/"$in_login"
 
-        /etc/init.d/nginx restart
+    /etc/init.d/nginx restart
 
-        step_ok "Configuration de Nginx + restart"
+    step_ok "Configuration de Nginx + restart"
 
-        ############################################################################
+    ############################################################################
 
-        sed -e "s/SED_LOGIN/${in_login}/g;" \
+    sed -e "s/SED_LOGIN/${in_login}/g;" \
         < $TPL_FPM > ${FPM_PATH}/"${in_login}".conf
         step_ok "Creation du pool PHP-FPM"
 
-        ############################################################################
-    fi
+    ############################################################################
 
 # TODO virer awstat (?)
     sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
@@ -503,52 +439,16 @@ EOT
 
     ############################################################################
 
-    if [ "$in_dbname" ]; then
-        echo "CREATE DATABASE \`$in_dbname\` $MYSQL_CREATE_DB_OPTS;" | mysql $MYSQL_OPTS
-        echo "GRANT ALL PRIVILEGES ON \`$in_dbname\`.* TO \`$in_login\`@localhost IDENTIFIED BY '$in_dbpasswd';" | mysql $MYSQL_OPTS
-        echo "FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
-
-        my_cnf_file="$HOME_DIR_USER/.my.cnf"
-        cat > "$my_cnf_file" <<-EOT
-[client]
-user = $in_login
-password = "$in_dbpasswd"
-
-[mysql]
-database = $in_dbname
-EOT
-        chown "$in_login" "$my_cnf_file"
-        chmod 600 "$my_cnf_file"
-
-        step_ok "Création base de données et compte MySQL"
-    fi
-
-    ############################################################################
-
-    if [ "$in_dbname" ]; then
-        sed -e "
+    sed -e "
         s/LOGIN/$in_login/g ;
         s/SERVERNAME/$in_wwwdomain/ ;
         s/PASSE1/$in_passwd/ ;
-        s/PASSE2/$in_dbpasswd/ ;
         s/RANDOM/$random/ ;
         s/QUOTA/$quota/ ;
         s/RCPTTO/$in_mail/ ;
-        s/DBNAME/$in_dbname/ ;
-        s#HOME_DIR#$HOME_DIR#" \
+        s#HOME_DIR#$HOME_DIR# ;
+        39,58d" \
         < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
-    else
-        sed -e "
-            s/LOGIN/$in_login/g ;
-            s/SERVERNAME/$in_wwwdomain/ ;
-            s/PASSE1/$in_passwd/ ;
-            s/RANDOM/$random/ ;
-            s/QUOTA/$quota/ ;
-            s/RCPTTO/$in_mail/ ;
-            s#HOME_DIR#$HOME_DIR# ;
-            39,58d" \
-            < $TPL_MAIL | /usr/lib/sendmail -oi -t -f "$CONTACT_MAIL"
-    fi
 
     step_ok "Envoi du mail récapitulatif"
 
@@ -563,82 +463,82 @@ EOT
 
     ############################################################################
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                initscript_path="/etc/init.d/php7.0-fpm"
-                binary="php-fpm7.0"
-            elif [ "$php_version" = "73" ]; then
-                initscript_path="/etc/init.d/php7.3-fpm"
-                binary="php-fpm7.3"
-            elif [ "$php_version" = "74" ]; then
-                initscript_path="/etc/init.d/php7.4-fpm"
-                binary="php-fpm7.4"
-            elif [ "$php_version" = "80" ]; then
-                initscript_path="/etc/init.d/php8.0-fpm"
-                binary="php-fpm8.0"
-            elif [ "$php_version" = "81" ]; then
-                initscript_path="/etc/init.d/php8.1-fpm"
-                binary="php-fpm8.1"
-            elif [ "$php_version" = "82" ]; then
-                initscript_path="/etc/init.d/php8.2-fpm"
-                binary="php-fpm8.2"
-            elif [ "$php_version" = "83" ]; then
-                initscript_path="/etc/init.d/php8.3-fpm"
-                binary="php-fpm8.3"
-            else
-                initscript_path="/etc/init.d/php5-fpm"
-                binary="php5-fpm"
-            fi
-            lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-            step_ok "Rechargement de php-fpm dans php${php_version}"
-        done
+    nginx -qt
+    systemctl reload nginx
+    step_ok "Rechargement de Nginx"
 
-        step_ok "Rechargement d'Apache"
-    fi
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if [ "$php_version" = "70" ]; then
+            initscript_path="/etc/init.d/php7.0-fpm"
+            binary="php-fpm7.0"
+        elif [ "$php_version" = "73" ]; then
+            initscript_path="/etc/init.d/php7.3-fpm"
+            binary="php-fpm7.3"
+        elif [ "$php_version" = "74" ]; then
+            initscript_path="/etc/init.d/php7.4-fpm"
+            binary="php-fpm7.4"
+        elif [ "$php_version" = "80" ]; then
+            initscript_path="/etc/init.d/php8.0-fpm"
+            binary="php-fpm8.0"
+        elif [ "$php_version" = "81" ]; then
+            initscript_path="/etc/init.d/php8.1-fpm"
+            binary="php-fpm8.1"
+        elif [ "$php_version" = "82" ]; then
+            initscript_path="/etc/init.d/php8.2-fpm"
+            binary="php-fpm8.2"
+        elif [ "$php_version" = "83" ]; then
+            initscript_path="/etc/init.d/php8.3-fpm"
+            binary="php-fpm8.3"
+        else
+            initscript_path="/etc/init.d/php5-fpm"
+            binary="php5-fpm"
+        fi
+        lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
+        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        step_ok "Rechargement de php-fpm dans php${php_version}"
+    done
 
 ############################################################################
 
-    if [ "$WEB_SERVER" == "nginx" ]; then
-        fpm_status=$(echo -n "$in_login" | md5sum | cut -d' ' -f1)
-        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_"${in_login}"_
+# TODO section à revoir
+#    if [ "$WEB_SERVER" == "nginx" ]; then
+#        fpm_status=$(echo -n "$in_login" | md5sum | cut -d' ' -f1)
+#        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_"${in_login}"_
+#
+#[phpfpm_${in_login}_*]
+#env.url http://munin:%d/fpm_status_$fpm_status
+#env.ports 80
+#env.phpbin php-fpm
+#env.phppool $in_login
+#EOT
+#        for name in average connections memory processes status; do
+#        ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
+#            /etc/munin/plugins/phpfpm_"${in_login}"_${name}
+#        done
+#        cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
+#
+## $in_login FPM Status page. Secret part is md5 of pool name.
+#location ~ ^/fpm_status_${fpm_status}$ {
+#    include fastcgi_params;
+#    fastcgi_pass unix:/var/run/php-fpm-${in_login}.sock;
+#    fastcgi_param SCRIPT_FILENAME \$fastcgi_script_name;
+#    allow 127.0.0.1;
+#    deny all;
+#}
+#EOT
+#        sed -i "s#SED_STATUS#/fpm_status_${fpm_status}#" \
+#            ${FPM_PATH}/"${in_login}".conf
+#        /etc/init.d/nginx reload
+#        /etc/init.d/${FPM_SERVICE_NAME} reload
+#        /etc/init.d/munin-node restart
+#
+#        step_ok "Configuration plugin php-fpm pour munin"
+#    fi
 
-[phpfpm_${in_login}_*]
-env.url http://munin:%d/fpm_status_$fpm_status
-env.ports 80
-env.phpbin php-fpm
-env.phppool $in_login
-EOT
-        for name in average connections memory processes status; do
-        ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
-            /etc/munin/plugins/phpfpm_"${in_login}"_${name}
-        done
-        cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
-
-# $in_login FPM Status page. Secret part is md5 of pool name.
-location ~ ^/fpm_status_${fpm_status}$ {
-    include fastcgi_params;
-    fastcgi_pass unix:/var/run/php-fpm-${in_login}.sock;
-    fastcgi_param SCRIPT_FILENAME \$fastcgi_script_name;
-    allow 127.0.0.1;
-    deny all;
-}
-EOT
-        sed -i "s#SED_STATUS#/fpm_status_${fpm_status}#" \
-            ${FPM_PATH}/"${in_login}".conf
-        /etc/init.d/nginx reload
-        /etc/init.d/${FPM_SERVICE_NAME} reload
-        /etc/init.d/munin-node restart
-
-        step_ok "Configuration plugin php-fpm pour munin"
-    fi
     ############################################################################
 
     DATE=$(date +"%Y-%m-%d")
-    echo "$DATE [web-add.sh] Ajout $in_login" >> /var/log/evolix.log
+    echo "$DATE [web-add-nginx.sh] Ajout $in_login" >> /var/log/evolix.log
 }
 
 op_del() {
@@ -657,20 +557,6 @@ op_del() {
             read -r tmp
             login="$tmp"
         done
-
-        echo -n "Voulez-vous aussi supprimer un compte/base MySQL ? [y|N]"
-        read -r confirm
-
-        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-            echo -n "Entrez le nom de la base de donnees ($login par defaut) : "
-            read -r tmp
-
-            if [ -z "$tmp" ]; then
-                dbname=$login
-            else
-                dbname="$tmp"
-            fi
-        fi
 
     #
     # Mode non interactif
@@ -694,11 +580,8 @@ op_del() {
         done
 
         shift $((OPTIND - 1))
-        if [ $# -gt 0 ] && [ $# -le 2 ]; then
+        if [ $# -eq 1 ]; then
             login=$1
-            if [ $# -eq 2 ]; then
-                dbname=$2
-            fi
         else
             usage
             exit 1
@@ -708,9 +591,6 @@ op_del() {
     echo
     echo "----------------------------------------------"
     echo "Nom du compte : $login"
-    if [ "$dbname" ]; then
-        echo "Base de données MySQL : $dbname"
-    fi
     echo "----------------------------------------------"
     echo
 
@@ -733,77 +613,51 @@ op_del() {
         crontab -r -u "$login"
     fi
 
-    # Deactivate web vhost (apache or nginx)
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if a2query -s "${login}" >/dev/null 2&>1; then
-            a2dissite "${login}.conf"
+    # Deactivate web vhost
+    rm -f /etc/nginx/sites-{available,enabled}/"$login"
+    rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
+
+    nginx -qt
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if [ "$php_version" = "70" ]; then
+            phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
+            initscript_path="/etc/init.d/php7.0-fpm"
+        elif [ "$php_version" = "73" ]; then
+            phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
+            initscript_path="/etc/init.d/php7.3-fpm"
+        elif [ "$php_version" = "74" ]; then
+            phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
+            initscript_path="/etc/init.d/php7.4-fpm"
+        elif [ "$php_version" = "80" ]; then
+            phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.0-fpm"
+        elif [ "$php_version" = "81" ]; then
+            phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.1-fpm"
+        elif [ "$php_version" = "82" ]; then
+            phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.2-fpm"
+        elif [ "$php_version" = "83" ]; then
+            phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
+            initscript_path="/etc/init.d/php8.3-fpm"
+        else
+            phpfpm_dir="/etc/php5/fpm/pool.d/"
+            initscript_path="/etc/init.d/php5-fpm"
         fi
-        rm -f /etc/apache2/sites-available/"$login.conf"
-
-        apache2ctl configtest
-
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.0-fpm"
-            elif [ "$php_version" = "73" ]; then
-                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.3-fpm"
-            elif [ "$php_version" = "74" ]; then
-                phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.4-fpm"
-            elif [ "$php_version" = "80" ]; then
-                phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.0-fpm"
-            elif [ "$php_version" = "81" ]; then
-                phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.1-fpm"
-            elif [ "$php_version" = "82" ]; then
-                phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.2-fpm"
-            elif [ "$php_version" = "83" ]; then
-                phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.3-fpm"
-            else
-                phpfpm_dir="/etc/php5/fpm/pool.d/"
-                initscript_path="/etc/init.d/php5-fpm"
-            fi
-            rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-        done
-
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        rm -f /etc/nginx/sites-{available,enabled}/"$login"
-        rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
-        nginx -t
-    fi
+        rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+        lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
+        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+    done
 
     rm -f /etc/awstats/awstats."$login.conf"
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
-
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if id www-"$login" &> /dev/null; then
-            userdel -f www-"$login"
-        fi
-
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
-            fi
-            if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f "$login"
-            fi
-        done
-    fi
 
     if getent passwd "$login" &> /dev/null; then
         userdel -f "$login"
     fi
 
     sed -i.bak "/^$login:/d" /etc/aliases
-    if [ "$WEB_SERVER" == "apache" ]; then
-        sed -i.bak "/^www-$login:/d" /etc/aliases
-    fi
 
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i '/^AllowUsers/s/ '"${login}"'\( \|$\)/\1/' /etc/ssh/sshd_config
@@ -819,14 +673,7 @@ op_del() {
     if [ -d /etc/letsencrypt/"$login" ]; then
         rm -r /etc/letsencrypt/"$login"
     fi
-
-    set +x
-
-    if [ -n "$dbname" ]; then
-        set -x
-        echo "DROP DATABASE \`$dbname\`; DROP USER \`$login\`@localhost; FLUSH PRIVILEGES;" | mysql $MYSQL_OPTS
-        set +x
-    fi
+i
 }
 
 op_setphpversion() {
@@ -839,12 +686,12 @@ op_setphpversion() {
 
     validate_phpversion "$phpversion"
 
-    sed -i "s#^\\(\s*SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
-    sed -i "s#^\\(\s*<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
-    /etc/init.d/apache2 force-reload >/dev/null
+    sed -Ei "s#^( *fastcgi_pass unix:/home/[^/]+/php-fpm\\.)[0-9]+(\\.sock;)#\\1${phpversion}\\2#" /etc/nginx/sites-available/"${login}"
+    nginx -qt
+    systemctl reload nginx
 
     DATE=$(date +"%Y-%m-%d")
-    echo "$DATE [web-add.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
+    echo "$DATE [web-add-nginx.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
 }
 
 op_setquota() {
@@ -862,7 +709,7 @@ op_setquota() {
     setquota --remote --user "$login" $quota_soft $quota_hard 0 0 /home
 
     DATE=$(date +"%Y-%m-%d")
-    echo "$DATE [web-add.sh] quota set to $quota for $login" >> /var/log/evolix.log
+    echo "$DATE [web-add-nginx.sh] quota set to $quota for $login" >> /var/log/evolix.log
 }
 
 arg_processing() {
@@ -899,15 +746,6 @@ arg_processing() {
             ;;
         check-occurence)
             op_checkoccurencename "$@"
-            ;;
-        list-user-itk)
-            op_listuseritk "$@"
-            ;;
-        enable-user-itk)
-            op_enableuseritk "$@"
-            ;;
-        disable-user-itk)
-            op_disableuseritk "$@"
             ;;
         setphpversion)
             op_setphpversion "$@"
@@ -992,6 +830,7 @@ op_managehttpchallengefile() {
     fi
 }
 
+# TODO support nginx
 op_listvhost() {
     if [ $# -eq 1 ]; then
         configlist="$VHOST_PATH/${1}.conf";
@@ -1032,6 +871,7 @@ op_listvhost() {
     done
 }
 
+# TODO nginx support
 op_aliasadd() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
@@ -1057,6 +897,7 @@ op_aliasadd() {
     fi
 }
 
+# TODO nginx support
 op_aliasdel() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
@@ -1083,6 +924,7 @@ op_aliasdel() {
     fi
 }
 
+# TODO nginx support
 op_servernameupdate() {
     if [ $# -eq 3 ]; then
       vhost="${1}.conf"
@@ -1131,56 +973,6 @@ op_checkoccurencename() {
     fi
 }
 
-op_listuseritk() {
-    if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH/${1}.conf"
-
-        awk '/AssignUserID/ {print $2}' "$configfile" | uniq
-    else
-        usage
-    fi
-}
-
-op_enableuseritk() {
-    if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH/${1}.conf"
-        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
-
-        sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
-
-        configtest_out=$(apache2ctl configtest)
-        configtest_rc=$?
-
-        if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
-        else
-            echo $configtest_out >&2
-        fi
-    else
-        usage
-    fi
-}
-
-op_disableuseritk() {
-    if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH"/"${1}".conf
-        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
-
-        sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
-
-        configtest_out=$(apache2ctl configtest)
-        configtest_rc=$?
-
-        if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
-        else
-            echo $configtest_out >&2
-        fi
-    else
-        usage
-    fi
-}
-
 op_add() {
 
     #
@@ -1212,38 +1004,6 @@ op_add() {
                 in_passwd="$tmp"
             fi
         done
-
-        echo -n "Voulez-vous aussi un compte/base MySQL ? [Y|n] "
-        read -r confirm
-
-        if [ "$confirm" != "n" ] && [ "$confirm" != "N" ]; then
-            until [ "$in_dbname" ]; do
-                echo -n "Entrez le nom de la base de donnees ($in_login par defaut) : "
-                read -r tmp
-
-                if [ -z "$tmp" ]; then
-                    tmp=$in_login
-                fi
-
-                if validate_dbname "$tmp"; then
-                    in_dbname="$tmp"
-                fi
-            done
-
-            until [ "$in_dbpasswd" ]; do
-                echo -n "Entrez le mot de passe MySQL (ou vide pour aleatoire) : "
-                read -rs tmp
-                echo
-
-                if [ -z "$tmp" ]; then
-                    tmp=$(gen_random_passwd)
-                fi
-
-                if validate_passwd "$tmp"; then
-                    in_dbpasswd="$tmp"
-                fi
-            done
-        fi
 
         until [ "$in_wwwdomain" ]; do
             echo -n "Entrez le nom de domaine web (ex: foo.example.com) : "
@@ -1282,12 +1042,6 @@ op_add() {
             case "$opt" in
             p)
                 in_passwd=$OPTARG
-                ;;
-            m)
-                in_dbname=$OPTARG
-                ;;
-            P)
-                in_dbpasswd=$OPTARG
                 ;;
             l)
                 in_mail=$OPTARG
@@ -1334,9 +1088,6 @@ op_add() {
             validate_login "$in_login" || exit 1
             [ -z "$in_passwd" ] && [ -z "$in_sshkey" ] && in_passwd=$(gen_random_passwd)
             [ -z "$in_sshkey" ] && ( validate_passwd "$in_passwd" || exit 1 )
-            [ -n "$in_dbname" ] && ( validate_dbname "$in_dbname" || exit 1 )
-            [ -z "$in_dbpasswd" ] && [ -n "$in_dbname" ] && in_dbpasswd=$(gen_random_passwd)
-            [ -n "$in_dbname" ] && ( validate_passwd "$in_dbpasswd" || exit 1 )
             validate_wwwdomain "$in_wwwdomain" || exit 1
             [ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
             validate_mail $in_mail || exit 1
@@ -1349,10 +1100,6 @@ op_add() {
     echo "----------------------------------------------"
     echo "Nom du compte : $in_login"
     echo "Mot de passe : $in_passwd"
-    if [ "$in_dbname" ]; then
-        echo "Base de données MySQL : $in_dbname"
-        echo "Mot de passe MySQL : $in_dbpasswd"
-    fi
     echo "Nom de domaine : $in_wwwdomain"
     if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
         echo "version de PHP : $in_phpversion"
@@ -1415,7 +1162,7 @@ op_checkvhosts() {
 	done
 }
 
-# Return web-add.sh version
+# Return web-add-nginx.sh version
 op_version(){
     echo "$VERSION"
 }
