@@ -67,9 +67,6 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
    -u UID
       Force account UID (only in command line)
 
-   -g GID
-      Force account GID (only in command line)
-
    -U UID
       Force www-account UID (only in command line)
 
@@ -279,7 +276,6 @@ create_www_account() {
         "$in_login" \
         --shell /bin/bash \
         ${in_uid:+'--uid' "$in_uid"} \
-        ${in_gid:+'--gid' "$in_gid"} \
         --force-badname \
         --home "$HOME_DIR_USER" >/dev/null
 
@@ -291,18 +287,16 @@ create_www_account() {
     && mkdir "$HOME_DIR_USER/.ssh" \
     && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
-    && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
+    && chown -R "$in_login":"www-data" "$HOME_DIR_USER/.ssh"
 
     # Get uid/gid for newly created accounts
     uid=$(id -u "$in_login")
-# TODO gid ⇒ www-data
-    gid=$(id -g "$in_login")
+    gid=$(id -g www-data)
 # TODO www ⇒ à retirer
     www_uid=$(id -u www-"$in_login")
 
     # Create users inside all containers
     for php_version in "${PHP_VERSIONS[@]}"; do
-        lxc-attach -n php"${php_version}" -- /usr/sbin/addgroup "$in_login" --gid "$gid" --force-badname >/dev/null
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" >/dev/null
         lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
@@ -384,8 +378,8 @@ user = www-${in_login}
 group = ${in_login}
 
 listen = ${phpfpm_socket_path}
-listen.owner = ${in_login}
-listen.group = ${in_login}
+listen.owner = www-data
+listen.group = www-data
 
 pm = ondemand
 pm.status_path = /evolinux_fpm_status-$(apg -Mncl -n1 -m32)
@@ -1056,9 +1050,6 @@ op_add() {
                 ;;
             u)
                 in_uid=$OPTARG
-                ;;
-            g)
-                in_gid=$OPTARG
                 ;;
             U)
                 in_wwwuid=$OPTARG
