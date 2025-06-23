@@ -320,15 +320,15 @@ create_www_account() {
 # TODO s/www/www,awstats/ ?
     mkdir -p "$HOME_DIR_USER"/{log,www}
     chown "$in_login":"www-data" "$HOME_DIR_USER"/www
-    chgrp "$in_login" "$HOME_DIR_USER"/{log}
+    chgrp "www-data" "$HOME_DIR_USER"/{log}
     chmod 750 "$HOME_DIR_USER"/{log,www}
 
     # Ajout des logs par defaut
     touch "$HOME_DIR_USER"/log/access.log
     touch "$HOME_DIR_USER"/log/error.log
     touch "$HOME_DIR_USER"/log/php.log
-    chgrp "$in_login" "$HOME_DIR_USER"/log/access.log
-    chgrp "$in_login" "$HOME_DIR_USER"/log/error.log
+    chgrp "www-data" "$HOME_DIR_USER"/log/access.log
+    chgrp "www-data" "$HOME_DIR_USER"/log/error.log
     # There is no php.log for nginx ATM, it will go in error.log.
     chmod 640 "$HOME_DIR_USER"/log/access.log
     chmod 640 "$HOME_DIR_USER"/log/error.log
