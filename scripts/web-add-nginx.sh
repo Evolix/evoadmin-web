@@ -67,9 +67,6 @@ add [ [OPTIONS] LOGIN WWWDOMAIN ]
    -u UID
       Force account UID (only in command line)
 
-   -U UID
-      Force www-account UID (only in command line)
-
    -y
       Don't ask for confirmation
 
@@ -292,14 +289,11 @@ create_www_account() {
     # Get uid/gid for newly created accounts
     uid=$(id -u "$in_login")
     gid=$(id -g www-data)
-# TODO www ⇒ à retirer
-    www_uid=$(id -u www-"$in_login")
 
     # Create users inside all containers
     for php_version in "${PHP_VERSIONS[@]}"; do
         lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" >/dev/null
         lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd
-        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
     done
 
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
@@ -374,7 +368,7 @@ create_www_account() {
         phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
         cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
 [${in_login}]
-user = www-${in_login}
+user = ${in_login}
 group = ${in_login}
 
 listen = ${phpfpm_socket_path}
@@ -387,7 +381,7 @@ pm.max_children = 10
 pm.process_idle_timeout = 10s
 
 php_admin_value[error_log] = /home/${in_login}/log/php.log
-php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
+php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f ${in_login}@${HOST}"
 php_admin_value[open_basedir] = "/usr/share/php:/home/${in_login}:/tmp"
 EOT
         step_ok "Création du pool FPM ${php_version}"
@@ -1050,9 +1044,6 @@ op_add() {
                 ;;
             u)
                 in_uid=$OPTARG
-                ;;
-            U)
-                in_wwwuid=$OPTARG
                 ;;
             r)
                 in_phpversion=$OPTARG
