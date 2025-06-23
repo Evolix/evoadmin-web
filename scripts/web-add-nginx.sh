@@ -319,7 +319,7 @@ create_www_account() {
     # Répertoires par défaut
 # TODO s/www/www,awstats/ ?
     mkdir -p "$HOME_DIR_USER"/{log,www}
-    chown "$in_login":"$in_login" "$HOME_DIR_USER"/www
+    chown "$in_login":"www-data" "$HOME_DIR_USER"/www
     chgrp "$in_login" "$HOME_DIR_USER"/{log}
     chmod 750 "$HOME_DIR_USER"/{log,www}
 
