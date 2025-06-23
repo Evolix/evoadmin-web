@@ -293,7 +293,7 @@ create_www_account() {
 
     # Create users inside all containers
     for php_version in "${PHP_VERSIONS[@]}"; do
-        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" >/dev/null
+        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" --no-create-home >/dev/null
         lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd
     done
 
