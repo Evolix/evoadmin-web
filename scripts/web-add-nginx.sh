@@ -13,6 +13,7 @@
 # - Traduire usage() en francais, ou l'inverse ??
 
 set -e
+set -x
 
 VERSION="24.04"
 HOME="/root"
@@ -320,7 +321,7 @@ create_www_account() {
 # TODO s/www/www,awstats/ ?
     mkdir -p "$HOME_DIR_USER"/{log,www}
     chown "$in_login":"www-data" "$HOME_DIR_USER"/www
-    chgrp "www-data" "$HOME_DIR_USER"/{log}
+    chgrp "www-data" "$HOME_DIR_USER"/log
     chmod 750 "$HOME_DIR_USER"/{log,www}
 
     # Ajout des logs par defaut
