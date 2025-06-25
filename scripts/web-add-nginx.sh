@@ -369,7 +369,7 @@ create_www_account() {
         cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
 [${in_login}]
 user = ${in_login}
-group = ${in_login}
+group = www-data
 
 listen = ${phpfpm_socket_path}
 listen.owner = www-data
