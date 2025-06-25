@@ -209,6 +209,10 @@ validate_mail() {
 
 validate_phpversion() {
     php_version="$1"
+    if [[ -z "${php_version}" ]]; then
+        in_error "Version de PHP vide."
+        return 1
+    fi
     if [[ ! " ${PHP_VERSIONS[*]} " =~ ${php_version} ]]; then
         in_error "Version de PHP incorrecte."
         return 1
