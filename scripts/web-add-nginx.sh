@@ -34,7 +34,6 @@ TPL_MAIL="$SCRIPTS_PATH/web-mail-nginx.tpl"
 # FPM
 FPM_PATH="/etc/php/7.0/fpm/pool.d"
 FPM_SERVICE_NAME="php7.0-fpm"
-TPL_FPM="$SCRIPTS_PATH/fpm.conf.tpl"
 
 MAX_LOGIN_CHAR=16
 HOME_DIR="/home"
@@ -403,12 +402,6 @@ EOT
     systemctl reload nginx
 
     step_ok "Rechargement de Nginx"
-
-    ############################################################################
-
-    sed -e "s/SED_LOGIN/${in_login}/g;" \
-        < $TPL_FPM > ${FPM_PATH}/"${in_login}".conf
-    step_ok "Creation du pool PHP-FPM"
 
     ############################################################################
 
