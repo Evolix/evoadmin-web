@@ -19,7 +19,7 @@ server {
     }
 
     location ~ \.php$ {
-        fastcgi_pass   unix:/home/LOGIN/php-fpm.PHPVESION.sock;
+        fastcgi_pass   unix:/home/LOGIN/php-fpm.PHPVERSION.sock;
         include snippets/fastcgi-php.conf;
     }
 
