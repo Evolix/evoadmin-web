@@ -390,11 +390,10 @@ EOT
 
     ############################################################################
 
-    # TODO nginx + config php fpm
+    # TODO config nginx php fpm
     # TODO monophp support
-    # TODO update nginx template
     sed \
-        -e "s/DOMAIN/${in_wwwdomain}/g" \
+        -e "s/SERVERNAME/${in_wwwdomain}/g" \
         -e "s/LOGIN/${in_login}/;" \
         -e "s/PHPVERSION/${in_phpversion}/" \
         "$TPL_VHOST" > ${VHOST_PATH}/"$in_login"

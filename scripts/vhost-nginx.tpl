@@ -10,7 +10,7 @@ server {
 #    }
     include /etc/nginx/snippets/letsencrypt.conf;
 
-    server_name DOMAIN;
+    server_name SERVERNAME;
 
     root /home/LOGIN/www;
 
