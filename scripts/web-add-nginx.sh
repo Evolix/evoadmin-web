@@ -1068,7 +1068,7 @@ op_add() {
             validate_wwwdomain "$in_wwwdomain" || exit 1
             [ -z "$in_mail" ] && in_mail=$CONTACT_MAIL
             validate_mail $in_mail || exit 1
-            [ -n "$in_phpversion" ] && (validate_phpversion "$in_phpversion" || exit 1)
+            validate_phpversion "$in_phpversion" || exit 1
             [ -n "$in_quota" ] && (validate_quota "$in_quota" || exit 1)
         fi
     fi
