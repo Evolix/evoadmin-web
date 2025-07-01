@@ -34,6 +34,7 @@ if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     if [ ! -n "$passe2" ]; then
         echo "Génération du mot de passe aléatoire. "
         passe2=$(apg -n1 -E I0O)
+        echo "==> Password is: ${passe2} <=="
     fi
 
     mysql -uroot << END_SCRIPT
