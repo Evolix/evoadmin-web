@@ -26,14 +26,14 @@ echo -n "Cet utilisateur existe-t-il déjà ? [y|N] "
 read confirm
 
 if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-    echo "Attention, si l'utilisateur existe, il sera ecrase !"
+    echo "Attention, si l'utilisateur existe, il sera écrasé !"
     echo "Entrez le mot de passe MySQL (ou vide pour aléatoire) :"
     read -s passe2
     echo ""
 
     if [ ! -n "$passe2" ]; then
-        echo "Génération du mot de passe aléatoire. "
-        passe2=$(apg -n1 -E I0O)
+        echo "Génération du mot de passe aléatoire."
+        passe2=$(apg -n1 -m23 -Mncl)
         echo "==> Password is: ${passe2} <=="
     fi
 
