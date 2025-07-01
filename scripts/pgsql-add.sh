@@ -10,6 +10,18 @@
 #             /usr/share/scripts/pgsql-add.sh
 #     fi
 
+usage() {
+    echo "usage: $0 [-h]" >&2
+    echo "       This script will interactively ask for:" >&2
+    echo "       - a database name" >&2
+    echo "       - a user name" >&2
+    echo "       - a password" >&2
+    exit 1
+}
+
+if [ "$1" = -h ]; then
+    usage
+fi
 
 set -e
 
@@ -26,4 +38,4 @@ fi
 su postgres -c "psql -qc \"CREATE ROLE $user WITH PASSWORD '$password'\""
 su postgres -c "psql -qc \"CREATE DATABASE $base WITH OWNER $user\""
 
-echo "Creation de la base OK."
+echo "Création de la base OK."
