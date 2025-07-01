@@ -19,7 +19,7 @@ read -s -p "Mot de passe (vide pour aléatoire) : " password
 echo
 
 if [ ! -n "$password" ]; then
-    password=$(apg -n1 -E I0O)
+    password=$(apg -n1 -m23 -Mncl)
     echo "> Mot de passe généré : $password"
 fi
 
