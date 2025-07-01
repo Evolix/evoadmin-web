@@ -31,8 +31,8 @@ END_SCRIPT
 else
 
     mysql -uroot << END_SCRIPT
-CREATE DATABASE \`$base\`;
 GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost;
+CREATE DATABASE \`$base\`;
 FLUSH PRIVILEGES;
 END_SCRIPT
 
