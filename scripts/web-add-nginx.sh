@@ -13,7 +13,6 @@
 # - Traduire usage() en francais, ou l'inverse ??
 
 set -e
-set -x
 
 VERSION="24.04"
 HOME="/root"
