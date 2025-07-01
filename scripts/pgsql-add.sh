@@ -35,7 +35,12 @@ if [ ! -n "$password" ]; then
     echo "> Mot de passe généré : $password"
 fi
 
-su postgres -c "psql -qc \"CREATE ROLE $user WITH PASSWORD '$password'\""
-su postgres -c "psql -qc \"CREATE DATABASE $base WITH OWNER $user\""
+(
+    if cd ~postgres; then
+        su postgres -c "createuser \"${user}\""
+        su postgres -c "createdb -O \"${user}\" \"${base}\""
+        su postgres -c "psql -c \"ALTER USER ${user} WITH PASSWORD '${password}'\""
+    fi
+)
 
 echo "Création de la base OK."
