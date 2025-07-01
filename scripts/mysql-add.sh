@@ -7,37 +7,37 @@ echo "Entrez le login qui aura tous les droits sur cette base"
 echo "(Vous pouvez entrer un login existant)"
 read login
 
-echo -n "Cet utilisateur est-il deja existant ? [y|N] "
+echo -n "Cet utilisateur existe-t-il déjà ? [y|N] "
 read confirm
 
 if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
-echo "Attention, si l'utilisateur etait existant, il sera ecrase !"
-echo "Entrez le mot de passe MySQL (ou vide pour aleatoire) :"
-read -s passe2
-echo ""
+    echo "Attention, si l'utilisateur existe, il sera ecrase !"
+    echo "Entrez le mot de passe MySQL (ou vide pour aléatoire) :"
+    read -s passe2
+    echo ""
 
-length=${#passe2}
+    length=${#passe2}
 
-if [ ! -n "$passe2" ]; then
-echo "Generation du mot de passe aleatoire. "
-passe2=$(apg -n1 -E I0O)
-fi
+    if [ ! -n "$passe2" ]; then
+        echo "Génération du mot de passe aléatoire. "
+        passe2=$(apg -n1 -E I0O)
+    fi
 
-mysql -uroot << END_SCRIPT
-    CREATE DATABASE \`$base\`;
-    GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost IDENTIFIED BY "$passe2";
-    FLUSH PRIVILEGES;
+    mysql -uroot << END_SCRIPT
+CREATE DATABASE \`$base\`;
+GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost IDENTIFIED BY "$passe2";
+FLUSH PRIVILEGES;
 END_SCRIPT
 
 else
 
-mysql -uroot << END_SCRIPT
-    CREATE DATABASE \`$base\`;
-    GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost;
-    FLUSH PRIVILEGES;
+    mysql -uroot << END_SCRIPT
+CREATE DATABASE \`$base\`;
+GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost;
+FLUSH PRIVILEGES;
 END_SCRIPT
 
 fi
 
-echo "Si aucune erreur, creation de la base MySQL $base OK"
+echo "Si aucune erreur, création de la base MySQL $base OK"
 
