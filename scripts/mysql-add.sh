@@ -23,7 +23,7 @@ echo "Generation du mot de passe aleatoire. "
 passe2=$(apg -n1 -E I0O)
 fi
 
-mysql -umysqladmin << END_SCRIPT
+mysql -uroot << END_SCRIPT
     CREATE DATABASE \`$base\`;
     GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost IDENTIFIED BY "$passe2";
     FLUSH PRIVILEGES;
@@ -31,7 +31,7 @@ END_SCRIPT
 
 else
 
-mysql -umysqladmin << END_SCRIPT
+mysql -uroot << END_SCRIPT
     CREATE DATABASE \`$base\`;
     GRANT ALL PRIVILEGES ON \`$base\`.* TO \`$login\`@localhost;
     FLUSH PRIVILEGES;
