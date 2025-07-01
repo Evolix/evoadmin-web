@@ -39,7 +39,7 @@ fi
     if cd ~postgres; then
         su postgres -c "createuser \"${user}\""
         su postgres -c "createdb -O \"${user}\" \"${base}\""
-        su postgres -c "psql -c \"ALTER USER ${user} WITH PASSWORD '${password}'\""
+        su postgres -c "psql -c \"ALTER USER ${user} WITH PASSWORD '${password}'\"" > /dev/null
     fi
 )
 
