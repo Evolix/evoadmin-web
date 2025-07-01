@@ -1,3 +1,4 @@
+#!/bin/sh
 
 echo "Ajout d'un compte/base MySQL"
 echo "Entrez le nom de la nouvelle base MySQL"
