@@ -17,8 +17,6 @@ if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     read -s passe2
     echo ""
 
-    length=${#passe2}
-
     if [ ! -n "$passe2" ]; then
         echo "Génération du mot de passe aléatoire. "
         passe2=$(apg -n1 -E I0O)
