@@ -1,5 +1,19 @@
 #!/bin/sh
 
+usage() {
+    echo "usage: $0 [-h]" >&2
+    echo "       This script will interactively ask for:" >&2
+    echo "       - a database name" >&2
+    echo "       - a user name" >&2
+    echo "       - whether the user exists" >&2
+    echo "       - if it does not exist, a password" >&2
+    exit 1
+}
+
+if [ "$1" = -h ]; then
+    usage
+fi
+
 echo "Ajout d'un compte/base MySQL"
 echo "Entrez le nom de la nouvelle base MySQL"
 read base
