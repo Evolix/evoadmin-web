@@ -632,6 +632,7 @@ op_del() {
             initscript_path="/etc/init.d/php5-fpm"
             binary="php5-fpm"
         fi
+        rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
         lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
         lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
         step_ok "Rechargement de php-fpm dans php${php_version}"
