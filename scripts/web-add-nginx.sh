@@ -608,33 +608,33 @@ op_del() {
 
     for php_version in "${PHP_VERSIONS[@]}"; do
         if [ "$php_version" = "70" ]; then
-            phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
             initscript_path="/etc/init.d/php7.0-fpm"
+            binary="php-fpm7.0"
         elif [ "$php_version" = "73" ]; then
-            phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
             initscript_path="/etc/init.d/php7.3-fpm"
+            binary="php-fpm7.3"
         elif [ "$php_version" = "74" ]; then
-            phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
             initscript_path="/etc/init.d/php7.4-fpm"
+            binary="php-fpm7.4"
         elif [ "$php_version" = "80" ]; then
-            phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
             initscript_path="/etc/init.d/php8.0-fpm"
+            binary="php-fpm8.0"
         elif [ "$php_version" = "81" ]; then
-            phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
             initscript_path="/etc/init.d/php8.1-fpm"
+            binary="php-fpm8.1"
         elif [ "$php_version" = "82" ]; then
-            phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
             initscript_path="/etc/init.d/php8.2-fpm"
+            binary="php-fpm8.2"
         elif [ "$php_version" = "83" ]; then
-            phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
             initscript_path="/etc/init.d/php8.3-fpm"
+            binary="php-fpm8.3"
         else
-            phpfpm_dir="/etc/php5/fpm/pool.d/"
             initscript_path="/etc/init.d/php5-fpm"
+            binary="php5-fpm"
         fi
-        rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
         lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
         lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        step_ok "Rechargement de php-fpm dans php${php_version}"
     done
 
 #    rm -f /etc/awstats/awstats."$login.conf"
