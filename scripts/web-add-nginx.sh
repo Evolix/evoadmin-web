@@ -872,7 +872,7 @@ op_aliasadd() {
         vhost_file="${VHOST_PATH}/${vhost}"
 
         if [ -f "${vhost_file}" ]; then
-            sed --follow-symliks --in-place --regexp-extended "/^[[:blank:]]+server_name .*;/ s/;/ ${alias};/" "${vhost_file}"
+            sed --follow-symlinks --in-place --regexp-extended "/^[[:blank:]]+server_name .*;/ s/;/ ${alias};/" "${vhost_file}"
         else
             echo "VHost file \`${vhost_file}' not found'" >&2
             return 1
