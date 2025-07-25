@@ -895,25 +895,24 @@ op_aliasadd() {
     fi
 }
 
-# TODO nginx support
 op_aliasdel() {
     if [ $# -eq 2 ]; then
-        vhost="${1}.conf"
+        vhost="${1}"
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
 
         if [ -f "${vhost_file}" ]; then
-            sed -i -e "/ServerAlias $alias/d" "${vhost_file}" --follow-symlinks
+            sed --follow-symlinks --in-place --regexp-extended '/^[[:space:]]*server_name / s/[[:space:]]+'"${alias}"'([ ;])/\1/' "${vhost_file}"
         else
             echo "VHost file \`${vhost_file}' not found'" >&2
             return 1
         fi
 
-        configtest_out=$(apache2ctl configtest)
+        configtest_out=$(nginx -t 2>&1)
         configtest_rc=$?
 
         if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
+            systemctl --quiet reload nginx
         else
             echo $configtest_out >&2
         fi
