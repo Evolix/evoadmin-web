@@ -88,9 +88,9 @@ del [ [OPTIONS] LOGIN ]
    Example : web-add-nginx.sh del -y testlogin
 
 
-list-vhost LOGIN
+list-vhost [LOGIN]
 
-   List Nginx vhost for user LOGIN
+   List Nginx vhosts or vhost for user LOGIN
 
 check-vhosts -f
 
@@ -824,7 +824,6 @@ op_managehttpchallengefile() {
     fi
 }
 
-# TODO support nginx
 op_listvhost() {
     if [ $# -eq 1 ]; then
         configlist="$VHOST_PATH/${1}.conf";
@@ -834,23 +833,29 @@ op_listvhost() {
 
     for configfile in $configlist; do
         if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
-            servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
-            serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
+            servername="$(awk '/^[[:space:]]*server_name (.*)/ { sub(" *; *$", "", $2); print $2 }' "$configfile" | head -n 1)"
+            serveraliases="$(awk '/^[[:space:]]*server_name / && NF > 2 && NF != ";" { for (i = 3; i <= NF; i++) { sub(" *; *$", ""); d ? d = d " " $i : d = $i }; print d; exit }' "$configfile" | head -n 1)"
             serveraliases="$(echo $serveraliases | sed 's/ \+/,/g')"
-            userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
-            if [ -x /usr/bin/quota ]; then
-                size=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $2}')
-                quota_soft=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $3}')
-                quota_hard=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $4}')
-            fi
-            phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile" | head -n 1)
-            if [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
+
+            # This is for compatibility with web-add.sh (Apache).
+            # In case of Nginx, we might not need to care about
+            # AssignUserID stuff.
+            userid="$(awk '/^[[:space:]]*root / { sub(" *; *$", ""); getusercmd = "stat -c %U " $2; getusercmd | getline; print; exit }' "$configfile" | head -n 1)"
+
+            # TODO quota support
+            #if [ -x /usr/bin/quota ]; then
+            #    size=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $2}')
+            #    quota_soft=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $3}')
+            #    quota_hard=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $4}')
+            #fi
+            phpversion=$(awk '/^[[:space:]]*fastcgi_pass .*php-fpm..\.sock;/ { print substr($2, match($2, "[0-9][0-9]\\.sock;$"), 2) }' "$configfile" | head -n 1)
+            if [ -e /etc/nginx/sites-enabled/"${userid}".conf ]; then
                 is_enabled=1
             else
                 is_enabled=0
             fi
 
-            count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            count_virtualhosts="$(awk '/^[[:space:]]*server *{/ { c++ } END { print c }' "$configfile")"
             if [ "$count_virtualhosts" -eq 1 ]; then
                 is_standard=1
             else
