@@ -784,6 +784,7 @@ op_makecsr() {
     fi
 }
 
+# TODO use certbot instead of evoacme
 op_generatesslcertificate() {
     if [ $# -gt 1 ]; then
         vhost="$1"
