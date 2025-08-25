@@ -784,13 +784,17 @@ op_makecsr() {
     fi
 }
 
-# TODO use certbot instead of evoacme
+# Generate a Let's Encrypt certificate using evoacme.
+# See: https://gitea.evolix.org/evolix/ansible-roles/src/branch/stable/evoacme/
+# Warning Evoadmin-web always call this function using two arguments:
+#         op_generatesslcertificate foo true
+#         op_generatesslcertificate foo false
 op_generatesslcertificate() {
-    if [ $# -gt 1 ]; then
+    if [ "$#" -eq 1 -o "$#" -eq 2 ]; then
         vhost="$1"
         test_mode="$2"
 
-        if [ "$test_mode" = "false" ]; then
+        if [ "$test_mode" = "false" -o "$test_mode" = "--no-test" ]; then
             if [ -L /etc/letsencrypt/$vhost/live ]; then
                 rm /etc/letsencrypt/$vhost/live
             fi
