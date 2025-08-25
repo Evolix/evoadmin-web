@@ -786,9 +786,22 @@ op_makecsr() {
 
 # Generate a Let's Encrypt certificate using evoacme.
 # See: https://gitea.evolix.org/evolix/ansible-roles/src/branch/stable/evoacme/
+#
+# There are several ways to call this function.
+#
+# 1.  op_generatesslcertificate foo → Generate a certificate using the
+#     Let's Encrypt staging servers.
+#
+# 2.  op_generatesslcertificate foo --no-test → Generate a certificate.
+#
+# 3.  op_generatesslcertificate foo false → Does the same as the second
+#     form.
+#
+# 4.  op_generatesslcertificate foo bar → Does the same as the first.
+#
 # Warning Evoadmin-web always call this function using two arguments:
-#         op_generatesslcertificate foo true
-#         op_generatesslcertificate foo false
+#         op_generatesslcertificate foo true # 4th form
+#         op_generatesslcertificate foo false # 3rd form
 op_generatesslcertificate() {
     if [ "$#" -eq 1 -o "$#" -eq 2 ]; then
         vhost="$1"
