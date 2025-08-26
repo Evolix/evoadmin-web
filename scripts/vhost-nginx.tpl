@@ -5,8 +5,6 @@ server {
 #    listen 443 ssl;
 #    listen [::]:443 ssl;
 # END EVOADMIN LISTEN 443
-#    ssl_certificate /etc/letsencrypt/live/CERTNAME/fullchain.pem;
-#    ssl_certificate_key /etc/letsencrypt/live/CERTNAME/privkey.pem;
 #    if ($scheme = http) {
 #        return 301 https://$server_name$request_uri;
 #    }
