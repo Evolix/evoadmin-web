@@ -812,6 +812,23 @@ op_generatesslcertificate() {
                 rm /etc/letsencrypt/$vhost/live
             fi
             evoacme "$vhost"
+
+            # The following, rather complex, sed-script uncomments
+            # the "listen 443 ssl" lines.
+            sedscript='
+/^# BEGIN EVOADMIN LISTEN 443/ {
+    :a;
+    n;
+    /^# *listen .*443 ssl;$/ {
+        s/^#//;
+        ba;
+    }
+}'
+            sed --follow-symlinks --in-place "${sedscript}" "/etc/nginx/sites-enabled/${vhost}"
+            unset sedscript
+            if nginx -t; then
+                systemctl reload nginx
+            fi
         else
             DRY_RUN=1 evoacme "$vhost"
         fi
