@@ -75,7 +75,7 @@ list_accounts_by_UID() {
             username=$(get_user_login_by_UID "$line_uid")
             account=$(echo "$line" | cut -d":" -f1)
             path=$(echo "$line" | cut -d":" -f6)
-            size="inconnue"
+            size="0"
             # Check output of daily "du" cron job
             # (set by ansible-roles/packweb-apache/tasks/main.yml)
             if [ -r "$path/.size" ]; then

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * @desc mini class to manipulate sqlite db for evocluster.
+ * mini class to manipulate sqlite db for evocluster.
  *
  * @example
  * <?php
@@ -43,7 +43,7 @@ class bdd {
     private $db; /* resource of a created database */
 
     /**
-     * @desc Open a sqlite database in rw mode. Create it if it doesn't exist.
+     * Open a sqlite database in rw mode. Create it if it doesn't exist.
      * @param string $db_name Name of the sqlite database
      */  
     public function open($db_name)
@@ -58,9 +58,9 @@ class bdd {
     }
 
     /**
-     * @desc Close the current database instance
+     * Close the current database instance
      *
-     * Note: php close automatically the instance on exit
+     * Note: php automatically close the instance on exit
      */
     public function close()
     {
@@ -68,7 +68,7 @@ class bdd {
     }
 
     /**
-     * @desc Install the table structure on a new sqlite database
+     * Install the table structure on a new sqlite database
      * @param string $dn_name Name of the sqlite database
      */
     public function create($db_name)
@@ -136,7 +136,7 @@ class bdd {
    }
 
     /**
-     * @desc Get the account id of an account_name
+     * Get the account id of an account_name
      * @param string $account_name Name of the account
      * @return int 0 if account_name doesn't exist,
      *             id else
@@ -159,8 +159,8 @@ class bdd {
     }
 
     /**
-     * @desc Get account 
-     * @param account name
+     * Get account 
+     * @param string $account_name account name
      * @return array
      */
     public function get_account($account_name)
@@ -183,7 +183,7 @@ class bdd {
     }
 
     /** 
-     * @desc Check if account_name entry exists on table Accounts
+     * Check if account_name entry exists on table Accounts
      * @param string $account_name Name of the account
      * @return int 1 if it exists,
      *             0 else
@@ -194,7 +194,7 @@ class bdd {
     }
 
     /**
-     * @desc Add an account to the table Accounts
+     * Add an account to the table Accounts
      * @param array { 
      *          'name' => "$name",
      *          'domain' => "$domain",
@@ -236,7 +236,7 @@ class bdd {
 
 
     /**
-     * @desc Add an alias to the table Serveralias
+     * Add an alias to the table Serveralias
      * @param array { 
      *          'domain' => "$domain",
      *          'alias' => "$alias",
@@ -264,7 +264,7 @@ class bdd {
     }
     
     /**
-     * @desc Del an alias from the table Serveralias
+     * Delete an alias from the table Serveralias
      * @param array { 
      *          'domain' => "$domain",
      *          'alias' => "$alias",
@@ -289,7 +289,7 @@ class bdd {
     }
 
     /**
-     * @desc Get the server id of a server_name
+     * Get the server id of a server_name
      * @param string $server_name Name of the server
      * @return int 0 if server_name doesn't exist,
      *             id else
@@ -312,7 +312,7 @@ class bdd {
     }
 
     /** 
-     * @desc Check if server_name entry exists on table Servers
+     * Check if server_name entry exists on table Servers
      * @param string $server_name Name of the server
      * @return int 1 if it exists,
      *             0 else
@@ -324,7 +324,7 @@ class bdd {
 
 
     /**
-     * @desc Add an server to the table Servers
+     * Add an server to the table Servers
      * @param array { 
      *          'name' => "$name",
      *        }
@@ -353,7 +353,7 @@ class bdd {
     }
 
     /**
-     * @desc Add a role to the table Roles
+     * Add a role to the table Roles
      * @param string $account_name
      *        string $server_name
      *        string $role master or slave
@@ -397,7 +397,7 @@ class bdd {
 
 
     /**
-     * @desc List domains by server's role
+     * List domains by server's role
      * @param none
      * @return list of array 
      *      example : Array (

@@ -31,6 +31,12 @@ else {
     $cache = $conf['cache'];
 }
 
+/**
+ * Create a new domain (local only)
+ * @param FormPage $form
+ * @param string $admin_mail
+ * @return array
+ */
 function web_add($form, $admin_mail) {
     global $conf;
 
@@ -84,6 +90,12 @@ function web_add($form, $admin_mail) {
     return array($exec_cmd, $exec_return, $exec_output);
 }
 
+/**
+ * Create a new domain (cluster only)
+ * @param FormPage $form
+ * @param string $admin_mail
+ * @return array
+ */
 function web_add_cluster($form, $admin_mail) {
     global $cache;
     global $conf;

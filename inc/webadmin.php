@@ -56,10 +56,16 @@ if (!$conf['cluster']) {
                 $taille_utilise   = $data_split[4];
             }
 
-            $quota_bas_mo  = $data_split[5];
-            $quota_bas  = number_format(($data_split[5]/1024), 2, '.', '').'G';
-            $quota_haut  = number_format(($data_split[6]/1024), 2, '.', '').'G';
-            $occupation  = number_format((($taille_utilise_mo/$quota_bas_mo)*100), 2, '.', '');
+            $quota_bas_mo  = intval($data_split[5]);
+            $quota_bas  = number_format((intval($data_split[5])/1024), 2, '.', '').'G';
+            $quota_haut  = number_format((intval($data_split[6])/1024), 2, '.', '').'G';
+
+            if ($quota_bas_mo > 0){
+                $occupation  = number_format(((intval($taille_utilise_mo)/intval($quota_bas_mo))*100), 2, '.', '');
+            }
+            else {
+                $occupation = 0;
+            }
 
             if ($occupation >= 90) {
                 $occupation = '<span style="color:red;font-weight:bold;">'.$occupation.'%</span>';

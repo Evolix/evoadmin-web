@@ -14,7 +14,7 @@
 
 set -e
 
-VERSION="24.04"
+VERSION="25.08"
 HOME="/root"
 CONTACT_MAIL="jdoe@example.org"
 WWWBOUNCE_MAIL="jdoe@example.org"
@@ -173,6 +173,10 @@ generate-ssl-certificate LOGIN [false]
 
     Generate the Let's Encrypt certificate
     Run in TEST mode unless "false" is used
+
+list-php-versions
+
+    List availables PHP versions (in multi-php mode)
 
 version 
 
@@ -422,22 +426,11 @@ create_www_account() {
 
     # Create FPM pool on all containers.
     for php_version in "${PHP_VERSIONS[@]}"; do
-        if [ "$php_version" = "70" ]; then
-            pool_path="/etc/php/7.0/fpm/pool.d/"
-        elif [ "$php_version" = "73" ]; then
-            pool_path="/etc/php/7.3/fpm/pool.d/"
-        elif [ "$php_version" = "74" ]; then
-            pool_path="/etc/php/7.4/fpm/pool.d/"
-        elif [ "$php_version" = "80" ]; then
-            pool_path="/etc/php/8.0/fpm/pool.d/"
-        elif [ "$php_version" = "81" ]; then
-            pool_path="/etc/php/8.1/fpm/pool.d/"
-        elif [ "$php_version" = "82" ]; then
-            pool_path="/etc/php/8.2/fpm/pool.d/"
-        elif [ "$php_version" = "83" ]; then
-            pool_path="/etc/php/8.3/fpm/pool.d/"
-        else
+        if [ "${php_version:0:1}" = "5" ]; then
             pool_path="/etc/php5/fpm/pool.d/"
+        else
+            php_dot=${php_version:0:1}.${php_version:1:1}
+            pool_path="/etc/php/${php_dot}/fpm/pool.d/"
         fi
         phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
         cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
@@ -599,30 +592,13 @@ EOT
         apache2ctl configtest 2>/dev/null
         /etc/init.d/apache2 force-reload >/dev/null
         for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                initscript_path="/etc/init.d/php7.0-fpm"
-                binary="php-fpm7.0"
-            elif [ "$php_version" = "73" ]; then
-                initscript_path="/etc/init.d/php7.3-fpm"
-                binary="php-fpm7.3"
-            elif [ "$php_version" = "74" ]; then
-                initscript_path="/etc/init.d/php7.4-fpm"
-                binary="php-fpm7.4"
-            elif [ "$php_version" = "80" ]; then
-                initscript_path="/etc/init.d/php8.0-fpm"
-                binary="php-fpm8.0"
-            elif [ "$php_version" = "81" ]; then
-                initscript_path="/etc/init.d/php8.1-fpm"
-                binary="php-fpm8.1"
-            elif [ "$php_version" = "82" ]; then
-                initscript_path="/etc/init.d/php8.2-fpm"
-                binary="php-fpm8.2"
-            elif [ "$php_version" = "83" ]; then
-                initscript_path="/etc/init.d/php8.3-fpm"
-                binary="php-fpm8.3"
-            else
+            if [ "${php_version:0:1}" = "5" ]; then
                 initscript_path="/etc/init.d/php5-fpm"
                 binary="php5-fpm"
+            else
+                php_dot=${php_version:0:1}.${php_version:1:1}
+                initscript_path="/etc/init.d/php${php_dot}-fpm"
+                binary="php-fpm${php_dot}"
             fi
             lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
@@ -775,30 +751,13 @@ op_del() {
         apache2ctl configtest
 
         for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "$php_version" = "70" ]; then
-                phpfpm_dir="/etc/php/7.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.0-fpm"
-            elif [ "$php_version" = "73" ]; then
-                phpfpm_dir="/etc/php/7.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.3-fpm"
-            elif [ "$php_version" = "74" ]; then
-                phpfpm_dir="/etc/php/7.4/fpm/pool.d/"
-                initscript_path="/etc/init.d/php7.4-fpm"
-            elif [ "$php_version" = "80" ]; then
-                phpfpm_dir="/etc/php/8.0/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.0-fpm"
-            elif [ "$php_version" = "81" ]; then
-                phpfpm_dir="/etc/php/8.1/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.1-fpm"
-            elif [ "$php_version" = "82" ]; then
-                phpfpm_dir="/etc/php/8.2/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.2-fpm"
-            elif [ "$php_version" = "83" ]; then
-                phpfpm_dir="/etc/php/8.3/fpm/pool.d/"
-                initscript_path="/etc/init.d/php8.3-fpm"
-            else
+            if [ "${php_version:0:1}" = "5" ]; then
                 phpfpm_dir="/etc/php5/fpm/pool.d/"
                 initscript_path="/etc/init.d/php5-fpm"
+            else
+                php_dot=${php_version:0:1}.${php_version:1:1}
+                phpfpm_dir="/etc/php/${php_dot}/fpm/pool.d/"
+                initscript_path="/etc/init.d/php${php_dot}-fpm"
             fi
             rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
             lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
@@ -850,6 +809,10 @@ op_del() {
 
     if [ -d /etc/letsencrypt/"$login" ]; then
         rm -r /etc/letsencrypt/"$login"
+    fi
+
+    if [ -f /etc/apache2/ssl/"$login".conf ]; then
+        rm /etc/apache2/ssl/"$login".conf
     fi
 
     set +x
@@ -914,6 +877,12 @@ arg_processing() {
         del)
             op_del "$@"
             ;;
+        enable-vhost)
+            op_enable_vhost "$@"
+            ;;
+        disable-vhost)
+            op_disable_vhost "$@"
+            ;;
         list-vhost)
             op_listvhost "$@"
             ;;
@@ -955,6 +924,9 @@ arg_processing() {
             ;;
         generate-ssl-certificate)
             op_generatesslcertificate "$@"
+            ;;
+        list-php-versions)
+            op_list_php_versions "$@"
             ;;
         version)
             op_version "$@"
@@ -1038,9 +1010,9 @@ op_listvhost() {
             serveraliases="$(echo $serveraliases | sed 's/ \+/,/g')"
             userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
             if [ -x /usr/bin/quota ]; then
-                size=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $2}')
-                quota_soft=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $3}')
-                quota_hard=$(quota --no-wrap --human-readable "$userid" |grep /home |awk '{print $4}')
+                size=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $2}')
+                quota_soft=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $3}')
+                quota_hard=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $4}')
             fi
             phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile" | head -n 1)
             if [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
@@ -1447,9 +1419,58 @@ op_checkvhosts() {
 	done
 }
 
+op_list_php_versions(){
+    echo "${PHP_VERSIONS[*]}"
+}
+
 # Return web-add.sh version
 op_version(){
     echo "$VERSION"
+}
+
+op_enable_vhost() {
+    vhost_name=$1
+
+    if [[ -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]]; then
+        echo "This vhost is already active... Exiting"
+        return 1
+    fi
+
+    if [[ ! -e "/etc/apache2/sites-available/${vhost_name}.conf" ]]; then
+        echo "This vhost does not exist.. Exiting"
+        return 1
+    fi
+
+    a2ensite "${vhost_name}.conf"
+
+    echo "Validating apache2 configuration & reloading"
+
+    set +e
+    apache2ctl configtest 2>/dev/null
+    rc=$?
+    set -e
+
+    if [[ $rc -ne 0 ]]; then
+        # Config seems invalid, we roll back our change
+        echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
+        a2dissite "${vhost_name}.conf"
+        return 1
+    else
+        systemctl reload apache2.service
+    fi
+}
+
+op_disable_vhost() {
+    vhost_name=$1
+
+    if [[ ! -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]]; then
+        echo "This vhost isn't active... Exiting"
+        return 1
+    fi
+
+    echo "Validating apache2 configuration & reloading"
+    apache2ctl configtest 2>/dev/null
+    systemctl reload apache2.service
 }
 
 # Point d'entrée

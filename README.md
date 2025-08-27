@@ -15,7 +15,8 @@ The `unstable` branch contains not sufficiently tested changes that we don't con
 
 ### Versions 
 
-* Debian Stretch, Buster, Bullseye → use branch `master` (current stable version)
+* Debian Buster, Bullseye, Bookworm → use branch `master` (current stable version)
+* Debian Stretch → use branch `stretch` (old, archive branch)
 * Debian Jessie → use branch `jessie` (old, archive branch)
 * Debian Wheezy → use branch `wheezy` (old, archive branch)
 

@@ -197,8 +197,8 @@ if ($action=="add") {
             $table[$num_line]['path'] = str_replace('//', '/', $rel_path);
 
             if ($infos[3]>0) {
-              $size_total += $infos[3];
-              $table[$num_line]['size'] = formatBytes($infos[3]);
+              $size_total += intval($infos[3]);
+              $table[$num_line]['size'] = formatBytes(intval($infos[3]));
             } else {
           $table[$num_line]['size'] = 0;
             }
@@ -229,6 +229,12 @@ if ($action=="add") {
 $_SESSION['error']=null;
 $_SESSION['form']=null;
 
+/**
+ * Format Byte representation in human readable format (power of 1024)
+ * @param float|int $bytes
+ * @param int|null $precision
+ * @return string Human formatted amount of bytes
+ */
 function formatBytes($bytes, $precision = 2) {
     $bytes *= 1024;
     $units = array('o', 'Ko', 'Mo', 'Go', 'To');
@@ -242,7 +248,9 @@ function formatBytes($bytes, $precision = 2) {
     return round($bytes, $precision) . ' ' . $units[$pow];
 } 
 
-
+/**
+ * @return string[]
+ */
 function get_owner_list() {
     $owner_list = array();
     

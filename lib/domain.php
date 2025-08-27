@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * Add a domain in BIND
+ * @param string $name Domain to add
+ * @param string $IP IP of web server for this domain
+ * @param bool $with_mxs Set to `true` if you wants to add MX records. Otherwise set to `false`.
+ * @param bool $gmail Set to `true` if the Google MXs are to be used by this domain as its MXs.
+ * @return array
+ */
 function domain_add($name, $IP, $with_mxs, $gmail=false) {
 
     $exec_cmd = 'bind-add-ng.sh';
