@@ -1061,7 +1061,6 @@ op_managehttpchallengefile() {
     fi
 }
 
-# TODO: Make compatible with apache multi-instance
 op_listvhost() {
     if [ $# -eq 1 ]; then
         configlist="$VHOST_PATH/${1}.conf";
@@ -1074,20 +1073,41 @@ op_listvhost() {
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
             serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
             serveraliases="$(echo $serveraliases | sed 's/ \+/,/g')"
-            userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
+
+            if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+                basename="$(basename "${configfile}")"
+                vhost_name="${basename%.conf}"
+                userid="$(awk '/^[[:space:]]*export APACHE_RUN_USER=.*/ { print $2 }' /etc/apache2-"${vhost_name}"/envvars | cut -d '=' -f 2 | head -n 1)"
+            else
+                userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
+            fi
+
             if [ -x /usr/bin/quota ]; then
                 size=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $2}')
                 quota_soft=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $3}')
                 quota_hard=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $4}')
             fi
-            phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile" | head -n 1)
-            if [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
+
+            if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+                phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' /etc/apache2-"${vhost_name}"/sites-available/000-default.conf | head -n 1)
+            else
+                phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile" | head -n 1)
+            fi
+
+            if [ "${MULTI_INSTANCE}" -gt 0 ] && [ -e /etc/apache2-front/sites-enabled/"${userid}".conf ]; then
+                is_enabled=1
+            elif [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
                 is_enabled=1
             else
                 is_enabled=0
             fi
 
-            count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+                count_virtualhosts="$(grep "<VirtualHost" /etc/apache2-"${vhost_name}"/sites-available/000-default.conf | wc -l)"
+            else
+                count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            fi
+
             if [ "$count_virtualhosts" -eq 1 ]; then
                 is_standard=1
             else
