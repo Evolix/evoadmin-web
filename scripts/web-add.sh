@@ -884,9 +884,20 @@ op_setphpversion() {
 
     validate_phpversion "$phpversion"
 
-    sed -i "s#^\\(\s*SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
-    sed -i "s#^\\(\s*<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" /etc/apache2/sites-available/"${login}".conf
-    /etc/init.d/apache2 force-reload >/dev/null
+    if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+        vhostfile=/etc/apache2-"${login}"/sites-available/000-default.conf
+    else
+        vhostfile=/etc/apache2/sites-available/"${login}".conf
+    fi
+
+    sed -i "s#^\\(\s*SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" "${vhostfile}"
+    sed -i "s#^\\(\s*<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" "${vhostfile}"
+
+    if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+        systemctl reload apache2@"${login}".service
+    else
+        service apache2 force-reload >/dev/null
+    fi
 
     DATE=$(date +"%Y-%m-%d")
     echo "$DATE [web-add.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
