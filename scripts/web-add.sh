@@ -27,8 +27,14 @@ HOST="$(hostname -f)"
 
 # Set to nginx if you use nginx and not apache
 WEB_SERVER="apache"
+# Set to 1 if you use apache multi-instance
+MULTI_INSTANCE=0
 if [ "$WEB_SERVER" == "apache" ]; then
-    VHOST_PATH="/etc/apache2/sites-available"
+    if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+        VHOST_PATH="/etc/apache2-front/sites-available"
+    else
+        VHOST_PATH="/etc/apache2/sites-available"
+    fi
     TPL_VHOST="$SCRIPTS_PATH/vhost"
     TPL_VHOST_MULTI="$SCRIPTS_PATH/vhost-multi-instance.tpl"
     TPL_VHOST_MULTI_FRONT="$SCRIPTS_PATH/vhost-multi-instance.front.tpl"
@@ -41,8 +47,6 @@ else
     echo "$WEB_SERVER is not apache nor nginx, exiting..."
     exit 1
 fi
-
-MULTI_INSTANCE=0
 
 # FPM
 FPM_PATH="/etc/php/7.0/fpm/pool.d"
@@ -1057,6 +1061,7 @@ op_managehttpchallengefile() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance
 op_listvhost() {
     if [ $# -eq 1 ]; then
         configlist="$VHOST_PATH/${1}.conf";
@@ -1097,6 +1102,7 @@ op_listvhost() {
     done
 }
 
+# TODO: Make compatible with apache multi-instance
 op_aliasadd() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
@@ -1122,6 +1128,7 @@ op_aliasadd() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance
 op_aliasdel() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
@@ -1148,6 +1155,7 @@ op_aliasdel() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance
 op_servernameupdate() {
     if [ $# -eq 3 ]; then
       vhost="${1}.conf"
@@ -1196,6 +1204,7 @@ op_checkoccurencename() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance ?
 op_listuseritk() {
     if [ $# -eq 1 ]; then
         configfile="$VHOST_PATH/${1}.conf"
@@ -1206,6 +1215,7 @@ op_listuseritk() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance ?
 op_enableuseritk() {
     if [ $# -eq 1 ]; then
         configfile="$VHOST_PATH/${1}.conf"
@@ -1226,6 +1236,7 @@ op_enableuseritk() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance ?
 op_disableuseritk() {
     if [ $# -eq 1 ]; then
         configfile="$VHOST_PATH"/"${1}".conf
@@ -1489,6 +1500,7 @@ op_version(){
     echo "$VERSION"
 }
 
+# TODO: Make compatible with apache multi-instance
 op_enable_vhost() {
     vhost_name=$1
 
@@ -1521,6 +1533,7 @@ op_enable_vhost() {
     fi
 }
 
+# TODO: Make compatible with apache multi-instance
 op_disable_vhost() {
     vhost_name=$1
 
