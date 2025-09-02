@@ -121,7 +121,7 @@ list-vhost LOGIN
 
 check-vhosts -f
 
-	List suggested changes to vhosts, apply fixes with -f
+    List suggested changes to vhosts, apply fixes with -f
 
 add-alias VHOST ALIAS
 
@@ -178,7 +178,7 @@ list-php-versions
 
     List availables PHP versions (in multi-php mode)
 
-version 
+version
 
     Obtain the script version
 
@@ -295,7 +295,7 @@ create_www_account() {
     ############################################################################
 
     if [ -f $PRE_LOCAL_SCRIPT ]; then
-    	# shellcheck source=/usr/share/scripts/evoadmin/web-add.pre-local.sh
+        # shellcheck source=/usr/share/scripts/evoadmin/web-add.pre-local.sh
         source $PRE_LOCAL_SCRIPT
     fi
 
@@ -314,16 +314,16 @@ create_www_account() {
         return 1
     fi
 
-	# Create user and force UID / GID if specified
+    # Create user and force UID / GID if specified
     /usr/sbin/adduser \
-    	--gecos "User $in_login" \
-    	--disabled-password \
-    	"$in_login" \
-    	--shell /bin/bash \
-    	${in_uid:+'--uid' "$in_uid"} \
-    	${in_gid:+'--gid' "$in_gid"} \
-    	--force-badname \
-    	--home "$HOME_DIR_USER" >/dev/null
+        --gecos "User $in_login" \
+        --disabled-password \
+        "$in_login" \
+        --shell /bin/bash \
+        ${in_uid:+'--uid' "$in_uid"} \
+        ${in_gid:+'--gid' "$in_gid"} \
+        --force-badname \
+        --home "$HOME_DIR_USER" >/dev/null
 
     [ -z "$in_sshkey" ] \
     && echo "$in_login:$in_passwd" | chpasswd
@@ -332,15 +332,15 @@ create_www_account() {
     || [ -n "$HOME_DIR_USER" ] \
     && mkdir "$HOME_DIR_USER/.ssh" \
     && echo "$in_sshkey" > "$HOME_DIR_USER/.ssh/authorized_keys" \
-	&& chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
+    && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
     if [ "$WEB_SERVER" == "apache" ]; then
         # Create www user and force UID if specified
         /usr/sbin/adduser \
-        	--gecos "WWW $in_login" \
-        	--disabled-password \
-        	www-"$in_login" \
+            --gecos "WWW $in_login" \
+            --disabled-password \
+            www-"$in_login" \
             --shell /bin/false \
             ${in_wwwuid:+'--uid' "$in_wwwuid"} \
             --ingroup "$in_login" \
@@ -580,7 +580,7 @@ EOT
     ############################################################################
 
     if [ -f $LOCAL_SCRIPT ]; then
-    	# shellcheck source=/usr/share/scripts/evoadmin/web-add.local.sh
+        # shellcheck source=/usr/share/scripts/evoadmin/web-add.local.sh
         source $LOCAL_SCRIPT
     fi
 
@@ -1389,34 +1389,34 @@ op_checkvhosts() {
     ln_vhosts_dir="$(sed 's/available/enabled/' <<< "$VHOST_PATH")"
     non_ln_vhosts="$(find "$ln_vhosts_dir"/* ! -type l)"
 
-	while getopts f opt; do
-		case "$opt" in
-		f)
-			apply=1
-			;;
-		?)
-			usage
-			exit 1
-			;;
-		esac
-	done
+    while getopts f opt; do
+        case "$opt" in
+        f)
+            apply=1
+            ;;
+        ?)
+            usage
+            exit 1
+            ;;
+        esac
+    done
 
-	for ln_path in $non_ln_vhosts
+    for ln_path in $non_ln_vhosts
     do
-		vhost_name=$(basename "$ln_path")
-		fix_conf="mv $ln_path $VHOST_PATH/$vhost_name"
-		fix_ln="a2ensite ${vhost_name}.conf"
+        vhost_name=$(basename "$ln_path")
+        fix_conf="mv $ln_path $VHOST_PATH/$vhost_name"
+        fix_ln="a2ensite ${vhost_name}.conf"
 
-		if [[ -z "$apply" ]]; then
-			echo "Suggested fixes for $vhost_name:"
-			echo "diff $ln_path $VHOST_PATH/$vhost_name"
-			echo "$fix_conf"
-			echo "$fix_ln"
-		else
-			$fix_conf
-			$fix_ln
-		fi
-	done
+        if [[ -z "$apply" ]]; then
+            echo "Suggested fixes for $vhost_name:"
+            echo "diff $ln_path $VHOST_PATH/$vhost_name"
+            echo "$fix_conf"
+            echo "$fix_ln"
+        else
+            $fix_conf
+            $fix_ln
+        fi
+    done
 }
 
 op_list_php_versions(){
