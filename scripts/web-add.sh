@@ -781,12 +781,24 @@ op_del() {
 
     # Deactivate web vhost (apache or nginx)
     if [ "$WEB_SERVER" == "apache" ]; then
-        if a2query -s "${login}" >/dev/null 2&>1; then
-            a2dissite "${login}.conf"
-        fi
-        rm -f /etc/apache2/sites-available/"$login.conf"
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            if test -e "/etc/apache2-front/sites-enabled/${login}.conf"; then
+                a2dissite-front -m "${login}"
+            fi
+            rm -f "/etc/apache2-front/sites-enabled/${login}.conf"
 
-        apache2ctl configtest
+            apache2ctl-front configtest
+
+            systemctl disable --now apache2@"${login}".service
+            mv "/etc/apache2-${login}" "/etc/apache2-${login}"."$(date '+%Y%m%d-%H%M%S')".bak
+        else
+            if a2query -s "${login}" >/dev/null 2&>1; then
+                a2dissite "${login}.conf"
+            fi
+            rm -f /etc/apache2/sites-available/"$login.conf"
+
+            apache2ctl configtest
+        fi
 
         for php_version in "${PHP_VERSIONS[@]}"; do
             if [ "${php_version:0:1}" = "5" ]; then
