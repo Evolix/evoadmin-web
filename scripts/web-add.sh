@@ -473,7 +473,7 @@ EOT
         mkdir -p /etc/apache2/ssl
 
         if [ "${MULTI_INSTANCE}" -gt 0 ]; then
-            sh /usr/share/doc/apache2/examples/setup-instance "${in_login}"
+            sh "${SCRIPTS_PATH}"/setup-instance-apache.sh "${in_login}"
             sed -i -e "s/APACHE_RUN_USER=www-data/APACHE_RUN_USER=www-${in_login}/g ; s/APACHE_RUN_GROUP=www-data/APACHE_RUN_GROUP=${in_login}/g ;" /etc/apache2-"${in_login}"/envvars
 
             vhostfile="/etc/apache2-${in_login}/sites-available/000-default.conf"
