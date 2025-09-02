@@ -1122,12 +1122,31 @@ op_listvhost() {
     done
 }
 
-# TODO: Make compatible with apache multi-instance
 op_aliasadd() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
+
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            backend_vhost_file="/etc/apache2-${vhost}/sites-available/000-default.conf"
+
+            if [ -f "${backend_vhost_file}" ]; then
+                sed -i "/ServerName .*/a \\\tServerAlias $alias" "${backend_vhost_file}" --follow-symlinks
+            else
+                echo "Backend VHost file \`${backend_vhost_file}' not found'" >&2
+                return 1
+            fi
+
+            backend_configtest_out=$(apache2ctl-"${vhost}" configtest)
+            backend_configtest_rc=$?
+
+            if [ "${backend_configtest_rc}" = "0" ]; then
+                systemctl reload apache2@"${vhost}".service
+            else
+                printf '%s\n' "${backend_configtest_out}" >&2
+            fi
+        fi
 
         if [ -f "${vhost_file}" ]; then
             sed -i "/ServerName .*/a \\\tServerAlias $alias" "${vhost_file}" --follow-symlinks
@@ -1136,24 +1155,55 @@ op_aliasadd() {
             return 1
         fi
 
-        configtest_out=$(apache2ctl configtest)
-        configtest_rc=$?
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            configtest_out=$(apache2ctl-front configtest)
+            configtest_rc=$?
 
-        if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
+            if [ "${configtest_rc}" = "0" ]; then
+                systemctl reload apache2@front.service
+            else
+                printf '%s\n' "${configtest_out}" >&2
+            fi
         else
-            echo $configtest_out >&2
+            configtest_out=$(apache2ctl configtest)
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                service apache2 force-reload >/dev/null
+            else
+                echo $configtest_out >&2
+            fi
         fi
-    else usage
+    else
+        usage
     fi
 }
 
-# TODO: Make compatible with apache multi-instance
 op_aliasdel() {
     if [ $# -eq 2 ]; then
         vhost="${1}.conf"
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
+
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            backend_vhost_file="/etc/apache2-${vhost}/sites-available/000-default.conf"
+
+            if [ -f "${backend_vhost_file}" ]; then
+                sed -i -e "/ServerAlias $alias/d" "${backend_vhost_file}" --follow-symlinks
+            else
+                echo "Backend VHost file \`${backend_vhost_file}' not found'" >&2
+                return 1
+            fi
+
+            backend_configtest_out=$(apache2ctl-"${vhost}" configtest)
+            backend_configtest_rc=$?
+
+            if [ "${backend_configtest_rc}" = "0" ]; then
+                systemctl reload apache2@"${vhost}".service
+            else
+                printf '%s\n' "${backend_configtest_out}" >&2
+            fi
+        fi
 
         if [ -f "${vhost_file}" ]; then
             sed -i -e "/ServerAlias $alias/d" "${vhost_file}" --follow-symlinks
@@ -1162,40 +1212,79 @@ op_aliasdel() {
             return 1
         fi
 
-        configtest_out=$(apache2ctl configtest)
-        configtest_rc=$?
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            configtest_out=$(apache2ctl-front configtest)
+            configtest_rc=$?
 
-        if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
+            if [ "$configtest_rc" = "0" ]; then
+                systemctl reload apache2@front.service
+            else
+                printf '%s\n' "${configtest_out}" >&2
+            fi
         else
-            echo $configtest_out >&2
+            configtest_out=$(apache2ctl configtest)
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                service apache2 force-reload >/dev/null
+            else
+                echo $configtest_out >&2
+            fi
         fi
     else
         usage
     fi
 }
 
-# TODO: Make compatible with apache multi-instance
 op_servernameupdate() {
     if [ $# -eq 3 ]; then
-      vhost="${1}.conf"
-      servername=$2
-      old_servername=$3
-      vhost_file="${VHOST_PATH}/${vhost}"
+        vhost="${1}.conf"
+        servername=$2
+        old_servername=$3
+        vhost_file="${VHOST_PATH}/${vhost}"
 
-      if [ -f "${vhost_file}" ]; then
-          sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
-          sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
-      fi
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            backend_vhost_file="/etc/apache2-${vhost}/sites-available/000-default.conf"
 
-      configtest_out=$(apache2ctl configtest)
-      configtest_rc=$?
+            if [ -f "${backend_vhost_file}" ]; then
+                sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${backend_vhost_file}" --follow-symlinks
+                sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${backend_vhost_file}" --follow-symlinks
+            fi
 
-      if [ "$configtest_rc" = "0" ]; then
-          /etc/init.d/apache2 force-reload >/dev/null
-      else
-          echo $configtest_out >&2
-      fi
+            backend_configtest_out=$("apache2ctl-${vhost}" configtest)
+            backend_configtest_rc=$?
+
+            if [ "${backend_configtest_rc}" = "0" ]; then
+                systemctl reload apache2@"${vhost}"
+            else
+                printf '%s\n' "${backend_configtest_out}" >&2
+            fi
+        fi
+
+        if [ -f "${vhost_file}" ]; then
+            sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
+            sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
+        fi
+
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            configtest_out=$(apache2ctl-front configtest)
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                systemctl reload apache@front
+            else
+                printf '%s\n' "${configtest_out}" >&2
+            fi
+        else
+            configtest_out=$(apache2ctl configtest)
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                service apache2 force-reload >/dev/null
+            else
+                echo $configtest_out >&2
+            fi
+        fi
     else
         usage
     fi
