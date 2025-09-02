@@ -30,8 +30,9 @@ WEB_SERVER="apache"
 if [ "$WEB_SERVER" == "apache" ]; then
     VHOST_PATH="/etc/apache2/sites-available"
     TPL_VHOST="$SCRIPTS_PATH/vhost"
+    TPL_VHOST_MULTI="$SCRIPTS_PATH/vhost-multi-instance.tpl"
+    TPL_VHOST_MULTI_FRONT="$SCRIPTS_PATH/vhost-multi-instance.front.tpl"
     TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
-
 elif [ "$WEB_SERVER" == "nginx" ]; then
     VHOST_PATH="/etc/nginx/sites-available"
     TPL_VHOST="$SCRIPTS_PATH/vhost-nginx.tpl"
@@ -40,6 +41,8 @@ else
     echo "$WEB_SERVER is not apache nor nginx, exiting..."
     exit 1
 fi
+
+MULTI_INSTANCE=0
 
 # FPM
 FPM_PATH="/etc/php/7.0/fpm/pool.d"
@@ -320,6 +323,8 @@ create_www_account() {
         --disabled-password \
         "$in_login" \
         --shell /bin/bash \
+        --firstuid 8000 \
+        --firstgid 8000 \
         ${in_uid:+'--uid' "$in_uid"} \
         ${in_gid:+'--gid' "$in_gid"} \
         --force-badname \
@@ -342,6 +347,8 @@ create_www_account() {
             --disabled-password \
             www-"$in_login" \
             --shell /bin/false \
+            --firstuid 8000 \
+            --firstgid 8000 \
             ${in_wwwuid:+'--uid' "$in_wwwuid"} \
             --ingroup "$in_login" \
             --force-badname \
@@ -461,8 +468,25 @@ EOT
         # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
         mkdir -p /etc/apache2/ssl
 
-        vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-        sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            sh /usr/share/doc/apache2/examples/setup-instance "${in_login}"
+            sed -i -e "s/APACHE_RUN_USER=www-data/APACHE_RUN_USER=www-${in_login}/g ; s/APACHE_RUN_GROUP=www-data/APACHE_RUN_GROUP=${in_login}/g ;" /etc/apache2-"${in_login}"/envvars
+
+            vhostfile="/etc/apache2-${in_login}/sites-available/000-default.conf"
+            sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#; s/UID/${uid}/ ;" < $TPL_VHOST_MULTI > "$vhostfile"
+
+            cat <<EOT >"/etc/apache2-${in_login}/ports.conf"
+Listen 127.0.0.80:${uid}
+EOT
+
+            rm -f "/etc/apache2-${in_login}/sites-enabled/000-default.conf"
+
+            front_vhostfile="/etc/apache2-front/sites-available/${in_login}.conf"
+            sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s/UID/${uid}/ ;" < $TPL_VHOST_MULTI_FRONT > "$front_vhostfile"
+        else
+            vhostfile="/etc/apache2/sites-available/${in_login}.conf"
+            sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
+        fi
 
         if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
             phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
@@ -486,7 +510,12 @@ EOT
             sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
         fi
 
-        a2ensite "${in_login}.conf" >/dev/null
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            a2ensite-"${in_login}" 000-default >/dev/null
+            a2ensite-front "${in_login}" >/dev/null
+        else
+            a2ensite "${in_login}.conf" >/dev/null
+        fi
 
         step_ok "Configuration d'Apache"
 
@@ -589,8 +618,17 @@ EOT
     ############################################################################
 
     if [ "$WEB_SERVER" == "apache" ]; then
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
+        if  [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            apache2ctl-"${in_login}" configtest 2>/dev/null
+            systemctl enable --now apache2@"${in_login}".service
+
+            apache2ctl-front configtest 2>/dev/null
+            systemctl reload apache2@front >/dev/null
+        else
+            apache2ctl configtest 2>/dev/null
+            /etc/init.d/apache2 force-reload >/dev/null
+        fi
+
         for php_version in "${PHP_VERSIONS[@]}"; do
             if [ "${php_version:0:1}" = "5" ]; then
                 initscript_path="/etc/init.d/php5-fpm"
