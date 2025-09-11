@@ -269,12 +269,15 @@ create_www_account() {
     fi
 
     # Create user and force UID / GID if specified
+    # TODO We choose UID >= 3000, is this range safe?
     /usr/sbin/adduser \
         --ingroup www-data \
         --gecos "User $in_login" \
         --disabled-password \
         "$in_login" \
         --shell /bin/bash \
+        --firstuid 3000 \
+        --firstgid 3000 \
         ${in_uid:+'--uid' "$in_uid"} \
         --force-badname \
         --home "$HOME_DIR_USER" >/dev/null
@@ -651,6 +654,12 @@ op_del() {
     if getent passwd "$login" &> /dev/null; then
         userdel -f "$login"
     fi
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
+            lxc-attach -n php"${php_version}" -- userdel -f "$login"
+        fi
+    done
 
     sed -i.bak "/^$login:/d" /etc/aliases
 
