@@ -819,7 +819,7 @@ op_generatesslcertificate() {
 /^# BEGIN EVOADMIN LISTEN 443/ {
     :a;
     n;
-    /^# *listen .*443 ssl;$/ {
+    /^# *listen .*443 ssl.*;$/ {
         s/^#//;
         ba;
     }
