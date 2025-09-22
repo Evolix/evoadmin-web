@@ -336,6 +336,7 @@ create_www_account() {
     chgrp "www-data" "$HOME_DIR_USER"/log/access.log
     chgrp "www-data" "$HOME_DIR_USER"/log/error.log
     chgrp "www-data" "$HOME_DIR_USER"/log/php.log
+    chown "$in_login" "$HOME_DIR_USER"/log/php.log
     # There is no php.log for nginx ATM, it will go in error.log.
     chmod 640 "$HOME_DIR_USER"/log/access.log
     chmod 640 "$HOME_DIR_USER"/log/error.log
