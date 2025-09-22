@@ -25,6 +25,6 @@ server {
     }
 
     access_log /var/log/access.log;
-    access_log /var/log/LOGIN.access.log;
-    error_log  /var/log/LOGIN.error.log;
+    access_log /home/LOGIN/log/access.log;
+    error_log  /home/LOGIN/log/error.log;
 }
