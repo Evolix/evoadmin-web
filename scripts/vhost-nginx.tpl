@@ -24,7 +24,7 @@ server {
         include snippets/fastcgi-php.conf;
     }
 
-    access_log /var/log/access.log;
+    access_log /var/log/nginx/access.log;
     access_log /home/LOGIN/log/access.log;
     error_log  /home/LOGIN/log/error.log;
 }
