@@ -1675,51 +1675,118 @@ op_version(){
     echo "$VERSION"
 }
 
-# TODO: Make compatible with apache multi-instance
 op_enable_vhost() {
     vhost_name=$1
 
-    if [[ -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]]; then
-        echo "This vhost is already active... Exiting"
-        return 1
-    fi
+    if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+        if [ -e "/etc/apache2-front/sites-enabled/${vhost_name}.conf" ] && systemctl --quiet is-enabled "apache2@${vhost_name}.service"; then
+            echo "This vhost is already active... Exiting"
+            return 1
+        fi
 
-    if [[ ! -e "/etc/apache2/sites-available/${vhost_name}.conf" ]]; then
-        echo "This vhost does not exist.. Exiting"
-        return 1
-    fi
+        if [ ! -e "${VHOST_PATH}/${vhost_name}.conf" ]; then
+            echo "This vhost does not exist.. Exiting"
+            return 1
+        fi
 
-    a2ensite "${vhost_name}.conf"
+        echo "Validating vhost instance configuration & enabling (and starting) the instance"
+        set +e
+        apache2ctl-"${vhost_name}" configtest 2>/dev/null
+        instance_confcheck_rc=$?
+        set -e
 
-    echo "Validating apache2 configuration & reloading"
+        if [ "${instance_confcheck_rc}" -ne 0 ]; then
+            # Config seems invalid, abort.
+            echo "Apache instance configuration seems invalid for vhost ${vhost_name} -- aborting"
+            return 1
+        fi
 
-    set +e
-    apache2ctl configtest 2>/dev/null
-    rc=$?
-    set -e
+        # Enable + start at once
+        systemctl enable --now "apache2@${vhost_name}.service"
 
-    if [[ $rc -ne 0 ]]; then
-        # Config seems invalid, we roll back our change
-        echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
-        a2dissite "${vhost_name}.conf"
-        return 1
+        a2ensite-front --quiet "${vhost_name}.conf"
+
+        echo "Validating apache2 configuration & reloading"
+        set +e
+        apache2ctl-front configtest 2>/dev/null
+        front_confcheck_rc=$?
+        set -e
+
+        if [ "${front_confcheck_rc}" -ne 0 ]; then
+            # Config seems invalid, abort.
+            echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
+            a2dissite-front "${vhost_name}.conf"
+            return 1
+        fi
+
+        systemctl reload apache2@front.service
     else
-        systemctl reload apache2.service
+        if [ -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]; then
+            echo "This vhost is already active... Exiting"
+            return 1
+        fi
+
+        if [ ! -e "${VHOST_PATH}/${vhost_name}.conf" ]; then
+            echo "This vhost does not exist.. Exiting"
+            return 1
+        fi
+
+        a2ensite "${vhost_name}.conf"
+
+        echo "Validating apache2 configuration & reloading"
+
+        set +e
+        apache2ctl configtest 2>/dev/null
+        rc=$?
+        set -e
+
+        if [ $rc -ne 0 ]; then
+            # Config seems invalid, we roll back our change
+            echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
+            a2dissite "${vhost_name}.conf"
+            return 1
+        else
+            systemctl reload apache2.service
+        fi
     fi
 }
 
-# TODO: Make compatible with apache multi-instance
 op_disable_vhost() {
     vhost_name=$1
 
-    if [[ ! -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]]; then
-        echo "This vhost isn't active... Exiting"
-        return 1
-    fi
+    if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+        if ! [ -e "/etc/apache2-front/sites-enabled/${vhost_name}.conf" ] && ! systemctl --quiet is-enabled "apache2@${vhost_name}.service"; then
+            echo "This vhost isn't active... Exiting"
+            return 1
+        fi
 
-    echo "Validating apache2 configuration & reloading"
-    apache2ctl configtest 2>/dev/null
-    systemctl reload apache2.service
+        a2dissite-front "${vhost_name}.conf"
+
+        echo "Validating apache2 configuration & reloading"
+        set +e
+        apache2ctl-front configtest 2>/dev/null
+        front_confcheck_rc=$?
+        set -e
+
+        if [ "${front_confcheck_rc}" -ne 0 ]; then
+            # Config seems invalid, we roll back our change
+            echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
+            a2ensite-front "${vhost_name}.conf"
+            return 1
+        fi
+
+        # Disable + stop at once
+        systemctl disable --quiet --now "apache2@${vhost_name}.service"
+    else
+        if [ ! -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]; then
+            echo "This vhost isn't active... Exiting"
+            return 1
+        fi
+
+        echo "Validating apache2 configuration & reloading"
+        apache2ctl configtest 2>/dev/null
+        systemctl reload apache2.service
+    fi
 }
 
 # Point d'entrée
