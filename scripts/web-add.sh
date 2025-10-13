@@ -1313,53 +1313,88 @@ op_checkoccurencename() {
     fi
 }
 
-# TODO: Make compatible with apache multi-instance ?
 op_listuseritk() {
     if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH/${1}.conf"
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            configfile="/etc/apache2-${1}/envvars"
 
-        awk '/AssignUserID/ {print $2}' "$configfile" | uniq
-    else
-        usage
-    fi
-}
-
-# TODO: Make compatible with apache multi-instance ?
-op_enableuseritk() {
-    if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH/${1}.conf"
-        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
-
-        sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
-
-        configtest_out=$(apache2ctl configtest)
-        configtest_rc=$?
-
-        if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
+            awk 'BEGIN { FS = "=" } /APACHE_RUN_USER=/ {print $2}' "$configfile" | uniq
         else
-            echo $configtest_out >&2
+            configfile="$VHOST_PATH/${1}.conf"
+
+            awk '/AssignUserID/ {print $2}' "$configfile" | uniq
         fi
     else
         usage
     fi
 }
 
-# TODO: Make compatible with apache multi-instance ?
+op_enableuseritk() {
+    if [ $# -eq 1 ]; then
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            configfile="/etc/apache2-${1}/envvars"
+            group="$(awk -F '=' '/APACHE_RUN_GROUP=/ {print $2}' "${configfile}" | uniq)"
+
+            sed -i -e "s/APACHE_RUN_USER=${group}/APACHE_RUN_USER=www-${group}/g" --follow-symlinks "${configfile}"
+
+            configtest_out="$(apache2ctl-"${1}" configtest)"
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                systemctl reload apache2@"${1}.service" >/dev/null
+            else
+                printf '%s\n' "${configtest_out}" >&2
+            fi
+        else
+            configfile="$VHOST_PATH/${1}.conf"
+            group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
+
+            sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
+
+            configtest_out=$(apache2ctl configtest)
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                service apache2 force-reload >/dev/null
+            else
+                echo $configtest_out >&2
+            fi
+        fi
+    else
+        usage
+    fi
+}
+
 op_disableuseritk() {
     if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH"/"${1}".conf
-        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
+        if [ "${MULTI_INSTANCE}" -gt 0 ]; then
+            configfile="/etc/apache2-${1}/envvars"
+            group="$(awk -F '=' '/APACHE_RUN_GROUP=/ {print $2}' "${configfile}" | uniq)"
 
-        sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+            sed -i -e "s/APACHE_RUN_USER=www-${group}/APACHE_RUN_USER=${group}/g" --follow-symlinks "${configfile}"
 
-        configtest_out=$(apache2ctl configtest)
-        configtest_rc=$?
+            configtest_out="$(apache2ctl-"${1}" configtest)"
+            configtest_rc=$?
 
-        if [ "$configtest_rc" = "0" ]; then
-            /etc/init.d/apache2 force-reload >/dev/null
+            if [ "$configtest_rc" = "0" ]; then
+                systemctl reload apache2@"${1}.service" >/dev/null
+            else
+                printf '%s\n' "${configtest_out}" >&2
+            fi
         else
-            echo $configtest_out >&2
+            configfile="$VHOST_PATH"/"${1}".conf
+            group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
+
+            sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+
+            configtest_out=$(apache2ctl configtest)
+            configtest_rc=$?
+
+            if [ "$configtest_rc" = "0" ]; then
+                service apache2 force-reload >/dev/null
+            else
+                echo $configtest_out >&2
+            fi
         fi
     else
         usage
