@@ -14,7 +14,7 @@
 
 set -e
 
-VERSION="26.03"
+VERSION="25.08"
 HOME="/root"
 CONTACT_MAIL="jdoe@example.org"
 WWWBOUNCE_MAIL="jdoe@example.org"
@@ -25,23 +25,10 @@ TPL_AWSTATS="$SCRIPTS_PATH/awstats.XXX.conf"
 SSH_GROUP="evolinux-ssh"
 HOST="$(hostname -f)"
 
-# Set to nginx if you use nginx and not apache
-WEB_SERVER="apache"
-if [ "$WEB_SERVER" == "apache" ]; then
-    VHOST_PATH="/etc/apache2/sites-available"
-    TPL_VHOST="$SCRIPTS_PATH/vhost"
-    TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
-elif [ "$WEB_SERVER" == "apache-multi" ]; then
-    # short-circuit as the logic is elsewhere
-    exec "$SCRIPTS_PATH/web-add-multi.sh" "$@"
-elif [ "$WEB_SERVER" == "nginx" ]; then
-    VHOST_PATH="/etc/nginx/sites-available"
-    TPL_VHOST="$SCRIPTS_PATH/vhost-nginx.tpl"
-    TPL_MAIL="$SCRIPTS_PATH/web-mail-nginx.tpl"
-else
-    echo "$WEB_SERVER is not apache nor nginx, exiting..."
-    exit 1
-fi
+VHOST_PATH="/etc/apache2-front/sites-available"
+TPL_VHOST="$SCRIPTS_PATH/vhost-multi-instance.tpl"
+TPL_VHOST_FRONT="$SCRIPTS_PATH/vhost-multi-instance.front.tpl"
+TPL_MAIL="$SCRIPTS_PATH/web-mail.tpl"
 
 # FPM
 FPM_PATH="/etc/php/7.0/fpm/pool.d"
@@ -167,14 +154,9 @@ manage-http-challenge-file [CREATE | DELETE]
     Create or delete a dummy file for the Let's Encrypt HTTP challenge
     The default directory is /var/lib/letsencrypt/.well-known/
 
-generate-csr [OPTIONS] LOGIN DOMAINS
+generate-csr LOGIN DOMAINS
 
     Generate the request for the Let's Encrypt certificate
-    WARNING: a new prirvate key is generated, and a self-signed certificate is issued
-             and set in Apache or Nginx configuration without reloading
-
-    -t|--test
-        Generate a CSR without generating a new private key, and without modifying Apache or Nginx configuration
 
 generate-ssl-certificate LOGIN [false]
 
@@ -292,7 +274,7 @@ step_ok() {
 create_www_account() {
 
     # Vérifications
-    for filetocheck in $TPL_VHOST $TPL_AWSTATS $TPL_MAIL; do
+    for filetocheck in $TPL_VHOST $TPL_VHOST_FRONT $TPL_AWSTATS $TPL_MAIL; do
         if [ ! -f $filetocheck ]; then
             in_error "Fichier inexistant : $filetocheck"
             exit 1
@@ -344,26 +326,19 @@ create_www_account() {
     && chmod -R u=rwX,g=,o= "$HOME_DIR_USER/.ssh/authorized_keys" \
     && chown -R "$in_login":"$in_login" "$HOME_DIR_USER/.ssh"
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        # Create www user and force UID if specified
-        /usr/sbin/adduser \
-            --gecos "WWW $in_login" \
-            --disabled-password \
-            www-"$in_login" \
-            --shell /bin/false \
-            --firstuid 8000 \
-            --firstgid 8000 \
-            ${in_wwwuid:+'--uid' "$in_wwwuid"} \
-            --ingroup "$in_login" \
-            --force-badname \
-            --home "$HOME_DIR_USER"/www \
-            --no-create-home > /dev/null
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        # Adding user www-data to group $in_login.
-        # And primary group www-data for $in_login.
-        adduser www-data "$in_login"
-        usermod -g www-data "$in_login"
-    fi
+    # Create www user and force UID if specified
+    /usr/sbin/adduser \
+        --gecos "WWW $in_login" \
+        --disabled-password \
+        www-"$in_login" \
+        --shell /bin/false \
+        --firstuid 8000 \
+        --firstgid 8000 \
+        ${in_wwwuid:+'--uid' "$in_wwwuid"} \
+        --ingroup "$in_login" \
+        --force-badname \
+        --home "$HOME_DIR_USER"/www \
+        --no-create-home > /dev/null
 
     # Get uid/gid for newly created accounts
     uid=$(id -u "$in_login")
@@ -389,12 +364,8 @@ create_www_account() {
 
     ############################################################################
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        echo "www-$login: $login" >> /etc/aliases
-        echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
-    fi
+    echo "www-$login: $login" >> /etc/aliases
+    echo "$login: $WWWBOUNCE_MAIL" >> /etc/aliases
     newaliases
 
     step_ok "Alias mail"
@@ -415,9 +386,7 @@ create_www_account() {
     touch "$HOME_DIR_USER"/log/php.log
     chgrp "$in_login" "$HOME_DIR_USER"/log/access.log
     chgrp "$in_login" "$HOME_DIR_USER"/log/error.log
-    if [ "$WEB_SERVER" == "apache" ]; then
-        chown www-"$in_login":"$in_login" "$HOME_DIR_USER"/log/php.log
-    fi
+    chown www-"$in_login":"$in_login" "$HOME_DIR_USER"/log/php.log
     # There is no php.log for nginx ATM, it will go in error.log.
     chmod 640 "$HOME_DIR_USER"/log/access.log
     chmod 640 "$HOME_DIR_USER"/log/error.log
@@ -468,16 +437,27 @@ EOT
     ############################################################################
 
     random=$RANDOM
-    if [ "$WEB_SERVER" == "apache" ]; then
-        # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
-        mkdir -p /etc/apache2/ssl
+    # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
+    mkdir -p /etc/apache2/ssl
 
-        vhostfile="/etc/apache2/sites-available/${in_login}.conf"
-        sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#" < $TPL_VHOST > "$vhostfile"
+    sh "${SCRIPTS_PATH}"/setup-instance-apache.sh "${in_login}"
+    sed -i -e "s/APACHE_RUN_USER=www-data/APACHE_RUN_USER=www-${in_login}/g ; s/APACHE_RUN_GROUP=www-data/APACHE_RUN_GROUP=${in_login}/g ;" /etc/apache2-"${in_login}"/envvars
 
-        if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
-            phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
-            cat <<EOT >>"$vhostfile"
+    vhostfile="/etc/apache2-${in_login}/sites-available/${in_login}.conf"
+    sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s#HOME_DIR#$HOME_DIR#; s/UID/${uid}/ ;" < $TPL_VHOST > "$vhostfile"
+
+    cat <<EOT >"/etc/apache2-${in_login}/ports.conf"
+Listen 127.0.0.80:${uid}
+EOT
+
+    rm -f "/etc/apache2-${in_login}/sites-enabled/000-default.conf"
+
+    front_vhostfile="/etc/apache2-front/sites-available/${in_login}.conf"
+    sed -e "s/XXX/$in_login/g ; s/SERVERNAME/$in_wwwdomain/ ; s/RANDOM/$random/ ; s/UID/${uid}/ ;" < $TPL_VHOST_FRONT > "$front_vhostfile"
+
+    if [ ${#PHP_VERSIONS[@]} -gt 0 ]; then
+        phpfpm_socket_path="/home/${in_login}/php-fpm${in_phpversion}.sock"
+        cat <<EOT >>"$vhostfile"
     <Proxy "unix:${phpfpm_socket_path}|fcgi://localhost/" timeout=300>
     </Proxy>
     <FilesMatch "\\.php$">
@@ -485,42 +465,23 @@ EOT
     </FilesMatch>
 </VirtualHost>
 EOT
-        else
+    else
             cat <<EOT >>"$vhostfile"
 </VirtualHost>
 EOT
-        fi
-
-        # On active aussi example.com si domaine commence par "www." comme www.example
-        if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
-            subweb="${in_wwwdomain#www.}"
-            sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
-        fi
-
-        a2ensite "${in_login}.conf" >/dev/null
-
-        step_ok "Configuration d'Apache"
-
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        sed -e \
-        "s/DOMAIN/${in_wwwdomain}/g; s/LOGIN/${in_login}/g;" \
-        < "$TPL_VHOST" \
-        > ${VHOST_PATH}/"$in_login"
-        ln -s /etc/nginx/sites-available/"$in_login" \
-            /etc/nginx/sites-enabled/"$in_login"
-
-        /etc/init.d/nginx restart
-
-        step_ok "Configuration de Nginx + restart"
-
-        ############################################################################
-
-        sed -e "s/SED_LOGIN/${in_login}/g;" \
-        < $TPL_FPM > ${FPM_PATH}/"${in_login}".conf
-        step_ok "Creation du pool PHP-FPM"
-
-        ############################################################################
     fi
+
+    # On active aussi example.com si domaine commence par "www." comme www.example
+    if echo "$in_wwwdomain" | grep '^www.' > /dev/null; then
+        subweb="${in_wwwdomain#www.}"
+        sed -i -e "s/^\\(.*\\)#\\(ServerAlias\\).*$/\\1\\2 $subweb/" "$vhostfile"
+    fi
+
+    a2ensite-"${in_login}" "${in_login}" >/dev/null
+    a2ensite-front "${in_login}" >/dev/null
+
+    step_ok "Configuration d'Apache"
+
 
     sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
         < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
@@ -599,61 +560,28 @@ EOT
 
     ############################################################################
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        apache2ctl configtest 2>/dev/null
-        /etc/init.d/apache2 force-reload >/dev/null
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "${php_version:0:1}" = "5" ]; then
-                initscript_path="/etc/init.d/php5-fpm"
-                binary="php5-fpm"
-            else
-                php_dot=${php_version:0:1}.${php_version:1:1}
-                initscript_path="/etc/init.d/php${php_dot}-fpm"
-                binary="php-fpm${php_dot}"
-            fi
-            lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-            step_ok "Rechargement de php-fpm dans php${php_version}"
-        done
+    apache2ctl-"${in_login}" configtest 2>/dev/null
+    systemctl enable --now apache2@"${in_login}".service
 
-        step_ok "Rechargement d'Apache"
-    fi
+    apache2ctl-front configtest 2>/dev/null
+    systemctl reload apache2@front >/dev/null
 
-############################################################################
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if [ "${php_version:0:1}" = "5" ]; then
+            initscript_path="/etc/init.d/php5-fpm"
+            binary="php5-fpm"
+        else
+            php_dot=${php_version:0:1}.${php_version:1:1}
+            initscript_path="/etc/init.d/php${php_dot}-fpm"
+            binary="php-fpm${php_dot}"
+        fi
+        lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
+        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        step_ok "Rechargement de php-fpm dans php${php_version}"
+    done
 
-    if [ "$WEB_SERVER" == "nginx" ]; then
-        fpm_status=$(echo -n "$in_login" | md5sum | cut -d' ' -f1)
-        cat <<EOT> /etc/munin/plugin-conf.d/phpfpm_"${in_login}"_
+    step_ok "Rechargement d'Apache"
 
-[phpfpm_${in_login}_*]
-env.url http://munin:%d/fpm_status_$fpm_status
-env.ports 80
-env.phpbin php-fpm
-env.phppool $in_login
-EOT
-        for name in average connections memory processes status; do
-        ln -s /usr/local/share/munin/plugins/phpfpm_${name} \
-            /etc/munin/plugins/phpfpm_"${in_login}"_${name}
-        done
-        cat <<EOT>> /etc/nginx/evolinux.d/munin-plugins.conf
-
-# $in_login FPM Status page. Secret part is md5 of pool name.
-location ~ ^/fpm_status_${fpm_status}$ {
-    include fastcgi_params;
-    fastcgi_pass unix:/var/run/php-fpm-${in_login}.sock;
-    fastcgi_param SCRIPT_FILENAME \$fastcgi_script_name;
-    allow 127.0.0.1;
-    deny all;
-}
-EOT
-        sed -i "s#SED_STATUS#/fpm_status_${fpm_status}#" \
-            ${FPM_PATH}/"${in_login}".conf
-        /etc/init.d/nginx reload
-        /etc/init.d/${FPM_SERVICE_NAME} reload
-        /etc/init.d/munin-node restart
-
-        step_ok "Configuration plugin php-fpm pour munin"
-    fi
     ############################################################################
 
     DATE=$(date +"%Y-%m-%d")
@@ -752,60 +680,52 @@ op_del() {
         crontab -r -u "$login"
     fi
 
-    # Deactivate web vhost (apache or nginx)
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if a2query -s "${login}" >/dev/null 2&>1; then
-            a2dissite "${login}.conf"
-        fi
-        rm -f /etc/apache2/sites-available/"$login.conf"
-
-        apache2ctl configtest
-
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if [ "${php_version:0:1}" = "5" ]; then
-                phpfpm_dir="/etc/php5/fpm/pool.d/"
-                initscript_path="/etc/init.d/php5-fpm"
-            else
-                php_dot=${php_version:0:1}.${php_version:1:1}
-                phpfpm_dir="/etc/php/${php_dot}/fpm/pool.d/"
-                initscript_path="/etc/init.d/php${php_dot}-fpm"
-            fi
-            rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
-            lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
-        done
-
-    elif [ "$WEB_SERVER" == "nginx" ]; then
-        rm -f /etc/nginx/sites-{available,enabled}/"$login"
-        rm -f /etc/munin/plugins/phpfpm_"${in_login}"*
-        nginx -t
+    if test -e "/etc/apache2-front/sites-enabled/${login}.conf"; then
+        a2dissite-front -m "${login}"
     fi
+    rm -f "/etc/apache2-front/sites-enabled/${login}.conf"
+
+    apache2ctl-front configtest
+
+    systemctl disable --now apache2@"${login}".service
+    mv "/etc/apache2-${login}" "/etc/apache2-${login}"."$(date '+%Y%m%d-%H%M%S')".bak
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if [ "${php_version:0:1}" = "5" ]; then
+            phpfpm_dir="/etc/php5/fpm/pool.d/"
+            initscript_path="/etc/init.d/php5-fpm"
+        else
+            php_dot=${php_version:0:1}.${php_version:1:1}
+            phpfpm_dir="/etc/php/${php_dot}/fpm/pool.d/"
+            initscript_path="/etc/init.d/php${php_dot}-fpm"
+        fi
+        rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
+        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+    done
+
 
     rm -f /etc/awstats/awstats."$login.conf"
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
 
-    if [ "$WEB_SERVER" == "apache" ]; then
-        if id www-"$login" &> /dev/null; then
-            userdel -f www-"$login"
-        fi
-
-        for php_version in "${PHP_VERSIONS[@]}"; do
-            if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
-            fi
-            if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
-                lxc-attach -n php"${php_version}" -- userdel -f "$login"
-            fi
-        done
+    if id www-"$login" &> /dev/null; then
+        userdel -f www-"$login"
     fi
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
+            lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
+        fi
+        if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
+            lxc-attach -n php"${php_version}" -- userdel -f "$login"
+        fi
+    done
 
     if getent passwd "$login" &> /dev/null; then
         userdel -f "$login"
     fi
 
     sed -i.bak "/^$login:/d" /etc/aliases
-    if [ "$WEB_SERVER" == "apache" ]; then
-        sed -i.bak "/^www-$login:/d" /etc/aliases
-    fi
+    sed -i.bak "/^www-$login:/d" /etc/aliases
 
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i '/^AllowUsers/s/ '"${login}"'\( \|$\)/\1/' /etc/ssh/sshd_config
@@ -845,12 +765,12 @@ op_setphpversion() {
 
     validate_phpversion "$phpversion"
 
-    vhostfile=/etc/apache2/sites-available/"${login}".conf
+    vhostfile=/etc/apache2-"${login}"/sites-available/${login}.conf
 
     sed -i "s#^\\(\s*SetHandler proxy:unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" "${vhostfile}"
     sed -i "s#^\\(\s*<Proxy .*unix:/home/.*/php-fpm\\)..\\(\\.sock\\)#\\1${phpversion}\\2#" "${vhostfile}"
 
-    service apache2 force-reload >/dev/null
+    systemctl reload apache2@"${login}".service
 
     DATE=$(date +"%Y-%m-%d")
     echo "$DATE [web-add.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
@@ -953,45 +873,20 @@ arg_processing() {
 }
 
 op_makecsr() {
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
-          -t|--test)
-            TEST=1
-            shift # pass argument
-            ;;
-          -*|--*)
-            echo "Unknown option $1" >&2
-            usage
-            exit 1
-            ;;
-          *)
-            if [ -z "${vhost}" ]; then
-                vhost="$1"
-            else
-                domains="${domains:+${domains} }$1"
-            fi
-            shift # pass argument
-            ;;
-        esac
-    done
+    if [ $# -gt 1 ]; then
+        vhost="$1"
+        domains=""
 
-    if [ -z "${vhost}" ]; then
-        echo "Please provide vhost" >&2
-        usage
-        exit 1
-    fi
+        # remove the first argument to keep only the domains
+        shift 1
 
-    if [ -z "${domains}" ]; then
-        echo "Please provide at least one domain" >&2
-        usage
-        exit 1
-    fi
+        for domain in "$@"; do
+            domains="${domains:+${domains} }${domain}"
+        done
 
-    if [ -n "${TEST}" ] && [ "${TEST}" -eq 1 ]; then
-        # Pipe the domains to make-csr because we don't have STDIN
-        echo "$domains" | TEST=1 make-csr "$vhost"
-    else
+        # pipe the domains to make-csr because we don't have STDIN
         echo "$domains" | make-csr "$vhost"
+    else usage
     fi
 }
 
@@ -1006,8 +901,7 @@ op_generatesslcertificate() {
             fi
             evoacme "$vhost"
         else
-            SSL_MINDAY=99 DRY_RUN=1 TEST=1 evoacme "$vhost"
-            #| awk '/Domain:/ {domain=$2}; /Detail:/ {print domain": "$0; domain=""}'
+            DRY_RUN=1 evoacme "$vhost"
         fi
     else usage
     fi
@@ -1048,20 +942,27 @@ op_listvhost() {
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
             serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
             serveraliases="$(echo $serveraliases | sed 's/ \+/,/g')"
-            userid="$(awk '/^[[:space:]]*AssignUserID.*/ { print $3 }' "$configfile" | head -n 1)"
+
+            basename="$(basename "${configfile}")"
+            vhost_name="${basename%.conf}"
+            userid="$(awk '/^[[:space:]]*export APACHE_RUN_USER=.*/ { print $2 }' /etc/apache2-"${vhost_name}"/envvars | cut -d '=' -f 2 | head -n 1)"
+
             if [ -x /usr/bin/quota ]; then
                 size=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $2}')
                 quota_soft=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $3}')
                 quota_hard=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $4}')
             fi
-            phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' "$configfile" | head -n 1)
-            if [ -e /etc/apache2/sites-enabled/"${userid}".conf ]; then
+
+            phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' /etc/apache2-"${vhost_name}"/sites-available/"${vhost_name}".conf | head -n 1)
+
+            if [ -e /etc/apache2-front/sites-enabled/"${userid}".conf ]; then
                 is_enabled=1
             else
                 is_enabled=0
             fi
 
-            count_virtualhosts="$(grep "<VirtualHost" "$configfile" | wc -l)"
+            count_virtualhosts="$(grep "<VirtualHost" /etc/apache2-"${vhost_name}"/sites-available/"${vhost_name}".conf | wc -l)"
+
             if [ "$count_virtualhosts" -eq 1 ]; then
                 is_standard=1
             else
@@ -1082,6 +983,24 @@ op_aliasadd() {
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
 
+        backend_vhost_file="/etc/apache2-${vhost}/sites-available/${vhost}.conf"
+
+        if [ -f "${backend_vhost_file}" ]; then
+            sed -i "/ServerName .*/a \\\tServerAlias $alias" "${backend_vhost_file}" --follow-symlinks
+        else
+            echo "Backend VHost file \`${backend_vhost_file}' not found'" >&2
+            return 1
+        fi
+
+        backend_configtest_out=$(apache2ctl-"${vhost}" configtest)
+        backend_configtest_rc=$?
+
+        if [ "${backend_configtest_rc}" = "0" ]; then
+            systemctl reload apache2@"${vhost}".service
+        else
+            printf '%s\n' "${backend_configtest_out}" >&2
+        fi
+
         if [ -f "${vhost_file}" ]; then
             sed -i "/ServerName .*/a \\\tServerAlias $alias" "${vhost_file}" --follow-symlinks
         else
@@ -1089,13 +1008,13 @@ op_aliasadd() {
             return 1
         fi
 
-        configtest_out=$(apache2ctl configtest)
+        configtest_out=$(apache2ctl-front configtest)
         configtest_rc=$?
 
-        if [ "$configtest_rc" = "0" ]; then
-            service apache2 force-reload >/dev/null
+        if [ "${configtest_rc}" = "0" ]; then
+            systemctl reload apache2@front.service
         else
-            echo $configtest_out >&2
+            printf '%s\n' "${configtest_out}" >&2
         fi
     else
         usage
@@ -1108,6 +1027,24 @@ op_aliasdel() {
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
 
+        backend_vhost_file="/etc/apache2-${vhost}/sites-available/${vhost}.conf"
+
+        if [ -f "${backend_vhost_file}" ]; then
+            sed -i -e "/ServerAlias $alias/d" "${backend_vhost_file}" --follow-symlinks
+        else
+            echo "Backend VHost file \`${backend_vhost_file}' not found'" >&2
+            return 1
+        fi
+
+        backend_configtest_out=$(apache2ctl-"${vhost}" configtest)
+        backend_configtest_rc=$?
+
+        if [ "${backend_configtest_rc}" = "0" ]; then
+            systemctl reload apache2@"${vhost}".service
+        else
+            printf '%s\n' "${backend_configtest_out}" >&2
+        fi
+
         if [ -f "${vhost_file}" ]; then
             sed -i -e "/ServerAlias $alias/d" "${vhost_file}" --follow-symlinks
         else
@@ -1115,13 +1052,13 @@ op_aliasdel() {
             return 1
         fi
 
-        configtest_out=$(apache2ctl configtest)
+        configtest_out=$(apache2ctl-front configtest)
         configtest_rc=$?
 
         if [ "$configtest_rc" = "0" ]; then
-            service apache2 force-reload >/dev/null
+            systemctl reload apache2@front.service
         else
-            echo $configtest_out >&2
+            printf '%s\n' "${configtest_out}" >&2
         fi
     else
         usage
@@ -1135,18 +1072,34 @@ op_servernameupdate() {
         old_servername=$3
         vhost_file="${VHOST_PATH}/${vhost}"
 
+        backend_vhost_file="/etc/apache2-${vhost}/sites-available/${vhost}.conf"
+
+        if [ -f "${backend_vhost_file}" ]; then
+            sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${backend_vhost_file}" --follow-symlinks
+            sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${backend_vhost_file}" --follow-symlinks
+        fi
+
+        backend_configtest_out=$("apache2ctl-${vhost}" configtest)
+        backend_configtest_rc=$?
+
+        if [ "${backend_configtest_rc}" = "0" ]; then
+            systemctl reload apache2@"${vhost}"
+        else
+            printf '%s\n' "${backend_configtest_out}" >&2
+        fi
+
         if [ -f "${vhost_file}" ]; then
             sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
             sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
         fi
 
-        configtest_out=$(apache2ctl configtest)
+        configtest_out=$(apache2ctl-front configtest)
         configtest_rc=$?
 
         if [ "$configtest_rc" = "0" ]; then
-            service apache2 force-reload >/dev/null
+            systemctl reload apache@front
         else
-            echo $configtest_out >&2
+            printf '%s\n' "${configtest_out}" >&2
         fi
     else
         usage
@@ -1178,9 +1131,9 @@ op_checkoccurencename() {
 
 op_listuseritk() {
     if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH/${1}.conf"
+        configfile="/etc/apache2-${1}/envvars"
 
-        awk '/AssignUserID/ {print $2}' "$configfile" | uniq
+        awk 'BEGIN { FS = "=" } /APACHE_RUN_USER=/ {print $2}' "$configfile" | uniq
     else
         usage
     fi
@@ -1188,18 +1141,18 @@ op_listuseritk() {
 
 op_enableuseritk() {
     if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH/${1}.conf"
-        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
+        configfile="/etc/apache2-${1}/envvars"
+        group="$(awk -F '=' '/APACHE_RUN_GROUP=/ {print $2}' "${configfile}" | uniq)"
 
-        sed -i "s/^ *AssignUserID $group/    AssignUserID www-$group/" "$configfile" --follow-symlinks
+        sed -i -e "s/APACHE_RUN_USER=${group}/APACHE_RUN_USER=www-${group}/g" --follow-symlinks "${configfile}"
 
-        configtest_out=$(apache2ctl configtest)
+        configtest_out="$(apache2ctl-"${1}" configtest)"
         configtest_rc=$?
 
         if [ "$configtest_rc" = "0" ]; then
-            service apache2 force-reload >/dev/null
+            systemctl reload apache2@"${1}.service" >/dev/null
         else
-            echo $configtest_out >&2
+            printf '%s\n' "${configtest_out}" >&2
         fi
     else
         usage
@@ -1208,18 +1161,18 @@ op_enableuseritk() {
 
 op_disableuseritk() {
     if [ $# -eq 1 ]; then
-        configfile="$VHOST_PATH"/"${1}".conf
-        group=$(awk '/AssignUserID/ {print $3}' "$configfile" | uniq)
+        configfile="/etc/apache2-${1}/envvars"
+        group="$(awk -F '=' '/APACHE_RUN_GROUP=/ {print $2}' "${configfile}" | uniq)"
 
-        sed -i "s/^ *AssignUserID www-$group/    AssignUserID ${group}/" "$configfile" --follow-symlinks
+        sed -i -e "s/APACHE_RUN_USER=www-${group}/APACHE_RUN_USER=${group}/g" --follow-symlinks "${configfile}"
 
-        configtest_out=$(apache2ctl configtest)
+        configtest_out="$(apache2ctl-"${1}" configtest)"
         configtest_rc=$?
 
         if [ "$configtest_rc" = "0" ]; then
-            service apache2 force-reload >/dev/null
+            systemctl reload apache2@"${1}.service" >/dev/null
         else
-            echo $configtest_out >&2
+            printf '%s\n' "${configtest_out}" >&2
         fi
     else
         usage
@@ -1472,7 +1425,7 @@ op_version(){
 op_enable_vhost() {
     vhost_name=$1
 
-    if [ -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]; then
+    if [ -e "/etc/apache2-front/sites-enabled/${vhost_name}.conf" ] && systemctl --quiet is-enabled "apache2@${vhost_name}.service"; then
         echo "This vhost is already active... Exiting"
         return 1
     fi
@@ -1482,36 +1435,64 @@ op_enable_vhost() {
         return 1
     fi
 
-    a2ensite "${vhost_name}.conf"
-
-    echo "Validating apache2 configuration & reloading"
-
+    echo "Validating vhost instance configuration & enabling (and starting) the instance"
     set +e
-    apache2ctl configtest 2>/dev/null
-    rc=$?
+    apache2ctl-"${vhost_name}" configtest 2>/dev/null
+    instance_confcheck_rc=$?
     set -e
 
-    if [ $rc -ne 0 ]; then
-        # Config seems invalid, we roll back our change
-        echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
-        a2dissite "${vhost_name}.conf"
+    if [ "${instance_confcheck_rc}" -ne 0 ]; then
+        # Config seems invalid, abort.
+        echo "Apache instance configuration seems invalid for vhost ${vhost_name} -- aborting"
         return 1
-    else
-        systemctl reload apache2.service
     fi
+
+    # Enable + start at once
+    systemctl enable --now "apache2@${vhost_name}.service"
+
+    a2ensite-front --quiet "${vhost_name}.conf"
+
+    echo "Validating apache2 configuration & reloading"
+    set +e
+    apache2ctl-front configtest 2>/dev/null
+    front_confcheck_rc=$?
+    set -e
+
+    if [ "${front_confcheck_rc}" -ne 0 ]; then
+        # Config seems invalid, abort.
+        echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
+        a2dissite-front "${vhost_name}.conf"
+        return 1
+    fi
+
+    systemctl reload apache2@front.service
 }
 
 op_disable_vhost() {
     vhost_name=$1
 
-    if [ ! -e "/etc/apache2/sites-enabled/${vhost_name}.conf" ]; then
+    if ! [ -e "/etc/apache2-front/sites-enabled/${vhost_name}.conf" ] && ! systemctl --quiet is-enabled "apache2@${vhost_name}.service"; then
         echo "This vhost isn't active... Exiting"
         return 1
     fi
 
+    a2dissite-front "${vhost_name}.conf"
+
     echo "Validating apache2 configuration & reloading"
-    apache2ctl configtest 2>/dev/null
-    systemctl reload apache2.service
+    set +e
+    apache2ctl-front configtest 2>/dev/null
+    front_confcheck_rc=$?
+    set -e
+
+    if [ "${front_confcheck_rc}" -ne 0 ]; then
+        # Config seems invalid, we roll back our change
+        echo "Apache configuration seems invalid after enabling the vhost ${vhost_name} -- Rolling back our change and exiting"
+        a2ensite-front "${vhost_name}.conf"
+        return 1
+    fi
+
+    # Disable + stop at once
+    systemctl disable --quiet --now "apache2@${vhost_name}.service"
 }
 
 # Point d'entrée
