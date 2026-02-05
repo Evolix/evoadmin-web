@@ -62,7 +62,7 @@
             printf('<td>%s</td>', $vhost_info['owner']);
           }
           printf('<td>%s</td>',
-                  $vhost_info['server_name'], $vhost_info['server_name']);
+                  $vhost_info['server_name']);
 
           if ($conf['cluster']) {
               if (empty($vhost_info['bdd']))
@@ -85,9 +85,9 @@
                   printf('<td bgcolor="#696969"/>');
               else
                   printf('<td>%s</td>', $vhost_info['slave']);
-	  }
+      }
 
-          printf('<td>%s</td>', preg_replace('/,/','<br />',$vhost_info['server_alias']));
+          printf('<td>%s</td>', preg_replace('/,/','<br />', $vhost_info['server_alias']));
 
           if ($conf['quota']) {
             printf('<td>%s</td>', $vhost_info['size']);
@@ -111,7 +111,11 @@
                 } else {
                     printf('<a href="/webadmin/%s/itk/">ITK</a> - ', $vhost_info['owner']);
                 }
-                printf('<a href="/webadmin/%s/letsencrypt/">Let\'s Encrypt</a> - ', $vhost_info['owner']);
+                if ($vhost_info['is_enabled']) {
+                    printf('<a href="/webadmin/%s/certificates/">Certificats SSL/TLS</a> - ', $vhost_info['owner']);
+                } else {
+                    printf('Certificats SSL/TLS - ', $vhost_info['owner']);
+                }
                 printf('<a href="/webadmin/delete/%s">Supprimer</a>', $vhost_info['owner']);
               } else {
                 print '<span class="form-mandatory-ok">VirtualHost non standard</span>';

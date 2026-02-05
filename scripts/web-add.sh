@@ -172,9 +172,14 @@ manage-http-challenge-file [CREATE | DELETE]
     Create or delete a dummy file for the Let's Encrypt HTTP challenge
     The default directory is /var/lib/letsencrypt/.well-known/
 
-generate-csr LOGIN DOMAINS
+generate-csr [OPTIONS] LOGIN DOMAINS
 
     Generate the request for the Let's Encrypt certificate
+    WARNING: a new prirvate key is generated, and a self-signed certificate is issued
+             and set in Apache or Nginx configuration without reloading
+
+    -t|--test
+        Generate a CSR without generating a new private key, and without modifying Apache or Nginx configuration
 
 generate-ssl-certificate LOGIN [false]
 
@@ -1004,20 +1009,45 @@ arg_processing() {
 }
 
 op_makecsr() {
-    if [ $# -gt 1 ]; then
-        vhost="$1"
-        domains=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+          -t|--test)
+            TEST=1
+            shift # pass argument
+            ;;
+          -*|--*)
+            echo "Unknown option $1" >&2
+            usage
+            exit 1
+            ;;
+          *)
+            if [ -z "${vhost}" ]; then
+                vhost="$1"
+            else
+                domains="${domains:+${domains} }$1"
+            fi
+            shift # pass argument
+            ;;
+        esac
+    done
 
-        # remove the first argument to keep only the domains
-        shift 1
+    if [ -z "${vhost}" ]; then
+        echo "Please provide vhost" >&2
+        usage
+        exit 1
+    fi
 
-        for domain in "$@"; do
-            domains="${domains:+${domains} }${domain}"
-        done
+    if [ -z "${domains}" ]; then
+        echo "Please provide at least one domain" >&2
+        usage
+        exit 1
+    fi
 
-        # pipe the domains to make-csr because we don't have STDIN
+    if [ -n "${TEST}" ] && [ "${TEST}" -eq 1 ]; then
+        # Pipe the domains to make-csr because we don't have STDIN
+        echo "$domains" | TEST=1 make-csr "$vhost"
+    else
         echo "$domains" | make-csr "$vhost"
-    else usage
     fi
 }
 
@@ -1032,7 +1062,8 @@ op_generatesslcertificate() {
             fi
             evoacme "$vhost"
         else
-            DRY_RUN=1 evoacme "$vhost"
+            SSL_MINDAY=99 DRY_RUN=1 TEST=1 evoacme "$vhost"
+            #| awk '/Domain:/ {domain=$2}; /Detail:/ {print domain": "$0; domain=""}'
         fi
     else usage
     fi
