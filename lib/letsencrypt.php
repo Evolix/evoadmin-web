@@ -1,5 +1,6 @@
 <?php
-namespace lib;
+
+require "Net/DNS2.php";
 
 /**
  * LetsEncrypt
@@ -35,37 +36,114 @@ class LetsEncrypt
      * @param  string[] $domains
      * @return boolean
      */
-    public function makeCsr($vhost, $domains)
+    public function makeCsr($vhost, $domains, $test = True)
     {
         $domains = implode(' ', $domains);
-        $cmd = 'web-add.sh generate-csr ' . $vhost . ' ' . "$domains";
-
+        if ($test) {
+            $cmd = 'web-add.sh generate-csr --test ' . $vhost . ' ' . "$domains";
+        } else {
+            $cmd = 'web-add.sh generate-csr ' . $vhost . ' ' . "$domains";
+        }
         sudoexec($cmd, $data_output, $exec_return);
 
         if ($exec_return == 0) {
-            return true;
+            return True;
         }
 
-        return false;
+        print("<br/>" . $cmd . "<br/>");
+        print_r($data_output); print("<br/>");
+        return False;
     }
 
     /**
      * Generate a SSL certificate
      * @param  string  $vhost
-     * @param  boolean $test  generate in TEST mode or not
-     * @return boolean
+     * @param  boolean $test  generate in TEST mode (True) or not (False)
+     * @return list of arrays $failed_domains
      */
-    public function generateSSLCertificate($vhost, $test = true)
+    public function generateSSLCertificate($vhost, $test = True)
     {
         $cmd = 'web-add.sh generate-ssl-certificate ' . $vhost . ' ' . ($test ? "true" : "false");
 
-        sudoexec($cmd, $data_output, $exec_return);
+        sudoexec($cmd, $output, $exec_return);
 
-        if ($exec_return == 0) {
-            return true;
+        $failed = [];
+
+        # Parse Certbot output to get challenge failure reasons
+        if ($exec_return != 0) {
+
+            $current_domain = '';
+            $current_fail_type = '';
+            $current_detail = '';
+
+            $is_challenge_failed = False;
+            $is_evoacme_failed = False;
+            $is_rate_limited = False;
+            foreach ($output as $line) {
+
+                $line = trim($line);
+
+                if (str_starts_with($line, 'Some challenges have failed')) {
+                    $is_challenge_failed = True;
+                    continue;
+                }
+
+                if (str_starts_with($line, 'evoacme: Certbot has exited with a non-zero exit code')) {
+                    $is_evoacme_failed = True;
+                    continue;
+                }
+
+                # Rate-limiting make certbot version < 2.3 fail with an AttributeError
+                if (str_contains($line, 'AttributeError:') or str_contains($line, 'too many')) {
+                    $is_rate_limited = True;
+                    continue;
+                }
+
+                if (str_starts_with($line, 'Domain: ')) {
+                    $current_domain = explode(' ', $line)[1];
+                    continue;
+                }
+
+                if (str_starts_with($line, 'Type: ')) {
+                    $split = explode(' ', $line);
+                    $current_fail_type = implode(' ', array_slice($split, 1));
+                    continue;
+                }
+
+                if (str_starts_with($line, 'Detail: ')) {
+                    $split = explode(' ', $line);
+                    $current_detail = implode(' ', array_slice($split, 1));
+
+                    $failed[$current_domain] = array('type' => $current_fail_type, 'detail' => $current_detail);
+
+                    $current_domain = '';
+                    $current_fail_type = '';
+                    $current_detail = '';
+                    continue;
+                }
+            }
+        }
+        if ($is_challenge_failed) {
+            return $failed;
+        }
+        else if ($is_rate_limited) {
+            # If Evoacme failed but there was no challenge error
+            if ($test) {
+                throw new Exception('Le test des domaines a échoué car la limite de Let\'s Encrypt a été atteinte. Merci de réessayer plus tard.');
+            } else {
+                throw new Exception('La génération de certificat a échoué car la limite de Let\'s Encrypt a été atteinte. Merci de réessayer plus tard.');
+            }
+        } else if ($is_evoacme_failed) {
+            # If Evoacme failed but there was no challenge error, neither rate limit
+            if ($test) {
+                throw new Exception('Le test des domaines a échoué pour une raison inconnue. Merci de contacter un administrateur.');
+            } else {
+                throw new Exception('La génération de certificat a échoué pour une raison inconnue. Merci de contacter un administrateur.');
+            }
+        } else {
+            return [];
         }
 
-        return false;
     }
 
     /**
@@ -83,13 +161,13 @@ class LetsEncrypt
         // setting cURL options
         curl_setopt($curl_handler, CURLOPT_URL, $domain . self::HTTP_CHALLENGE_URL);
         curl_setopt($curl_handler, CURLOPT_TIMEOUT, 3);
-        curl_setopt($curl_handler, CURLOPT_HEADER, true);
-        curl_setopt($curl_handler, CURLOPT_NOBODY, true);
-        curl_setopt($curl_handler, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl_handler, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($curl_handler, CURLOPT_HEADER, True);
+        curl_setopt($curl_handler, CURLOPT_NOBODY, True);
+        curl_setopt($curl_handler, CURLOPT_SSL_VERIFYPEER, False);
+        curl_setopt($curl_handler, CURLOPT_FOLLOWLOCATION, True);
         curl_setopt($curl_handler, CURLOPT_MAXREDIRS, 3);
         curl_setopt($curl_handler, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
-        curl_setopt($curl_handler, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($curl_handler, CURLOPT_RETURNTRANSFER, True);
 
         curl_exec($curl_handler);
 
@@ -102,10 +180,10 @@ class LetsEncrypt
             $returned_http_url = str_replace(self::HTTP_CHALLENGE_URL, '', $returned_http_url);
             $returned_http_url = preg_replace('#^https?://#', '', $returned_http_url);
 
-            return true;
+            return True;
         }
 
-        return false;
+        return False;
     }
 
     /**
@@ -115,7 +193,7 @@ class LetsEncrypt
      */
     public function checkDNSValidity($domains)
     {
-        $valid_dns_domains = array();
+        $valid_dns_domains = [];
         $serverIP = exec("ip route get 1 | sed -n 's/^.*src \([0-9.]*\) .*$/\\1/p'");
 
         foreach ($domains as $domain) {
@@ -144,43 +222,167 @@ class LetsEncrypt
         $output_evoacme = shell_exec("which evoacme");
 
         if (empty($output_make_csr) || empty($output_evoacme)) {
-            return false;
+            return False;
         }
 
-        return true;
+        return True;
+    }
+
+    /**
+     * Return the root domain of $domain
+     * @param string $domain
+     * @return $root_domain
+     */
+    public function getRootDomain($domain)
+    {
+        $splitted_domain = explode('.', $domain);
+        $root_domain = implode('.', array_slice($splitted_domain, -2));
+        return $root_domain;
+    }
+
+    /**
+     * Return the autoritative DNS IPs of domain
+     * @param string $domain
+     * @return array|False the NS IPs, or False
+     */
+    public function getDomainAuthoritativeDNS($domain)
+    {
+        $root_domain = $this->getRootDomain($domain);
+
+        $soa_records = dns_get_record($root_domain, DNS_SOA);
+        if ($soa_records == False) {
+            return False;
+        }
+        $auth_DNS_ips = [];
+        foreach ($soa_records as $soa_record) {
+            if (isset($soa_record["mname"])) {
+                $primary_DNS = $soa_record["mname"];
+                $ns_a_records = dns_get_record($primary_DNS, DNS_A);
+                foreach ($ns_a_records as $ns_a_record) {
+                    if (isset($ns_a_record["ip"])) {
+                        $auth_DNS_ips[] = $ns_a_record["ip"];
+                    }
+                }
+            }
+        }
+        return $auth_DNS_ips;
+    }
+
+    /**
+     * Return the A records from the autoritative DNS.
+     * Requires package php-net-dns2
+     * @param string $domain
+     * @return array|False the IPs, or False
+     */
+    public function getIPsFromAuthoritativeDNS($domain)
+    {
+        $auth_DNS_ips = $this->getDomainAuthoritativeDNS($domain);
+        if (is_bool($auth_DNS_ips)) {
+            return False;
+        }
+
+        try {
+            $resolver = new Net_DNS2_Resolver(['nameservers' => $auth_DNS_ips, 'timeout' => 2]);
+            $a_records = $resolver->query($domain, 'A');
+            $aaaa_records = $resolver->query($domain, 'AAAA');
+            $answers = array_merge($a_records->answer, $aaaa_records->answer);
+        } catch (Net_DNS2_Exception $e) {
+            return False;
+        }
+
+        $IPs = [];
+        foreach ($answers as $record) {
+            if ($record->type == 'A' || $record->type == 'AAAA') {
+                $IP = $record->address;
+                if (! $this->isIPInArray($IP, $IPs)) {
+                    $IPs[] = strval($record->address);
+                }
+            } else if ($record->type == 'CNAME') {
+                $recursive_IPs = $this->getIPsFromAuthoritativeDNS($record->cname);
+                if (! is_bool($recursive_IPs)) {
+                    foreach ($recursive_IPs as $IP) {
+                        if (! $this->isIPInArray($IP, $IPs)) {
+                            $IPs[] = $IP;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $IPs;
+    }
+
+    /**
+     * Compare IPs in their 32bit or 128bit binary format.
+     */
+    public function areIPsEqual($IP1, $IP2)
+    {
+        return inet_pton($IP1) == inet_pton($IP2);
+    }
+
+    /**
+     *
+     */
+    public function isIPInArray($IP, $IPArray)
+    {
+        foreach ($IPArray as $anIP) {
+            if ($this->areIPsEqual($anIP, $IP)) {
+                return True;
+            }
+        }
+        return False;
     }
 
     /**
      * Retrieve the SSL certificate from the URL
-     * @param  string $domain
-     * @return array|false $cont list of parameters of the certificate, or false
+     * @param string $domain
+     * @return array|False the certificate, or False
      */
     public function getCertificate($domain)
     {
-        $stream = stream_context_create(array("ssl" => array("capture_peer_cert" => true)));
-        $read = stream_socket_client("ssl://" . $domain . ":443", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $stream);
-        if ($read === false) {
-            return false;
+        $stream = stream_context_create([
+            "ssl" => [
+                "capture_peer_cert" => True,
+                "peer_name" => $domain,
+                "verify_peer" => False,
+            ]
+        ]);
+        #$read = stream_socket_client("ssl://" . $domain . ":443", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $stream);
+        $read = stream_socket_client("ssl://127.0.0.1:443", $errno, $errstr, 10, STREAM_CLIENT_CONNECT, $stream);
+        if ($read === False) {
+            return False;
         }
-        $cont = stream_context_get_params($read);
-        
-        return $cont;
+        $stream_params = stream_context_get_params($read);
+
+        return $stream_params["options"]["ssl"]["peer_certificate"];
     }
 
     /**
-     * Parse the certificat arguments and extract data
-     * @param  array $certificateParameters certificat arguments
+     * Return the certificate fingerprint / hash
+     * @param  array $certificate certificate argument
+     * @return string $fingerprint
+     */
+    public function getCertificateFingerprint($certificate)
+    {
+        return openssl_x509_fingerprint($certificate);
+    }
+
+    /**
+     * Parse the certificate argument and extract data
+     * @param  array $certificate certificate argument
      * @return array $infosCert contains only the issuer, domains and expiration date
      */
-    public function parseCertificate($certificateParameters)
+    public function parseCertificate($certificate)
     {
-        $infosCert = array();
-        $parsedParameters = openssl_x509_parse($certificateParameters["options"]["ssl"]["peer_certificate"]);
+        $infosCert = [];
+        $parsedParameters = openssl_x509_parse($certificate);
         $issuer = $parsedParameters["issuer"]["O"];
         $includedDomains = $parsedParameters["extensions"]["subjectAltName"];
         $validUntil = $parsedParameters["validTo_time_t"];
 
         $infosCert["issuer"] = $issuer;
+        $infosCert["isLetsEncrypt"] = $issuer == "Let's Encrypt";
+        $infosCert["isSelfSigned"] = $parsedParameters["issuer"] == $parsedParameters["subject"];
         $infosCert["includedDomains"] = $includedDomains;
         $infosCert["validUntil"] = $validUntil;
 
@@ -192,10 +394,10 @@ class LetsEncrypt
      * @param  string  $issuer name of the certificat issuer
      * @return boolean
      */
-    public function isCertIssuedByLetsEncrypt($issuer)
-    {
-        return ($issuer === "Let's Encrypt") ? true : false;
-    }
+    #public function isCertIssuedByLetsEncrypt($issuer)
+    #{
+    #    return ($issuer === "Let's Encrypt") ? True : False;
+    #}
 
     /**
      * Check wether the certificat is valid or not
@@ -206,7 +408,7 @@ class LetsEncrypt
     {
         $currentDate = time();
 
-        return ($timestampCertValidUntil > $currentDate) ? true : false;
+        return ($timestampCertValidUntil > $currentDate) ? True : False;
     }
 
     /**
@@ -220,6 +422,35 @@ class LetsEncrypt
         $san = preg_replace('/DNS:| DNS:/', '', $san);
         $sanArray = explode(',', $san);
 
-        return (in_array($domainRequested, $sanArray)) ? true : false;
+        return (in_array($domainRequested, $sanArray)) ? True : False;
     }
+
+    /**
+     * Return an array containing the domains in the SAN.
+     * @param  array $certificateInfos certificate infos as returned by parseCertificate()
+     * @return array string[] $domains
+     */
+    public function getCertificateDomains($certificateInfos)
+    {
+        $cleaned_san = preg_replace('/DNS:| DNS:/', '', $certificateInfos['includedDomains']);
+        return explode(',', $cleaned_san);
+    }
+
+    /**
+     * Return an array containing the IPs v4 and v6 of the host.
+     * @return array string[] $ips
+     */
+    public function getHostIPs() {
+        $ifaces = net_get_interfaces();
+        $ips = [];
+        foreach ($ifaces as $iface => $iface_attrs) {
+            foreach ($iface_attrs['unicast'] as $attr) {
+                if ($attr['family'] == AF_INET || $attr['family'] == AF_INET6) {
+                    $ips[] = $attr['address'];
+                }
+            }
+        }
+        return $ips;
+    }
+
 }
