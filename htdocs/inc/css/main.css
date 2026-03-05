@@ -59,7 +59,7 @@ a {
 table#tab-list {
     border-collapse: collapse;
     margin: auto;
-    width: 70%;
+    width: auto;
 }
 
 table#tab-list tr:hover {
@@ -77,10 +77,15 @@ table#tab-list th {
     border: 1px black solid;
     background-color: blue;
     color: white;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 table#tab-list td {
     border: 1px black solid;
+    margin: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 div#disclaimer {
@@ -172,3 +177,61 @@ form#form-add legend {
 form#form-add p {
     text-align: left;
 }
+
+/* Tooltip container */
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 400px;
+    background-color: grey;
+    color: #ffffff;
+    text-align: center;
+    padding: 5px 0;
+    border-radius: 4px;
+    position: absolute;
+    z-index: 1; /* Ensure tooltip is displayed above content */
+}
+
+/* Show the tooltip text on hover */
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+#loading-animation-test {
+    display: none;
+    width: 10px; /* Radius of the spinning circle */
+    padding: 4px; /* Thickness of the spinning circle */
+    background: #00B000; /* Color of the animation */
+    aspect-ratio: 1;
+    border-radius: 50%;
+    margin-left:5px;
+    --_m: conic-gradient(#0000 10%,#000), linear-gradient(#000 0 0) content-box;
+    -webkit-mask: var(--_m);
+    mask: var(--_m);
+    -webkit-mask-composite: source-out;
+    mask-composite: subtract;
+    animation: loading-animation-test 1s infinite linear;
+}
+@keyframes loading-animation-test { to{transform: rotate(1turn)} }
+
+#loading-animation-generate {
+    display: none;
+    width: 10px; /* Radius of the spinning circle */
+    padding: 4px; /* Thickness of the spinning circle */
+    background: #00B000; /* Color of the animation */
+    aspect-ratio: 1;
+    border-radius: 50%;
+    margin-left:5px;
+    --_m: conic-gradient(#0000 10%,#000), linear-gradient(#000 0 0) content-box;
+    -webkit-mask: var(--_m);
+    mask: var(--_m);
+    -webkit-mask-composite: source-out;
+    mask-composite: subtract;
+    animation: loading-animation-generate 1s infinite linear;
+}
+@keyframes loading-animation-generate { to{transform: rotate(1turn)} }
