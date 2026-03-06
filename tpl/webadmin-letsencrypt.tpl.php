@@ -47,7 +47,7 @@ if (! empty($errorMessage)) {
         </thead>
         <tbody>
             <?php
-            $is_dns_ok = True; # for later warning
+            $is_dns_ok = True;
             foreach ($domains_details as $domain => $domain_details) {
                 $domain_details = $domains_details[$domain];
                 if (! $domain_details['is_dns_ok']) {
@@ -97,7 +97,7 @@ if (! empty($errorMessage)) {
     </table>
 
     <?php
-    if (($cert_is_letsencrypt || $cert_is_self_signed) && (!$is_dns_ok || !$are_covered_domains_not_in_vhost)) {
+    if (($cert_is_letsencrypt || $cert_is_self_signed) && (!$is_dns_ok || $are_covered_domains_not_in_vhost)) {
         print('<p><b>Attention :</b> Le renouvellement automatique de votre certificat peut échouer,<br/>
         si les domaines qu\'il contient ne pointent <b>plus</b> sur le serveur (suppression domaine, load blalancer, CDN…)<br/>
         ou ne redirigent pas les requêtes de Let\'s Encrypt vers lui.<br/>');
