@@ -21,6 +21,22 @@ The **patch** part changes is incremented if multiple releases happen the same m
 ### Security
 
 
+## [26.03]
+
+### New
+
+* New certificate management page for Let's Encrypt certificates.
+    * The user must run a test to check which domains validate the challenge.
+    * Then, he can generate a new certificate containing only the valid domains.
+    * The domains that cannot be integrated into the certificate have a tooltip containing Certbot error message.
+    * Hints are given when the domain A or AAAA records do not lead to the server's IP. The DNS queries are made to the root DNS, like Let's Encrypt do, to avoid delays caused by TTL.
+    * IPv6 support.
+
+## Changed
+
+* The old Let's Encrypt page no longer exists and is replaced by the new certificate management page.
+
+
 ## [25.08]
 
 ### Added
