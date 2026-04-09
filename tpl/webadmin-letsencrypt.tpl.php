@@ -33,7 +33,7 @@ if (! empty($errorMessage)) {
             ?>
         </tbody>
     </table>
-    <h3>Domaines</h3>
+    <h3>Domaines dans le vhost ou dans le certificat</h3>
     <table id="tab-list">
         <thead>
             <tr>
