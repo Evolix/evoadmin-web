@@ -135,6 +135,8 @@ Il est nécessaire d'activer le mod proxy pour apache2 si ce n'a pas déjà ét�
 # systemctl restart apache2.service
 ~~~
 
+Dans le cas du apache-multi, le mod `remoteip` doit aussi être activé dans l'instance apache du vhost.
+
 Si vous rencontrez l'erreur "File not found" avec les fichiers php, bien vérifier que le rootfs des conteneurs est en 755 :
 
 ~~~

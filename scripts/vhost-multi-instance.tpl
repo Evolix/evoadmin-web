@@ -1,8 +1,10 @@
 <VirtualHost 127.0.0.80:UID>
+    ServerName DEFAULT
 
-    # FQDN principal
-    ServerName SERVERNAME
-    #ServerAlias SERVERNAME
+   <IfModule remoteip_module>
+        RemoteIPHeader X-Forwarded-For
+        RemoteIPTrustedProxy 127.0.0.1
+   </IfModule>
 
     # Repertoire principal
     DocumentRoot HOME_DIR/XXX/www/

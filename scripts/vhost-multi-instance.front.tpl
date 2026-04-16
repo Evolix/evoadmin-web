@@ -11,6 +11,8 @@
         SecRuleEngine Off
     </IfModule>
 
+    ErrorLog /var/log/apache2/error.log
+
     # REWRITE
     UseCanonicalName On
     RewriteEngine On
