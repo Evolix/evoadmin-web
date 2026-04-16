@@ -11,6 +11,7 @@
         SecRuleEngine Off
     </IfModule>
 
+    CustomLog /var/log/apache2/access.log vhost_combined
     ErrorLog /var/log/apache2/error.log
 
     # REWRITE
