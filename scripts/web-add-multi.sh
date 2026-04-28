@@ -345,14 +345,6 @@ create_www_account() {
     gid=$(id -g "$in_login")
     www_uid=$(id -u www-"$in_login")
 
-    # Create users inside all containers
-    for php_version in "${PHP_VERSIONS[@]}"; do
-        lxc-attach -n php"${php_version}" -- /usr/sbin/addgroup "$in_login" --gid "$gid" --force-badname >/dev/null
-        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --gecos "User $in_login" --disabled-password "$in_login" --shell /bin/bash --uid "$uid" --gid "$gid" --force-badname --home "$HOME_DIR_USER" >/dev/null
-        lxc-attach -n php"${php_version}" -- [ -z "$in_sshkey" ] && echo "$in_login:$in_passwd" | chpasswd
-        lxc-attach -n php"${php_version}" -- /usr/sbin/adduser --disabled-password --home "$HOME_DIR_USER"/www --no-create-home --shell /bin/false --gecos "WWW $in_login" www-"$in_login" --uid "$www_uid" --ingroup "$in_login" --force-badname >/dev/null
-    done
-
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i "s/^AllowUsers .*/& $in_login/" /etc/ssh/sshd_config
     elif getent group "${SSH_GROUP}" 1>/dev/null 2>&1; then
@@ -405,31 +397,31 @@ create_www_account() {
     ############################################################################
 
     # Create FPM pool on all containers.
-    for php_version in "${PHP_VERSIONS[@]}"; do
-        if [ "${php_version:0:1}" = "5" ]; then
-            pool_path="/etc/php5/fpm/pool.d/"
-        else
-            php_dot=${php_version:0:1}.${php_version:1:1}
-            pool_path="/etc/php/${php_dot}/fpm/pool.d/"
-        fi
-        phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
-        cat <<EOT >/var/lib/lxc/php"${php_version}"/rootfs/${pool_path}/"${in_login}".conf
+    cat << EOT >/etc/php/evolinux-common/fpm/pool.d/"${in_login}".conf
 [${in_login}]
 user = www-${in_login}
 group = ${in_login}
 
-listen = ${phpfpm_socket_path}
 listen.owner = ${in_login}
 listen.group = ${in_login}
 
 pm = ondemand
-pm.status_path = /evolinux_fpm_status-$(apg -Mncl -n1 -m32)
 pm.max_children = 10
 pm.process_idle_timeout = 10s
 
 php_admin_value[error_log] = /home/${in_login}/log/php.log
 php_admin_value[sendmail_path] = "/usr/sbin/sendmail -t -i -f www-${in_login}@${HOST}"
 php_admin_value[open_basedir] = "/usr/share/php:/home/${in_login}:/tmp"
+EOT
+
+    for php_version in "${PHP_VERSIONS[@]}"; do
+        php_dot=${php_version:0:1}.${php_version:1:1}
+        pool_path="/etc/php/evolinux-${php_dot}/fpm/pool.d/"
+        phpfpm_socket_path="/home/${in_login}/php-fpm${php_version}.sock"
+        cat << EOT >"${pool_path}"/"${in_login}".conf
+[${in_login}]
+listen = ${phpfpm_socket_path}
+pm.status_path = /evolinux_fpm_status-$(apg -Mncl -n1 -m32)
 EOT
         step_ok "Création du pool FPM ${php_version}"
     done
@@ -567,16 +559,9 @@ EOT
     systemctl reload apache2@front >/dev/null
 
     for php_version in "${PHP_VERSIONS[@]}"; do
-        if [ "${php_version:0:1}" = "5" ]; then
-            initscript_path="/etc/init.d/php5-fpm"
-            binary="php5-fpm"
-        else
-            php_dot=${php_version:0:1}.${php_version:1:1}
-            initscript_path="/etc/init.d/php${php_dot}-fpm"
-            binary="php-fpm${php_dot}"
-        fi
-        lxc-attach -n php"${php_version}" -- $binary --test >/dev/null
-        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        php_dot=${php_version:0:1}.${php_version:1:1}
+        podman exec php-fpm"${php_dot}" php-fpm"${php_dot}" -t
+        systemctl restart php-fpm"${php_dot}"
         step_ok "Rechargement de php-fpm dans php${php_version}"
     done
 
@@ -683,26 +668,25 @@ op_del() {
     if test -e "/etc/apache2-front/sites-enabled/${login}.conf"; then
         a2dissite-front -m "${login}"
     fi
-    rm -f "/etc/apache2-front/sites-enabled/${login}.conf"
+    rm -f "/etc/apache2-front/sites-available/${login}.conf"
 
     apache2ctl-front configtest
 
     systemctl disable --now apache2@"${login}".service
-    mv "/etc/apache2-${login}" "/etc/apache2-${login}"."$(date '+%Y%m%d-%H%M%S')".bak
+    if test -e  "/etc/apache2-${login}"; then
+        mv "/etc/apache2-${login}" "/etc/apache2-${login}"."$(date '+%Y%m%d-%H%M%S')".bak
+    fi
 
+    rm -f /usr/local/sbin/a2{en,dis}{mod,site,conf}-"${login}" /usr/local/sbin/apache2ctl-"${login}"
+    rm -rf /var/log/apache2-"${login}"
+    rm -f /etc/logrotate.d/apache2-"${login}" /etc/default/apache-htcacheclean-"${login}"
+
+    rm -f /etc/php/evolinux-common/fpm/pool.d/"${login}".conf
     for php_version in "${PHP_VERSIONS[@]}"; do
-        if [ "${php_version:0:1}" = "5" ]; then
-            phpfpm_dir="/etc/php5/fpm/pool.d/"
-            initscript_path="/etc/init.d/php5-fpm"
-        else
-            php_dot=${php_version:0:1}.${php_version:1:1}
-            phpfpm_dir="/etc/php/${php_dot}/fpm/pool.d/"
-            initscript_path="/etc/init.d/php${php_dot}-fpm"
-        fi
-        rm -f /var/lib/lxc/php"${php_version}"/rootfs/${phpfpm_dir}/"${login}".conf
-        lxc-attach -n php"${php_version}" -- $initscript_path restart >/dev/null
+        php_dot=${php_version:0:1}.${php_version:1:1}
+        rm -f /etc/php/evolinux-"${php_dot}"/fpm/pool.d/"${login}".conf
+        systemctl reload php-fpm"${php_dot}"
     done
-
 
     rm -f /etc/awstats/awstats."$login.conf"
     sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
@@ -710,15 +694,6 @@ op_del() {
     if id www-"$login" &> /dev/null; then
         userdel -f www-"$login"
     fi
-
-    for php_version in "${PHP_VERSIONS[@]}"; do
-        if lxc-attach -n php"${php_version}" -- getent passwd www-"$login" &> /dev/null; then
-            lxc-attach -n php"${php_version}" -- userdel -f www-"$login"
-        fi
-        if lxc-attach -n php"${php_version}" -- getent passwd "$login" &> /dev/null; then
-            lxc-attach -n php"${php_version}" -- userdel -f "$login"
-        fi
-    done
 
     if getent passwd "$login" &> /dev/null; then
         userdel -f "$login"
@@ -730,7 +705,7 @@ op_del() {
     if grep --quiet --extended-regexp --ignore-case '^AllowUsers' /etc/ssh/sshd_config; then
         sed -i '/^AllowUsers/s/ '"${login}"'\( \|$\)/\1/' /etc/ssh/sshd_config
     fi
-    /etc/init.d/ssh reload
+    systemctl reload sshd
 
     if [ -d "$HOME_DIR/$login" ]; then
         mv -i $HOME_DIR/"$login" $HOME_DIR/"$login"."$(date '+%Y%m%d-%H%M%S')".bak
@@ -938,14 +913,14 @@ op_listvhost() {
     fi
 
     for configfile in $configlist; do
-        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-default|default-ssl|evoadmin)\\.conf$"; then
+        if [ -r "$configfile" ] && echo "$configfile" |grep -qvE "/(000-.*efault|default-ssl|evoadmin)\\.conf$"; then
             servername="$(awk '/^[[:space:]]*ServerName (.*)/ { print $2 }' "$configfile" | head -n 1)"
             serveraliases="$(perl -ne 'print "$1 " if /^[[:space:]]*ServerAlias (.*)/' "$configfile" | head -n 1)"
             serveraliases="$(echo $serveraliases | sed 's/ \+/,/g')"
 
             basename="$(basename "${configfile}")"
             vhost_name="${basename%.conf}"
-            userid="$(awk '/^[[:space:]]*export APACHE_RUN_USER=.*/ { print $2 }' /etc/apache2-"${vhost_name}"/envvars | cut -d '=' -f 2 | head -n 1)"
+            userid="$(awk '/^[[:space:]]*export APACHE_RUN_GROUP=.*/ { print $2 }' /etc/apache2-"${vhost_name}"/envvars | cut -d '=' -f 2 | head -n 1)"
 
             if [ -x /usr/bin/quota ]; then
                 size=$(quota --no-wrap --human-readable --show-mntpoint --hide-device "$userid" |grep /home |awk '{print $2}')
@@ -955,7 +930,7 @@ op_listvhost() {
 
             phpversion=$(perl -lne 'print $1 if (m!^\s+SetHandler proxy:unix:/home/.*/php-fpm(\d{2})\.sock!)' /etc/apache2-"${vhost_name}"/sites-available/"${vhost_name}".conf | head -n 1)
 
-            if [ -e /etc/apache2-front/sites-enabled/"${userid}".conf ]; then
+            if [ -e /etc/apache2-front/sites-enabled/"${vhost_name}".conf ]; then
                 is_enabled=1
             else
                 is_enabled=0
@@ -983,24 +958,6 @@ op_aliasadd() {
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
 
-        backend_vhost_file="/etc/apache2-${vhost}/sites-available/${vhost}.conf"
-
-        if [ -f "${backend_vhost_file}" ]; then
-            sed -i "/ServerName .*/a \\\tServerAlias $alias" "${backend_vhost_file}" --follow-symlinks
-        else
-            echo "Backend VHost file \`${backend_vhost_file}' not found'" >&2
-            return 1
-        fi
-
-        backend_configtest_out=$(apache2ctl-"${vhost}" configtest)
-        backend_configtest_rc=$?
-
-        if [ "${backend_configtest_rc}" = "0" ]; then
-            systemctl reload apache2@"${vhost}".service
-        else
-            printf '%s\n' "${backend_configtest_out}" >&2
-        fi
-
         if [ -f "${vhost_file}" ]; then
             sed -i "/ServerName .*/a \\\tServerAlias $alias" "${vhost_file}" --follow-symlinks
         else
@@ -1026,24 +983,6 @@ op_aliasdel() {
         vhost="${1}.conf"
         alias=$2
         vhost_file="${VHOST_PATH}/${vhost}"
-
-        backend_vhost_file="/etc/apache2-${vhost}/sites-available/${vhost}.conf"
-
-        if [ -f "${backend_vhost_file}" ]; then
-            sed -i -e "/ServerAlias $alias/d" "${backend_vhost_file}" --follow-symlinks
-        else
-            echo "Backend VHost file \`${backend_vhost_file}' not found'" >&2
-            return 1
-        fi
-
-        backend_configtest_out=$(apache2ctl-"${vhost}" configtest)
-        backend_configtest_rc=$?
-
-        if [ "${backend_configtest_rc}" = "0" ]; then
-            systemctl reload apache2@"${vhost}".service
-        else
-            printf '%s\n' "${backend_configtest_out}" >&2
-        fi
 
         if [ -f "${vhost_file}" ]; then
             sed -i -e "/ServerAlias $alias/d" "${vhost_file}" --follow-symlinks
@@ -1072,22 +1011,6 @@ op_servernameupdate() {
         old_servername=$3
         vhost_file="${VHOST_PATH}/${vhost}"
 
-        backend_vhost_file="/etc/apache2-${vhost}/sites-available/${vhost}.conf"
-
-        if [ -f "${backend_vhost_file}" ]; then
-            sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${backend_vhost_file}" --follow-symlinks
-            sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${backend_vhost_file}" --follow-symlinks
-        fi
-
-        backend_configtest_out=$("apache2ctl-${vhost}" configtest)
-        backend_configtest_rc=$?
-
-        if [ "${backend_configtest_rc}" = "0" ]; then
-            systemctl reload apache2@"${vhost}"
-        else
-            printf '%s\n' "${backend_configtest_out}" >&2
-        fi
-
         if [ -f "${vhost_file}" ]; then
             sed -i "/^ *ServerName/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
             sed -i "/^ *RewriteCond/ s/$old_servername/$servername/g" "${vhost_file}" --follow-symlinks
@@ -1097,7 +1020,7 @@ op_servernameupdate() {
         configtest_rc=$?
 
         if [ "$configtest_rc" = "0" ]; then
-            systemctl reload apache@front
+            systemctl reload apache2@front
         else
             printf '%s\n' "${configtest_out}" >&2
         fi
