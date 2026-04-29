@@ -28,7 +28,7 @@
         AuthType Basic
         Require valid-user
 
-        #Include /etc/apache2/ipaddr_whitelist.conf
+        #Include /etc/apache2-XXX/ipaddr_whitelist.conf
     </Directory>
 
     # LOG

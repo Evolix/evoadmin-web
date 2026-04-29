@@ -5,14 +5,14 @@
     # SSL
     # Apache < 2.4.30 (Jessie, Stretch) va générer une erreur si le fichier
     # désigné sans regex n'existe pas. On contourne ça avec [f] à place de f
-    IncludeOptional /etc/apache2/ssl/XXX.con[f]
+    IncludeOptional /etc/apache2-front/ssl/XXX.con[f]
 
     <IfModule mod_security2.c>
         SecRuleEngine Off
     </IfModule>
 
-    CustomLog /var/log/apache2/access.log vhost_combined
-    ErrorLog /var/log/apache2/error.log
+    CustomLog /var/log/apache2-front/access.log vhost_combined
+    ErrorLog /var/log/apache2-front/error.log
 
     # REWRITE
     UseCanonicalName On
