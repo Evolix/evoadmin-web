@@ -905,6 +905,15 @@ op_generatesslcertificate() {
                 rm /etc/letsencrypt/$vhost/live
             fi
             evoacme "$vhost"
+
+            configtest_out=$(apache2ctl-front configtest)
+            configtest_rc=$?
+
+            if [ "${configtest_rc}" = "0" ]; then
+                systemctl reload apache2@front.service
+            else
+                printf '%s\n' "${configtest_out}" >&2
+                    fi
         else
             SSL_MINDAY=99 DRY_RUN=1 TEST=1 evoacme "$vhost"
             #| awk '/Domain:/ {domain=$2}; /Detail:/ {print domain": "$0; domain=""}'
