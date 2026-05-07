@@ -577,7 +577,7 @@ EOT
     ############################################################################
 
     DATE=$(date +"%Y-%m-%d")
-    echo "$DATE [web-add.sh] Ajout $in_login" >> /var/log/evolix.log
+    echo "$DATE [web-add-multi.sh] Ajout $in_login" >> /var/log/evolix.log
 }
 
 op_del() {
@@ -755,7 +755,7 @@ op_setphpversion() {
     systemctl reload apache2@"${login}".service
 
     DATE=$(date +"%Y-%m-%d")
-    echo "$DATE [web-add.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
+    echo "$DATE [web-add-multi.sh] PHP version set to $phpversion for $login" >> /var/log/evolix.log
 }
 
 op_setquota() {
@@ -773,7 +773,7 @@ op_setquota() {
     setquota --remote --user "$login" $quota_soft $quota_hard 0 0 /home
 
     DATE=$(date +"%Y-%m-%d")
-    echo "$DATE [web-add.sh] quota set to $quota for $login" >> /var/log/evolix.log
+    echo "$DATE [web-add-multi.sh] quota set to $quota for $login" >> /var/log/evolix.log
 }
 
 arg_processing() {
@@ -1382,7 +1382,7 @@ op_list_php_versions(){
     echo "${PHP_VERSIONS[*]}"
 }
 
-# Return web-add.sh version
+# Return web-add-multi.sh version
 op_version(){
     echo "$VERSION"
 }
