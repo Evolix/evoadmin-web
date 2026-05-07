@@ -565,8 +565,10 @@ EOT
 
     for php_version in "${PHP_VERSIONS[@]}"; do
         php_dot=${php_version:0:1}.${php_version:1:1}
-        podman exec php-fpm"${php_dot}" php-fpm"${php_dot}" -t
+        # FIXME we need to restart the container *before* testing, so that /etc/passwd 
+        # and friends are actually in sync with the host's
         systemctl restart php-fpm"${php_dot}"
+        podman exec php-fpm"${php_dot}" php-fpm"${php_dot}" -t
         step_ok "Rechargement de php-fpm dans php${php_version}"
     done
 
