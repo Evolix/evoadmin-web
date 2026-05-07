@@ -437,7 +437,7 @@ EOT
     # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
     mkdir -p /etc/apache2/ssl
 
-    sh "${SCRIPTS_PATH}"/setup-instance-apache.sh "${in_login}"
+    /usr/local/sbin/apache2-setup-instance ${in_login}"
     sed -i -e "s/APACHE_RUN_USER=www-data/APACHE_RUN_USER=www-${in_login}/g ; s/APACHE_RUN_GROUP=www-data/APACHE_RUN_GROUP=${in_login}/g ;" /etc/apache2-"${in_login}"/envvars
 
     vhostfile="/etc/apache2-${in_login}/sites-available/${in_login}.conf"
@@ -690,7 +690,7 @@ op_del() {
     for php_version in "${PHP_VERSIONS[@]}"; do
         php_dot=${php_version:0:1}.${php_version:1:1}
         rm -f /etc/php/evolinux-"${php_dot}"/fpm/pool.d/"${login}".conf
-        systemctl reload php-fpm"${php_dot}"
+        systemctl reload-or-restart php-fpm"${php_dot}"
     done
 
     rm -f /etc/awstats/awstats."$login.conf"
@@ -722,8 +722,8 @@ op_del() {
         rm -r /etc/letsencrypt/"$login"
     fi
 
-    if [ -f /etc/apache2/ssl/"$login".conf ]; then
-        rm /etc/apache2/ssl/"$login".conf
+    if [ -f /etc/apache2-front/ssl/"$login".conf ]; then
+        rm /etc/apache2-front/ssl/"$login".conf
     fi
 
     set +x
