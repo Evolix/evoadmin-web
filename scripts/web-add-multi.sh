@@ -355,7 +355,7 @@ create_www_account() {
     elif getent group "${SSH_GROUP}" 1>/dev/null 2>&1; then
         usermod --append --groups "${SSH_GROUP}" "$in_login"
     fi
-    /etc/init.d/ssh reload
+    systemctl reload sshd
 
     step_ok "Création des utilisateurs"
 
