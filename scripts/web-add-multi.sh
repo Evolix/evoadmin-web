@@ -314,8 +314,8 @@ create_www_account() {
         --disabled-password \
         "$in_login" \
         --shell /bin/bash \
-        --firstuid 8000 \
-        --firstgid 8000 \
+        --firstuid 4000 \
+        --firstgid 4000 \
         ${in_uid:+'--uid' "$in_uid"} \
         ${in_gid:+'--gid' "$in_gid"} \
         --force-badname \
@@ -337,8 +337,8 @@ create_www_account() {
         --disabled-password \
         www-"$in_login" \
         --shell /bin/false \
-        --firstuid 8000 \
-        --firstgid 8000 \
+        --firstuid 4000 \
+        --firstgid 4000 \
         ${in_wwwuid:+'--uid' "$in_wwwuid"} \
         --ingroup "$in_login" \
         --force-badname \
