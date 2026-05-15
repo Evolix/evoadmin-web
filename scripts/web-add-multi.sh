@@ -437,7 +437,7 @@ EOT
     # On s'assure que /etc/apache2/ssl pour le IncludeOptional de la conf
     mkdir -p /etc/apache2/ssl
 
-    /usr/local/sbin/apache2-setup-instance ${in_login}"
+    /usr/local/sbin/apache2-setup-instance "${in_login}"
     sed -i -e "s/APACHE_RUN_USER=www-data/APACHE_RUN_USER=www-${in_login}/g ; s/APACHE_RUN_GROUP=www-data/APACHE_RUN_GROUP=${in_login}/g ;" /etc/apache2-"${in_login}"/envvars
 
     vhostfile="/etc/apache2-${in_login}/sites-available/${in_login}.conf"
