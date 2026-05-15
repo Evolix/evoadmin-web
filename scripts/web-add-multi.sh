@@ -479,21 +479,22 @@ EOT
 
     step_ok "Configuration d'Apache"
 
+    if [ -d /etc/awstats ]; then
+        sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
+            < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
+        chmod 644 /etc/awstats/awstats."$in_login".conf
 
-    sed -e "s/XXX/$in_login/ ; s/SERVERNAME/$in_wwwdomain/ ; s#HOME_DIR#$HOME_DIR#" \
-        < $TPL_AWSTATS > /etc/awstats/awstats."$in_login".conf
-    chmod 644 /etc/awstats/awstats."$in_login".conf
+        VAR=$(grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1)
+        if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
+            VAR=1
+        else
+            VAR=$((VAR +1))
+        fi
 
-       VAR=$(grep -v "^#" /etc/cron.d/awstats |tail -1 | cut -d " " -f1)
-    if [ "$VAR" = "" ] || [ "$VAR" -ge 59 ]; then
-        VAR=1
-    else
-        VAR=$((VAR +1))
+        echo "$VAR * * * * root umask 033; [ -x /usr/lib/cgi-bin/awstats.pl -a -f /etc/awstats/awstats.$in_login.conf -a -r $HOME_DIR_USER/log/access.log ] && /usr/lib/cgi-bin/awstats.pl -config=$in_login -update >/dev/null" >> /etc/cron.d/awstats
+
+        step_ok "Activation d'Awstats"
     fi
-
-    echo "$VAR * * * * root umask 033; [ -x /usr/lib/cgi-bin/awstats.pl -a -f /etc/awstats/awstats.$in_login.conf -a -r $HOME_DIR_USER/log/access.log ] && /usr/lib/cgi-bin/awstats.pl -config=$in_login -update >/dev/null" >> /etc/cron.d/awstats
-
-    step_ok "Activation d'Awstats"
 
     ############################################################################
 
@@ -695,8 +696,10 @@ op_del() {
         systemctl reload-or-restart php-fpm"${php_dot}"
     done
 
-    rm -f /etc/awstats/awstats."$login.conf"
-    sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+    if [ -d /etc/awstats ]; then
+        rm -f /etc/awstats/awstats."$login.conf"
+        sed -i.bak "/-config=$login /d" /etc/cron.d/awstats
+    fi
 
     if id www-"$login" &> /dev/null; then
         userdel -f www-"$login"
